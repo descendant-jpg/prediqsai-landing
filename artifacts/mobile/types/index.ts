@@ -32,7 +32,7 @@ export interface BankrollEntry {
   id: string;
   type: EntryType;
   amount: number;
-  note: string;
+  description: string | null;
   createdAt: string;
 }
 

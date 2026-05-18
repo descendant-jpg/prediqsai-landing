@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
@@ -7,94 +6,101 @@ import React, {
   useState,
 } from "react";
 
-import type { BankrollEntry, Tier, UserProfile } from "@/types";
-
-const STORAGE_KEYS = {
-  PROFILE: "@prediqs:profile",
-  ENTRIES: "@prediqs:bankroll_entries",
-};
+import { useAuth } from "@/context/AuthContext";
+import { api, type ApiBankrollEntry } from "@/lib/api";
+import type { BankrollEntry, EntryType, Tier, UserProfile } from "@/types";
 
 interface AppContextValue {
   profile: UserProfile;
   bankrollEntries: BankrollEntry[];
-  addEntry: (entry: Omit<BankrollEntry, "id" | "createdAt">) => Promise<void>;
+  addEntry: (entry: { type: EntryType; amount: number; description?: string }) => Promise<void>;
   updateBankroll: (amount: number) => Promise<void>;
   setTier: (tier: Tier) => Promise<void>;
+  refreshBankroll: () => Promise<void>;
   isLoaded: boolean;
 }
 
-const defaultProfile: UserProfile = {
-  tier: "free",
-  bankroll: 1000,
-  dailyLossLimit: 200,
-  username: "Bettor",
-};
-
 const AppContext = createContext<AppContextValue | null>(null);
 
+function mapEntry(e: ApiBankrollEntry): BankrollEntry {
+  return {
+    id: String(e.id),
+    type: e.type as EntryType,
+    amount: e.amount,
+    description: e.description,
+    createdAt: e.createdAt,
+  };
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<UserProfile>(defaultProfile);
+  const { user, token, refreshUser } = useAuth();
   const [bankrollEntries, setBankrollEntries] = useState<BankrollEntry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const profile: UserProfile = {
+    tier: (user?.tier ?? "free") as Tier,
+    bankroll: user?.bankroll ?? 0,
+    dailyLossLimit: user?.dailyLossLimit ?? 200,
+    username: user?.username ?? "Bettor",
+  };
+
+  const refreshBankroll = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api.bankroll.get(token);
+      setBankrollEntries(data.entries.map(mapEntry));
+    } catch {}
+  }, [token]);
+
   useEffect(() => {
+    if (!token) {
+      setBankrollEntries([]);
+      setIsLoaded(false);
+      return;
+    }
     async function load() {
-      try {
-        const [profileRaw, entriesRaw] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.PROFILE),
-          AsyncStorage.getItem(STORAGE_KEYS.ENTRIES),
-        ]);
-        if (profileRaw) setProfile(JSON.parse(profileRaw));
-        if (entriesRaw) setBankrollEntries(JSON.parse(entriesRaw));
-      } catch {}
+      await refreshBankroll();
       setIsLoaded(true);
     }
     load();
-  }, []);
-
-  const saveProfile = useCallback(async (p: UserProfile) => {
-    setProfile(p);
-    await AsyncStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(p));
-  }, []);
+  }, [token, refreshBankroll]);
 
   const addEntry = useCallback(
-    async (entry: Omit<BankrollEntry, "id" | "createdAt">) => {
-      const newEntry: BankrollEntry = {
-        ...entry,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        createdAt: new Date().toISOString(),
-      };
-      const updated = [newEntry, ...bankrollEntries];
-      setBankrollEntries(updated);
-      await AsyncStorage.setItem(STORAGE_KEYS.ENTRIES, JSON.stringify(updated));
-
-      // Update bankroll balance
-      const delta =
-        entry.type === "deposit" || entry.type === "win"
-          ? entry.amount
-          : -entry.amount;
-      await saveProfile({ ...profile, bankroll: profile.bankroll + delta });
+    async (entry: { type: EntryType; amount: number; description?: string }) => {
+      if (!token) return;
+      await api.bankroll.addEntry(token, entry);
+      await Promise.all([refreshBankroll(), refreshUser()]);
     },
-    [bankrollEntries, profile, saveProfile],
+    [token, refreshBankroll, refreshUser],
   );
 
   const updateBankroll = useCallback(
     async (amount: number) => {
-      await saveProfile({ ...profile, bankroll: amount });
+      if (!token) return;
+      await api.user.update(token, { bankroll: amount });
+      await refreshUser();
     },
-    [profile, saveProfile],
+    [token, refreshUser],
   );
 
   const setTier = useCallback(
-    async (tier: Tier) => {
-      await saveProfile({ ...profile, tier });
+    async (_tier: Tier) => {
+      await refreshUser();
     },
-    [profile, saveProfile],
+    [refreshUser],
   );
 
   return (
     <AppContext.Provider
-      value={{ profile, bankrollEntries, addEntry, updateBankroll, setTier, isLoaded }}
+      value={{
+        profile,
+        bankrollEntries,
+        addEntry,
+        updateBankroll,
+        setTier,
+        refreshBankroll,
+        isLoaded,
+      }}
     >
       {children}
     </AppContext.Provider>
