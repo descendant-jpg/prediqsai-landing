@@ -1,14 +1,17 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 const OVERALL_STATS = [
@@ -34,6 +37,8 @@ const CONFIDENCE_ACCURACY = [
 export default function PerformanceScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const router = useRouter();
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding = insets.top + topPaddingWeb;
@@ -161,6 +166,21 @@ export default function PerformanceScreen() {
       <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
         Performance stats are based on AI model predictions. Past performance does not guarantee future results.
       </Text>
+
+      {/* Admin: setup guide link */}
+      {user?.id === 1 && (
+        <TouchableOpacity
+          style={[styles.adminLink, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push("/setup")}
+          activeOpacity={0.8}
+        >
+          <Feather name="settings" size={16} color={colors.textMuted} />
+          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>
+            API Keys Setup Guide
+          </Text>
+          <Feather name="chevron-right" size={14} color={colors.textMuted} />
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -202,4 +222,14 @@ const styles = StyleSheet.create({
   chartBarFill: { width: "100%", minWidth: 20 },
   chartMonth: { fontSize: 10, fontFamily: "Inter_500Medium" },
   disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 16 },
+  adminLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  adminLinkText: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
 });

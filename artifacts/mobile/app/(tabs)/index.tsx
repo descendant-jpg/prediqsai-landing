@@ -23,6 +23,8 @@ import { useColors } from "@/hooks/useColors";
 import { api, type ApiPrediction } from "@/lib/api";
 import type { Prediction } from "@/types";
 
+const ORANGE = "#FF6B35";
+
 function mapPrediction(p: ApiPrediction): Prediction {
   return {
     id: p.id,
@@ -53,12 +55,13 @@ export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile } = useApp();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
 
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [setupMissing, setSetupMissing] = useState(false);
 
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
@@ -77,6 +80,14 @@ export default function DashboardScreen() {
   useEffect(() => {
     fetchPredictions();
   }, [fetchPredictions]);
+
+  // Admin-only: check if any critical env vars are missing
+  useEffect(() => {
+    if (user?.id !== 1 || !token) return;
+    api.setup.status(token)
+      .then((s) => setSetupMissing(!s.allCriticalOk))
+      .catch(() => {});
+  }, [user, token]);
 
   const todayPicks = predictions.filter((p) => !p.avoidMatch);
   const avoidPicks = predictions.filter((p) => p.avoidMatch);
@@ -117,6 +128,24 @@ export default function DashboardScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Admin: Setup incomplete banner */}
+      {user?.id === 1 && setupMissing && (
+        <TouchableOpacity
+          style={[
+            styles.setupBanner,
+            { backgroundColor: `${ORANGE}18`, borderColor: `${ORANGE}50` },
+          ]}
+          onPress={() => router.push("/setup")}
+          activeOpacity={0.85}
+        >
+          <Feather name="alert-triangle" size={14} color={ORANGE} />
+          <Text style={[styles.setupBannerText, { color: ORANGE }]}>
+            Setup incomplete — configure API keys
+          </Text>
+          <Feather name="chevron-right" size={14} color={ORANGE} />
+        </TouchableOpacity>
+      )}
 
       {/* Stats Row */}
       <View style={styles.statsRow}>
@@ -306,6 +335,16 @@ const styles = StyleSheet.create({
   tierBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   tierText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
+  setupBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  setupBannerText: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
   loadingSection: { alignItems: "center", paddingVertical: 40, gap: 12 },
   loadingText: { fontSize: 14, fontFamily: "Inter_400Regular" },
   errorBanner: {

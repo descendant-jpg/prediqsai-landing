@@ -113,6 +113,19 @@ export interface BankrollData {
   entries: ApiBankrollEntry[];
 }
 
+export interface SetupVar {
+  key: string;
+  label: string;
+  configured: boolean;
+  critical: boolean;
+  description: string;
+  affectsFeatures: string;
+  howToGet: string;
+  signupUrl: string | null;
+  hasFree: boolean;
+  steps: string[];
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -158,6 +171,16 @@ export const api = {
         "/bankroll/entry",
         { method: "POST", body: JSON.stringify(entry), token },
       ),
+  },
+  setup: {
+    status: (token: string) =>
+      apiFetch<{
+        allCriticalOk: boolean;
+        configuredCount: number;
+        totalCount: number;
+        critical: SetupVar[];
+        optional: SetupVar[];
+      }>("/setup/status", { token }),
   },
   subscription: {
     status: (token: string) =>

@@ -1,0 +1,45 @@
+Now create a complete API Keys Setup Guide for PrediQs AI. 
+
+Build a dedicated setup page at /setup that:
+
+1. Shows a visual checklist of ALL environment variables needed with their current status (configured ✓ or missing ✗) by checking if each process.env variable exists
+
+2. For each API key, show:
+   - The exact variable name to use in Replit Secrets
+   - Where to get the key (direct signup URL)
+   - Which features break without it
+   - Whether it has a free tier
+   - Step-by-step instructions to get the key
+
+Here are ALL the variables needed:
+
+NEXT_PUBLIC_SUPABASE_URL - from supabase.com → New Project → Settings → API
+NEXT_PUBLIC_SUPABASE_ANON_KEY - from supabase.com → Settings → API → anon public key
+SUPABASE_SERVICE_ROLE_KEY - from supabase.com → Settings → API → service_role key
+ANTHROPIC_API_KEY - from console.anthropic.com → API Keys → Create Key
+API_SPORTS_KEY - from api-sports.io → Dashboard → My Account → API Key
+ODDS_API_KEY - from the-odds-api.com → Account → API Key
+NEWS_API_KEY - from newsapi.org → Account → API Key
+WEATHER_API_KEY - from weatherapi.com → Dashboard → API Key
+STRIPE_SECRET_KEY - from dashboard.stripe.com → Developers → API Keys → Secret key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY - from dashboard.stripe.com → Developers → API Keys → Publishable key
+STRIPE_WEBHOOK_SECRET - from dashboard.stripe.com → Webhooks → Add endpoint → Signing secret
+STRIPE_PRO_PRICE_ID - from dashboard.stripe.com → Products → Create product "PrediQs Pro $14.99/mo" → copy Price ID
+STRIPE_ELITE_PRICE_ID - from dashboard.stripe.com → Products → Create product "PrediQs Elite $39.99/mo" → copy Price ID
+ONESIGNAL_APP_ID - from onesignal.com → New App → Settings → Keys & IDs
+ONESIGNAL_API_KEY - from onesignal.com → Settings → Keys & IDs → REST API Key
+RESEND_API_KEY - from resend.com → API Keys → Create API Key
+NEXT_PUBLIC_URL - your Replit app URL e.g. https://prediqs-ai.yourusername.repl.co
+
+3. Also create a .env.example file in the project root with all variables listed (empty values) so any developer knows exactly what's needed.
+
+4. Also create a lib/validateEnv.ts file that:
+   - Checks all required env variables on app startup
+   - Logs a clear warning for any missing variables
+   - Groups them by: CRITICAL (app breaks without these) vs OPTIONAL (degrades gracefully)
+   - CRITICAL: Supabase, Anthropic, API-Sports, Odds API
+   - OPTIONAL: NewsAPI, WeatherAPI, OneSignal, Resend, Stripe (can add later)
+
+5. In the main dashboard, show a small "Setup incomplete" banner at the top if any CRITICAL variables are missing, with a link to /setup
+
+Make the /setup page only accessible to the first user (admin) and hide it from regular users.
