@@ -184,13 +184,10 @@ export const api = {
   },
   subscription: {
     status: (token: string) =>
-      apiFetch<{ tier: string; subscriptionId: string | null }>(
-        "/subscription/status",
-        { token },
-      ),
-    checkout: (token: string, tier: "pro" | "elite") =>
-      apiFetch<{ url: string }>("/subscription/checkout", {
-        method: "POST",
+      apiFetch<{ tier: string }>("/subscription/status", { token }),
+    setTier: (token: string, tier: "free" | "pro" | "elite") =>
+      apiFetch<{ tier: string }>("/subscription/tier", {
+        method: "PUT",
         body: JSON.stringify({ tier }),
         token,
       }),

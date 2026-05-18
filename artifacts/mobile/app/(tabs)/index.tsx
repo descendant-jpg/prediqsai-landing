@@ -117,16 +117,23 @@ export default function DashboardScreen() {
           </Text>
           <Text style={[styles.appName, { color: colors.cyan }]}>PrediQs AI</Text>
         </View>
-        <View
-          style={[
-            styles.tierBadge,
-            { backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan },
-          ]}
+        <TouchableOpacity
+          style={styles.headerRight}
+          onPress={() => router.push("/settings")}
+          activeOpacity={0.75}
         >
-          <Text style={[styles.tierText, { color: colors.cyan }]}>
-            {profile.tier.toUpperCase()}
-          </Text>
-        </View>
+          <View
+            style={[
+              styles.tierBadge,
+              { backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan },
+            ]}
+          >
+            <Text style={[styles.tierText, { color: colors.cyan }]}>
+              {profile.tier.toUpperCase()}
+            </Text>
+          </View>
+          <Feather name="settings" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
       </View>
 
       {/* Admin: Setup incomplete banner */}
@@ -332,6 +339,7 @@ const styles = StyleSheet.create({
   },
   greeting: { fontSize: 13, fontFamily: "Inter_400Regular" },
   appName: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   tierBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   tierText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },

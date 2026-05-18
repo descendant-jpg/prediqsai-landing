@@ -52,7 +52,7 @@ router.post("/auth/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 12);
   const [user] = await db
     .insert(users)
-    .values({ username, email: email.toLowerCase(), passwordHash })
+    .values({ username, email: email.toLowerCase(), passwordHash, tier: "pro" })
     .returning();
 
   const token = signToken(user.id);

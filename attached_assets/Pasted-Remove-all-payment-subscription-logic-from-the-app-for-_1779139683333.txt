@@ -1,0 +1,79 @@
+Remove all payment/subscription logic from the app for now. 
+
+Here's what to do:
+
+1. REMOVE completely:
+   - All Stripe imports and code
+   - Stripe environment variables
+   - /api/stripe/ folder and all routes
+   - Billing section from settings page
+   - Any "upgrade" checkout flows
+
+2. REPLACE tier gating with a simple mock system:
+   - Add a tier selector in Settings page (dropdown: Free / Pro / Elite)
+   - This lets us test all three tiers without real payments
+   - Store selected tier in Supabase profiles.tier column
+   - Default all new users to 'pro' tier during development
+     so we can see all features while building
+
+3. KEEP the tier logic itself (Free / Pro / Elite feature 
+   differences) — just remove the payment wall for now.
+   Instead of showing "Upgrade to Pro" paywalls, 
+   show a simple banner: 
+   "Payment coming soon — enjoy full access during beta!"
+
+4. FOCUS on building these core features properly:
+
+   PRIORITY 1 — Today's Picks page:
+   - Prediction cards with animated confidence arc
+   - Risk badges (Low/Medium/High)
+   - Value detected badge
+   - Avoid match warning cards
+   - Full analysis modal with AI reasoning
+   - Filter bar (All / NFL / NBA / MLB / Soccer)
+
+   PRIORITY 2 — AI Assistant chat page:
+   - Full Claude API chat integration
+   - Sports-focused system prompt
+   - Message history saved to Supabase
+   - Suggested prompt chips on empty state
+   - Typing indicator while AI responds
+
+   PRIORITY 3 — Dashboard:
+   - Today's stats bar (picks count, win rate, bankroll)
+   - Featured pick of the day card
+   - Recent picks feed
+   - Don't Bet Today warning section
+   - Market movers sidebar
+
+   PRIORITY 4 — Bankroll Manager:
+   - Current balance display
+   - Add win/loss/deposit/withdrawal entries
+   - Balance history line chart (recharts)
+   - Kelly Criterion calculator
+   - Emotional betting warning after 3 losses
+
+   PRIORITY 5 — Performance page:
+   - Win rate by sport (bar chart)
+   - ROI trend over time (line chart)
+   - Overall stats summary
+
+5. For predictions data — use the mock predictions 
+   from the original prompt while we set up real APIs.
+   Generate at least 10 mock predictions covering 
+   NFL, NBA, MLB and Soccer with varied confidence 
+   levels, risk levels, and include 2-3 avoid matches.
+
+6. Make sure the app is fully mobile responsive —
+   sidebar collapses to bottom navigation on mobile.
+
+7. Dark theme throughout:
+   - Background: #070B12
+   - Cards: #0C1422  
+   - Accent: #00E5FF (cyan)
+   - Gold: #FFD700
+   - Green: #00FF94
+   - Font: Playfair Display for headings, 
+     DM Mono for numbers and data
+
+Build and run the app. Sho
