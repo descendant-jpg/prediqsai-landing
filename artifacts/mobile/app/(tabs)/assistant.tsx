@@ -83,23 +83,28 @@ export default function AssistantScreen() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
+      // Bug fix: buffer incomplete lines that span across multiple read() chunks
+      let lineBuffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n").filter((l) => l.startsWith("data: "));
+        lineBuffer += decoder.decode(value, { stream: true });
+        const lines = lineBuffer.split("\n");
+        // Keep the last (potentially incomplete) line in the buffer
+        lineBuffer = lines.pop() ?? "";
 
         for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
             if (data.content) {
               accumulated += data.content;
-              const finalAccumulated = accumulated;
+              const snap = accumulated;
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: finalAccumulated } : m,
+                  m.id === assistantId ? { ...m, content: snap } : m,
                 ),
               );
             }

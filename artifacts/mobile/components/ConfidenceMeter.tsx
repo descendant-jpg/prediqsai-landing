@@ -13,12 +13,14 @@ interface Props {
 
 export function ConfidenceMeter({ value, size = 80 }: Props) {
   const colors = useColors();
-  const animatedOffset = useRef(new Animated.Value(0)).current;
 
   const strokeWidth = Math.max(6, size * 0.1);
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
+
+  // Bug fix: initialise to circumference (fully hidden), then animate to the correct offset
+  const animatedOffset = useRef(new Animated.Value(circumference)).current;
 
   const color =
     value >= 70 ? colors.green : value >= 50 ? colors.gold : colors.red;
@@ -54,12 +56,12 @@ export function ConfidenceMeter({ value, size = 80 }: Props) {
           fill="none"
           stroke={color}
           strokeWidth={strokeWidth}
-          strokeDasharray={`${circumference}`}
+          strokeDasharray={circumference}
           strokeDashoffset={animatedOffset as unknown as number}
           strokeLinecap="round"
         />
       </Svg>
-      {/* Center text */}
+      {/* Center label — not rotated, overlay over the SVG */}
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.center}>
           <Text style={{ color, fontSize, fontFamily: "Inter_700Bold" }}>

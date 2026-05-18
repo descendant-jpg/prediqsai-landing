@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -21,7 +20,6 @@ interface Props {
 export function TierGate({ requiredTier, children }: Props) {
   const { profile } = useApp();
   const colors = useColors();
-  const router = useRouter();
 
   if (canAccess(profile.tier, requiredTier)) {
     return <>{children}</>;
@@ -32,27 +30,36 @@ export function TierGate({ requiredTier, children }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.blur} pointerEvents="none">
+      {/* Bug fix: pointerEvents must be in style, not as a JSX prop (deprecated) */}
+      <View style={[styles.blur, { pointerEvents: "none" } as any]}>
         {children}
       </View>
       <View style={[styles.overlay, { backgroundColor: "rgba(7,11,18,0.85)" }]}>
-        <View style={[styles.badge, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: tierColor }]}>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: "rgba(0,229,255,0.08)", borderColor: tierColor },
+          ]}
+        >
           <Ionicons
             name={requiredTier === "elite" ? "diamond" : "flash"}
             size={20}
             color={tierColor}
           />
-          <Text style={[styles.tierLabel, { color: tierColor }]}>{tierLabel} Feature</Text>
+          <Text style={[styles.tierLabel, { color: tierColor }]}>
+            {tierLabel} Feature
+          </Text>
         </View>
         <Text style={[styles.desc, { color: colors.textSecondary }]}>
           Upgrade to unlock full analysis
         </Text>
         <TouchableOpacity
           style={[styles.btn, { backgroundColor: colors.cyan }]}
-          onPress={() => {}}
           activeOpacity={0.8}
         >
-          <Text style={[styles.btnText, { color: colors.background }]}>Upgrade Now</Text>
+          <Text style={[styles.btnText, { color: colors.background }]}>
+            Upgrade Now
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

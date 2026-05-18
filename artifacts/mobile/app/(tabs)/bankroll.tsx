@@ -2,9 +2,6 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -36,11 +33,15 @@ function KellyCalculator() {
   const [result, setResult] = useState<number | null>(null);
 
   function calculate() {
-    const b = parseFloat(odds) / 100;
+    const oddsNum = parseFloat(odds);
+    const bankrollNum = parseFloat(bankroll);
     const p = parseFloat(probability) / 100;
+    if (isNaN(oddsNum) || isNaN(bankrollNum) || isNaN(p) || p <= 0 || p >= 1) return;
+    // Bug fix: handle both positive (+150) and negative (-110) American odds correctly
+    const b = oddsNum > 0 ? oddsNum / 100 : 100 / Math.abs(oddsNum);
     const q = 1 - p;
     const kelly = (b * p - q) / b;
-    const stake = Math.max(0, kelly) * parseFloat(bankroll);
+    const stake = Math.max(0, kelly) * bankrollNum;
     setResult(stake);
   }
 
