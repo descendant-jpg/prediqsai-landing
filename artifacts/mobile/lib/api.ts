@@ -126,6 +126,50 @@ export interface SetupVar {
   steps: string[];
 }
 
+export interface SoccerFixture {
+  id: number;
+  leagueId: number;
+  leagueName: string;
+  leagueCountry: string;
+  leagueFlag: string;
+  leagueLogo: string;
+  leagueTier: number;
+  homeTeam: string;
+  homeLogo: string;
+  awayTeam: string;
+  awayLogo: string;
+  kickoff: string;
+  statusShort: string;
+  statusLong: string;
+  elapsed: number | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  confidence: number;
+  prediction: "home_win" | "away_win" | "draw";
+  riskLevel: "low" | "medium" | "high";
+  valueDetected: boolean;
+}
+
+export interface SoccerLeagueGroup {
+  leagueId: number;
+  leagueName: string;
+  leagueCountry: string;
+  leagueFlag: string;
+  leagueLogo: string;
+  leagueTier: number;
+  fixtures: SoccerFixture[];
+}
+
+export interface SoccerFeedResponse {
+  fixtures: SoccerFixture[];
+  leagueGroups: SoccerLeagueGroup[];
+  featuredMatch: SoccerFixture | null;
+  lastUpdated: string;
+  totalCount: number;
+  liveCount: number;
+  hasApiKey: boolean;
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -143,9 +187,7 @@ export const api = {
     me: (token: string) => apiFetch<UserData>("/user/me", { token }),
     update: (
       token: string,
-      data: Partial<
-        Pick<UserData, "username" | "dailyLossLimit" | "bankroll">
-      >,
+      data: Partial<Pick<UserData, "username" | "dailyLossLimit" | "bankroll">>,
     ) =>
       apiFetch<UserData>("/user/me", {
         method: "PUT",
@@ -160,6 +202,12 @@ export const api = {
         method: "POST",
         token,
       }),
+  },
+  soccer: {
+    fixtures: (token: string) =>
+      apiFetch<SoccerFeedResponse>("/soccer/fixtures", { token }),
+    live: (token: string) =>
+      apiFetch<SoccerFixture[]>("/soccer/live", { token }),
   },
   bankroll: {
     get: (token: string) => apiFetch<BankrollData>("/bankroll", { token }),

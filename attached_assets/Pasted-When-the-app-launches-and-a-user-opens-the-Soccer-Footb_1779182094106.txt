@@ -1,0 +1,147 @@
+When the app launches and a user opens the 
+Soccer/Football section, automatically fetch 
+and display ALL games happening today across 
+every major league worldwide.
+
+Here is the complete list of leagues to fetch 
+from API-Sports every single day:
+
+TIER 1 - ELITE (Always show at top):
+League ID 2   - UEFA Champions League ⭐
+League ID 3   - UEFA Europa League
+League ID 848 - UEFA Conference League
+League ID 39  - Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+League ID 140 - La Liga 🇪🇸
+League ID 78  - Bundesliga 🇩🇪
+League ID 135 - Serie A 🇮🇹
+League ID 61  - Ligue 1 🇫🇷
+League ID 94  - Primeira Liga 🇵🇹
+League ID 88  - Eredivisie 🇳🇱
+
+TIER 2 - MAJOR NATIONAL LEAGUES:
+League ID 40  - Championship (England)
+League ID 78  - 2. Bundesliga 🇩🇪
+League ID 136 - Serie B 🇮🇹
+League ID 141 - Segunda División 🇪🇸
+League ID 62  - Ligue 2 🇫🇷
+League ID 253 - MLS 🇺🇸
+League ID 71  - Brasileirao Serie A 🇧🇷
+League ID 72  - Brasileirao Serie B 🇧🇷
+League ID 128 - Liga Profesional 🇦🇷
+League ID 239 - Premier League 🇷🇺
+League ID 235 - Premier League 🇷🇺
+League ID 144 - Jupiler Pro League 🇧🇪
+League ID 179 - Scottish Premiership 🏴󠁧󠁢󠁳󠁣󠁴󠁿
+League ID 169 - Süper Lig 🇹🇷
+League ID 203 - Super League 🇬🇷
+League ID 197 - Super League 🇨🇭
+League ID 119 - Superliga 🇩🇰
+League ID 113 - Allsvenskan 🇸🇪
+League ID 103 - Eliteserien 🇳🇴
+League ID 106 - Veikkausliiga 🇫🇮
+
+TIER 3 - AFRICAN LEAGUES:
+League ID 12  - CAF Champions League 🌍
+League ID 13  - CAF Confederation Cup
+League ID 6   - Africa Cup of Nations
+League ID 233 - Nigerian Professional League 🇳🇬
+League ID 202 - Egyptian Premier League 🇪🇬
+League ID 288 - South African PSL 🇿🇦
+League ID 301 - Kenyan Premier League 🇰🇪
+League ID 299 - Ghanaian Premier League 🇬🇭
+
+TIER 4 - ASIAN LEAGUES:
+League ID 292 - K League 1 🇰🇷
+League ID 98  - J1 League 🇯🇵
+League ID 169 - Super League 🇨🇳
+League ID 323 - Indian Super League 🇮🇳
+League ID 307 - Saudi Pro League 🇸🇦
+League ID 197 - UAE Pro League 🇦🇪
+
+TIER 5 - CUPS & TOURNAMENTS:
+League ID 45  - FA Cup 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+League ID 48  - EFL Cup 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+League ID 143 - Copa del Rey 🇪🇸
+League ID 137 - Coppa Italia 🇮🇹
+League ID 66  - Coupe de France 🇫🇷
+League ID 81  - DFB Pokal 🇩🇪
+League ID 1   - FIFA World Cup 2026 🌍
+League ID 31  - World Cup Qualifiers
+League ID 4   - Euro Championship
+League ID 5   - UEFA Nations League
+League ID 9   - Copa America
+League ID 29  - AFCON Qualifiers
+
+DISPLAY RULES:
+
+1. On app launch fetch ALL leagues simultaneously
+   using parallel API calls for speed
+
+2. Only show leagues that have games TODAY
+   - Hide leagues with no fixtures today
+   - Show "No games today" only if 
+     zero leagues have matches
+
+3. Sort order on screen:
+   - Champions League always first if playing
+   - Then by Tier (1 → 2 → 3 → 4 → 5)
+   - Within same tier sort by kick-off time
+
+4. Each game card shows:
+   - League name + country flag
+   - League logo from API-Sports
+   - Home team name + crest
+   - Away team name + crest  
+   - Kick-off time (user's local timezone)
+   - AI confidence meter
+   - Risk badge
+   - Value badge if detected
+   - Live score if game is in progress
+
+5. LIVE GAMES section:
+   - At top of feed show any games 
+     currently being played
+   - Red LIVE badge pulsing
+   - Real-time score updating every 60 seconds
+   - Live momentum indicator
+
+6. Filter bar tabs:
+   - All 🌍
+   - Live 🔴
+   - Champions League ⭐
+   - Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+   - La Liga 🇪🇸
+   - Bundesliga 🇩🇪
+   - Serie A 🇮🇹
+   - Africa 🌍
+   - More ›
+
+7. FEATURED MATCH of the day:
+   - Large card at very top
+   - Biggest game of the day globally
+   - Based on team world rankings
+   - Shows detailed AI analysis preview
+
+8. Search bar:
+   - User can search any team name
+   - Instantly filters to show that 
+     team's upcoming game
+   - Example: type "Arsenal" → shows 
+     Arsenal's next match with prediction
+
+9. Timezone support:
+   - Detect user's timezone automatically
+   - Show all kick-off times in LOCAL time
+   - Show "Today", "Tomorrow", "In 2 days"
+   - Never show confusing UTC times
+
+10. Cache results:
+    - Cache API response for 30 minutes
+    - Prevents hitting API rate limits
+    - Shows "Last updated X mins ago"
+    - Pull-to-refresh for latest data
+
+Make this the most comprehensive football 
+prediction feed any app has ever shown.
+Every major match on the planet, 
+every single day, automatically.

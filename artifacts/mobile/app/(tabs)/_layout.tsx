@@ -63,6 +63,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="soccer"
+        options={{
+          title: "Football",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="soccerball" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="football-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
         name="assistant"
         options={{
           title: "AI",
