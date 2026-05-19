@@ -170,6 +170,10 @@ export interface SoccerFeedResponse {
   hasApiKey: boolean;
 }
 
+export interface SlipAnalysisResult {
+  analysis: unknown;
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -208,6 +212,17 @@ export const api = {
       apiFetch<SoccerFeedResponse>("/soccer/fixtures", { token }),
     live: (token: string) =>
       apiFetch<SoccerFixture[]>("/soccer/live", { token }),
+  },
+  slip: {
+    analyze: (
+      token: string,
+      payload: { imageBase64?: string; mediaType?: string; textInput?: string },
+    ) =>
+      apiFetch<SlipAnalysisResult>("/slip/analyze", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        token,
+      }),
   },
   bankroll: {
     get: (token: string) => apiFetch<BankrollData>("/bankroll", { token }),

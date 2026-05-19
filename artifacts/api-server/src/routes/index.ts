@@ -6,6 +6,7 @@ import chatRouter from "./chat";
 import healthRouter from "./health";
 import predictionsRouter from "./predictions";
 import setupRouter from "./setup";
+import slipRouter from "./slip";
 import soccerRouter from "./soccer";
 import subscriptionRouter from "./subscription";
 import userRouter from "./user";
@@ -21,5 +22,6 @@ router.use(bankrollRouter);
 router.use(subscriptionRouter);
 router.use(setupRouter);
 router.use(soccerRouter);
+router.use(slipRouter);
 
 export default router;
