@@ -1,0 +1,322 @@
+Expand the arbitrage scanner to cover 
+African betting markets fully.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFRICAN BOOKMAKERS TO INCLUDE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these African bookmakers to the 
+arbitrage comparison engine:
+
+NIGERIA:
+- Bet9ja (bet9ja.com)
+- SportyBet (sportybet.com)
+- BetKing (betking.com)
+- NairaBet (nairabet.com)
+- Betway Nigeria (betway.com.ng)
+- 1xBet Nigeria (1xbet.com)
+- Melbet Nigeria (melbet.com)
+- 22Bet Nigeria (22bet.com)
+- Betano Nigeria
+- Paripesa Nigeria
+
+KENYA:
+- Betway Kenya (betway.co.ke)
+- SportyBet Kenya
+- Odibets (odibets.com)
+- Betlion (betlion.co.ke)
+- Mozzartbet Kenya
+- Shabiki (shabiki.com)
+- Premierbet Kenya
+- 1xBet Kenya
+
+GHANA:
+- SportyBet Ghana
+- Betway Ghana
+- BetKing Ghana
+- 1xBet Ghana
+- Melbet Ghana
+- Soccabet (soccabet.com)
+- Betpawa Ghana
+
+SOUTH AFRICA:
+- Hollywoodbets (hollywoodbets.net)
+- SuperSport Bet
+- Betway South Africa
+- 10bet South Africa
+- World Sports Betting
+- Gbets
+- Playabets
+
+UGANDA/TANZANIA/ZAMBIA:
+- Betway Uganda
+- SportyBet Uganda
+- Premierbet Uganda
+- Betpawa
+- Betlion Uganda
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATA SOURCES FOR AFRICAN ODDS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Primary source:
+Use The Odds API (ODDS_API_KEY) 
+for bookmakers it covers:
+- 1xBet ✅ covered
+- Betway ✅ covered  
+- 22Bet ✅ covered
+- Melbet ✅ covered
+
+Secondary source:
+Fetch odds directly from bookmaker
+public API endpoints where available:
+
+Bet9ja public odds:
+GET https://sports.bet9ja.com/api/
+GetSports?sportid=1&period=1
+
+SportyBet public odds:
+GET https://www.sportybet.com/api/
+ng/factsCenter/popularMatches
+?sportId=sr:sport:1&marketId=1
+
+BetKing odds:
+GET https://www.betking.com/api/
+sports/v1/events?sport=soccer
+
+Scrape as fallback:
+Use Apify web scraper for bookmakers
+without public APIs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REGION DETECTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Detect user's country automatically:
+- Use IP geolocation on signup
+- Or ask during onboarding:
+  "Select your country"
+  
+Then show RELEVANT bookmakers:
+
+Nigerian user sees:
+Primary: Bet9ja, SportyBet, 
+         BetKing, Betway Nigeria
+Secondary: 1xBet, Melbet, 22Bet
+Global: Bet365, William Hill
+
+Kenyan user sees:
+Primary: Betway Kenya, SportyBet,
+         Odibets, Betlion
+Secondary: 1xBet, Melbet
+Global: Bet365, Unibet
+
+South African user sees:
+Primary: Hollywoodbets, Betway SA,
+         SuperSport Bet, 10bet
+Secondary: 1xBet, 22Bet
+Global: Bet365, Unibet
+
+US user sees:
+Primary: DraftKings, FanDuel,
+         BetMGM, Caesars, ESPN Bet
+Secondary: PointsBet, BetRivers
+Global: Pinnacle
+
+UK/Europe user sees:
+Primary: Bet365, William Hill,
+         Betfair, Paddy Power
+Secondary: Unibet, Bwin, 888Sport
+Global: Pinnacle
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFRICAN ARBITRAGE EXAMPLE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show arb opportunities in local 
+currency for African users:
+
+Nigerian user sees:
+┌──────────────────────────────┐
+│ 🔄 ARB DETECTED              │
+│ Arsenal vs Chelsea           │
+│ Premier League               │
+│                              │
+│ Bet9ja:    Arsenal @ 2.05   │
+│ SportyBet: Chelsea @ 2.35   │
+│                              │
+│ Profit: +2.1%               │
+│                              │
+│ Stake ₦50,000:              │
+│ ₦25,500 on Bet9ja           │
+│ ₦24,500 on SportyBet        │
+│                              │
+│ Guaranteed profit: ₦1,050   │
+│                              │
+│ ⏱️ Act within: 8:24         │
+│                              │
+│ [Open Bet9ja →]             │
+│ [Open SportyBet →]          │
+└──────────────────────────────┘
+
+Kenyan user sees in KES (shillings)
+South African user sees in ZAR (rand)
+Ghanaian user sees in GHS (cedis)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CURRENCY SUPPORT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Support these African currencies:
+- ₦ NGN — Nigerian Naira
+- KES — Kenyan Shilling  
+- GHS — Ghanaian Cedi
+- ZAR — South African Rand
+- UGX — Ugandan Shilling
+- TZS — Tanzanian Shilling
+- ZMW — Zambian Kwacha
+- XOF — West African CFA Franc
+  (Senegal, Ivory Coast, etc)
+
+Use exchange rate API to convert:
+GET https://api.exchangerate-api.com/
+v4/latest/USD
+
+Free tier available — 1,500 requests/month
+
+Display stakes and profits in 
+user's local currency automatically
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFRICA-SPECIFIC FEATURES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. LOCAL LEAGUE ARBITRAGE:
+   Include African leagues:
+   - NPFL (Nigeria)
+   - KPL (Kenya)  
+   - PSL (South Africa)
+   - GPL (Ghana)
+   - CAF Champions League
+   - AFCON matches
+   
+   African local games often have
+   BIGGER odds differences between
+   bookmakers = better arb opportunities
+
+2. MOBILE MONEY AWARENESS:
+   Show deposit/withdrawal methods:
+   - Opay (Nigeria)
+   - PalmPay (Nigeria)
+   - M-Pesa (Kenya)
+   - MTN Mobile Money (Ghana/Uganda)
+   - Airtel Money (Multiple countries)
+   
+   "Both bookmakers accept M-Pesa ✅"
+   "Transfer time: Instant"
+
+3. MINIMUM STAKE ALERTS:
+   African bookmakers have different
+   minimum stakes:
+   - Bet9ja minimum: ₦100
+   - SportyBet minimum: ₦100
+   - BetKing minimum: ₦100
+   
+   Show warning if calculated stake
+   is below bookmaker minimum:
+   "⚠️ SportyBet minimum stake is 
+   ₦100. Increase your budget for 
+   this arbitrage opportunity"
+
+4. POPULAR MARKETS IN AFRICA:
+   African bettors love:
+   - Both Teams to Score (BTTS)
+   - Correct Score
+   - Over/Under 2.5
+   - Double Chance
+   
+   Include these in arb scanning
+   not just match winner
+
+5. SCAM BOOKMAKER DETECTION:
+   Warn users about:
+   - Unlicensed bookmakers
+   - Bookmakers known for 
+     not paying winnings
+   - Bookmakers with withdrawal issues
+   
+   Show trust score per bookmaker:
+   Bet9ja: ⭐⭐⭐⭐⭐ Licensed NLRC
+   SportyBet: ⭐⭐⭐⭐⭐ Trusted
+   1xBet: ⭐⭐⭐ Use with caution
+   Unknown site: ⚠️ Not recommended
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GLOBAL ARBITRAGE TAB LAYOUT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Arbitrage screen has region tabs:
+
+🌍 My Region (auto-detected)
+🇺🇸 USA
+🇬🇧 UK/Europe  
+🌍 Africa
+🌏 Asia
+🌐 Global (all regions)
+
+Each tab shows arb opportunities
+between bookmakers in that region
+
+"My Region" tab is default and
+shows most relevant bookmakers
+for the user's location
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXCHANGE RATE API:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add new environment variable:
+EXCHANGE_RATE_API_KEY
+
+Sign up free at:
+exchangerate-api.com
+
+Add to Replit Secrets:
+EXCHANGE_RATE_API_KEY=your_key
+
+Use to convert all stake amounts
+and profits to user's local currency
+automatically in real-time
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT DISCLAIMERS FOR AFRICA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add country-specific warnings:
+
+Nigeria:
+"Sports betting is regulated by the
+National Lottery Regulatory Commission
+(NLRC). Only use licensed operators.
+Gambling is for 18+ only."
+
+Kenya:
+"Sports betting is regulated by the
+Betting Control and Licensing Board
+(BCLB). 20% excise duty applies 
+to all winnings."
+
+South Africa:
+"Sports betting is regulated by the
+National Gambling Board. 
+Only use licensed operators."
+
+Ghana:
+"Sports betting is regulated by the
+Gaming Commission of Ghana.
+Play responsibly."
+
+Build the full African arbitrage
+feature and show me the regional
+arbitrage scanner screen with
+Nigerian bookmakers displayed.

@@ -191,6 +191,8 @@ export interface PerformanceData {
   };
 }
 
+export type ArbRegion = "global" | "us" | "uk" | "africa" | "asia";
+
 export interface ArbLeg {
   bookmaker: string;
   bookmakerId: string;
@@ -220,6 +222,8 @@ export interface ArbScanResponse {
   lastScanned: string;
   hasApiKey: boolean;
   tier: string;
+  region?: ArbRegion;
+  disclaimer?: string;
 }
 
 export interface ArbCalcResult {
@@ -314,14 +318,18 @@ export const api = {
       }),
   },
   arbitrage: {
-    list: (token: string) =>
-      apiFetch<ArbScanResponse>("/arbitrage", { token }),
-    scan: (token: string) =>
-      apiFetch<ArbScanResponse>("/arbitrage/scan", { method: "POST", token }),
-    calculate: (token: string, arbId: string, budget: number) =>
+    list: (token: string, region?: ArbRegion) =>
+      apiFetch<ArbScanResponse>(`/arbitrage${region ? `?region=${region}` : ""}`, { token }),
+    scan: (token: string, region?: ArbRegion) =>
+      apiFetch<ArbScanResponse>("/arbitrage/scan", {
+        method: "POST",
+        body: JSON.stringify({ region }),
+        token,
+      }),
+    calculate: (token: string, arbId: string, budget: number, region?: ArbRegion) =>
       apiFetch<ArbCalcResult>("/arbitrage/calculate", {
         method: "POST",
-        body: JSON.stringify({ arbId, budget }),
+        body: JSON.stringify({ arbId, budget, region }),
         token,
       }),
   },

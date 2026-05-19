@@ -2,19 +2,9 @@ import { logger } from "../lib/logger";
 
 const ODDS_API_KEY = process.env["ODDS_API_KEY"];
 
-// Sports to scan for arbitrage opportunities
-const SPORTS_TO_SCAN = [
-  { key: "soccer_epl",                  sport: "Soccer", league: "Premier League" },
-  { key: "soccer_spain_la_liga",        sport: "Soccer", league: "La Liga" },
-  { key: "soccer_germany_bundesliga",   sport: "Soccer", league: "Bundesliga" },
-  { key: "soccer_italy_serie_a",        sport: "Soccer", league: "Serie A" },
-  { key: "soccer_france_ligue_one",     sport: "Soccer", league: "Ligue 1" },
-  { key: "americanfootball_nfl",        sport: "NFL",    league: "NFL" },
-  { key: "basketball_nba",             sport: "NBA",    league: "NBA" },
-  { key: "baseball_mlb",               sport: "MLB",    league: "MLB" },
-] as const;
-
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export type ArbRegion = "global" | "us" | "uk" | "africa" | "asia";
 
 export interface ArbLeg {
   bookmaker: string;
@@ -37,45 +27,185 @@ export interface ArbOpportunity {
   totalImplied: number;
   legs: ArbLeg[];
   discoveredAt: string;
+  region?: ArbRegion;
 }
 
-// ─── Cache ────────────────────────────────────────────────────────────────────
+// ─── Bookmaker metadata (trust, mobile money, URLs) ──────────────────────────
 
-let cachedArbs: ArbOpportunity[] = [];
-let lastFetched = 0;
-const CACHE_MS = 30_000; // 30-second cache for Elite real-time feel
+export interface BookmakerMeta {
+  name: string;
+  url: string;
+  trustStars: number;           // 1-5
+  license: string;
+  mobileMoney: string[];
+  minStakeUSD: number;
+  regions: ArbRegion[];
+}
 
-// ─── Fetch raw odds from Odds API (decimal format, all regions) ───────────────
+export const BOOKMAKER_META: Record<string, BookmakerMeta> = {
+  // ── African bookmakers ──────────────────────────────────────────────────────
+  bet9ja:         { name: "Bet9ja",        url: "https://www.bet9ja.com",          trustStars: 5, license: "Licensed NLRC ✅",            mobileMoney: ["OPay", "PalmPay", "Bank Transfer"], minStakeUSD: 0.07, regions: ["africa"] },
+  sportybet:      { name: "SportyBet",     url: "https://www.sportybet.com",       trustStars: 5, license: "Trusted ✅",                   mobileMoney: ["OPay", "PalmPay"],                  minStakeUSD: 0.07, regions: ["africa"] },
+  betking:        { name: "BetKing",       url: "https://www.betking.com",         trustStars: 5, license: "Licensed NLRC ✅",            mobileMoney: ["OPay", "Bank Transfer"],            minStakeUSD: 0.07, regions: ["africa"] },
+  hollywoodbets:  { name: "Hollywoodbets", url: "https://www.hollywoodbets.net",   trustStars: 5, license: "Licensed SA NGB ✅",          mobileMoney: ["FNB", "Standard Bank", "EFT"],      minStakeUSD: 0.05, regions: ["africa"] },
+  odibets:        { name: "Odibets",       url: "https://www.odibets.com",         trustStars: 4, license: "Licensed BCLB ✅",            mobileMoney: ["M-Pesa", "Airtel Money"],           minStakeUSD: 0.08, regions: ["africa"] },
+  betway:         { name: "Betway",        url: "https://www.betway.com",          trustStars: 5, license: "Multi-jurisdiction ✅",       mobileMoney: ["M-Pesa", "OPay", "Airtel Money"],   minStakeUSD: 0.50, regions: ["africa", "uk", "global"] },
+  "1xbet":        { name: "1xBet",         url: "https://www.1xbet.com",           trustStars: 3, license: "Use with caution ⚠️",        mobileMoney: ["M-Pesa", "MTN Mobile Money"],       minStakeUSD: 0.15, regions: ["africa", "uk", "global"] },
+  melbet:         { name: "Melbet",        url: "https://www.melbet.com",          trustStars: 3, license: "Use with caution ⚠️",        mobileMoney: ["MTN Mobile Money"],                 minStakeUSD: 0.15, regions: ["africa", "uk", "global"] },
+  "22bet":        { name: "22Bet",         url: "https://www.22bet.com",           trustStars: 3, license: "Use with caution ⚠️",        mobileMoney: [],                                   minStakeUSD: 0.15, regions: ["africa", "uk", "global"] },
+  // ── US bookmakers ───────────────────────────────────────────────────────────
+  draftkings:     { name: "DraftKings",    url: "https://www.draftkings.com",      trustStars: 5, license: "Licensed US ✅",              mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  fanduel:        { name: "FanDuel",       url: "https://www.fanduel.com",         trustStars: 5, license: "Licensed US ✅",              mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  betmgm:         { name: "BetMGM",        url: "https://www.betmgm.com",          trustStars: 5, license: "Licensed US ✅",              mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  caesars:        { name: "Caesars",       url: "https://www.caesarssportsbook.com", trustStars: 5, license: "Licensed US ✅",            mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  espnbet:        { name: "ESPN Bet",      url: "https://www.espnbet.com",         trustStars: 5, license: "Licensed US ✅",              mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  pointsbet:      { name: "PointsBet",     url: "https://www.pointsbet.com",       trustStars: 4, license: "Licensed US ✅",              mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  betrivers:      { name: "BetRivers",     url: "https://www.betrivers.com",       trustStars: 4, license: "Licensed US ✅",              mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["us"] },
+  // ── UK/EU bookmakers ────────────────────────────────────────────────────────
+  bet365:         { name: "Bet365",        url: "https://www.bet365.com",          trustStars: 5, license: "Licensed UK GC ✅",           mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk", "global"] },
+  williamhill:    { name: "William Hill",  url: "https://www.williamhill.com",     trustStars: 5, license: "Licensed UK GC ✅",           mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk"] },
+  betfair:        { name: "Betfair",       url: "https://www.betfair.com",         trustStars: 5, license: "Licensed UK GC ✅",           mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk", "global"] },
+  paddypower:     { name: "Paddy Power",   url: "https://www.paddypower.com",      trustStars: 5, license: "Licensed UK GC ✅",           mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk"] },
+  skybet:         { name: "Sky Bet",       url: "https://www.skybet.com",          trustStars: 5, license: "Licensed UK GC ✅",           mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk"] },
+  unibet:         { name: "Unibet",        url: "https://www.unibet.com",          trustStars: 5, license: "Licensed Malta GRA ✅",       mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk", "global"] },
+  bwin:           { name: "Bwin",          url: "https://www.bwin.com",            trustStars: 4, license: "Licensed Malta GRA ✅",       mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk"] },
+  pinnacle:       { name: "Pinnacle",      url: "https://www.pinnacle.com",        trustStars: 5, license: "Licensed Curacao ✅",         mobileMoney: [],                                   minStakeUSD: 1.00, regions: ["global"] },
+  "888sport":     { name: "888Sport",      url: "https://www.888sport.com",        trustStars: 4, license: "Licensed UK GC ✅",           mobileMoney: [],                                   minStakeUSD: 0.13, regions: ["uk"] },
+};
 
-async function fetchOddsForSport(sportKey: string): Promise<Record<string, unknown>[]> {
+// ─── Currencies ───────────────────────────────────────────────────────────────
+
+export interface CurrencyInfo {
+  code: string;
+  symbol: string;
+  name: string;
+  rateToUSD: number; // units of this currency per 1 USD
+}
+
+export const CURRENCIES: Record<string, CurrencyInfo> = {
+  USD: { code: "USD", symbol: "$",    name: "US Dollar",           rateToUSD: 1       },
+  NGN: { code: "NGN", symbol: "₦",    name: "Nigerian Naira",      rateToUSD: 1580    },
+  KES: { code: "KES", symbol: "KES",  name: "Kenyan Shilling",     rateToUSD: 129     },
+  GHS: { code: "GHS", symbol: "GHS",  name: "Ghanaian Cedi",       rateToUSD: 15.5    },
+  ZAR: { code: "ZAR", symbol: "R",    name: "South African Rand",  rateToUSD: 18.8    },
+  UGX: { code: "UGX", symbol: "UGX",  name: "Ugandan Shilling",    rateToUSD: 3720    },
+  TZS: { code: "TZS", symbol: "TZS",  name: "Tanzanian Shilling",  rateToUSD: 2650    },
+  ZMW: { code: "ZMW", symbol: "ZMW",  name: "Zambian Kwacha",      rateToUSD: 27.5    },
+  GBP: { code: "GBP", symbol: "£",    name: "British Pound",       rateToUSD: 0.79    },
+  EUR: { code: "EUR", symbol: "€",    name: "Euro",                rateToUSD: 0.93    },
+};
+
+// ─── Regional config ──────────────────────────────────────────────────────────
+
+interface SportEntry { key: string; sport: string; league: string }
+
+const REGION_SPORTS: Record<ArbRegion, SportEntry[]> = {
+  africa: [
+    { key: "soccer_epl",                        sport: "Soccer", league: "Premier League"         },
+    { key: "soccer_spain_la_liga",              sport: "Soccer", league: "La Liga"                },
+    { key: "soccer_nigeria_npfl",               sport: "Soccer", league: "NPFL (Nigeria)"         },
+    { key: "soccer_kenya_premier_league",       sport: "Soccer", league: "KPL (Kenya)"            },
+    { key: "soccer_south_africa_premiership",   sport: "Soccer", league: "PSL (South Africa)"     },
+    { key: "soccer_ghana_premier_league",       sport: "Soccer", league: "GPL (Ghana)"            },
+    { key: "soccer_caf_champions_league",       sport: "Soccer", league: "CAF Champions League"   },
+    { key: "soccer_africa_nations_cup",         sport: "Soccer", league: "AFCON"                  },
+  ],
+  us: [
+    { key: "americanfootball_nfl",  sport: "NFL",    league: "NFL"            },
+    { key: "basketball_nba",        sport: "NBA",    league: "NBA"            },
+    { key: "baseball_mlb",          sport: "MLB",    league: "MLB"            },
+    { key: "soccer_epl",            sport: "Soccer", league: "Premier League" },
+    { key: "soccer_usa_mls",        sport: "Soccer", league: "MLS"            },
+  ],
+  uk: [
+    { key: "soccer_epl",              sport: "Soccer", league: "Premier League"      },
+    { key: "soccer_spain_la_liga",    sport: "Soccer", league: "La Liga"             },
+    { key: "soccer_germany_bundesliga", sport: "Soccer", league: "Bundesliga"        },
+    { key: "soccer_italy_serie_a",    sport: "Soccer", league: "Serie A"            },
+    { key: "soccer_france_ligue_one", sport: "Soccer", league: "Ligue 1"            },
+    { key: "soccer_uefa_champs_league", sport: "Soccer", league: "Champions League" },
+  ],
+  asia: [
+    { key: "soccer_epl",              sport: "Soccer", league: "Premier League"       },
+    { key: "soccer_spain_la_liga",    sport: "Soccer", league: "La Liga"              },
+    { key: "soccer_japan_j_league",   sport: "Soccer", league: "J-League (Japan)"    },
+    { key: "soccer_south_korea_kleague1", sport: "Soccer", league: "K League (Korea)" },
+  ],
+  global: [
+    { key: "soccer_epl",                  sport: "Soccer", league: "Premier League"      },
+    { key: "soccer_spain_la_liga",        sport: "Soccer", league: "La Liga"             },
+    { key: "soccer_germany_bundesliga",   sport: "Soccer", league: "Bundesliga"          },
+    { key: "soccer_italy_serie_a",        sport: "Soccer", league: "Serie A"            },
+    { key: "soccer_france_ligue_one",     sport: "Soccer", league: "Ligue 1"            },
+    { key: "americanfootball_nfl",        sport: "NFL",    league: "NFL"                },
+    { key: "basketball_nba",             sport: "NBA",    league: "NBA"                },
+    { key: "baseball_mlb",              sport: "MLB",    league: "MLB"                },
+    { key: "soccer_nigeria_npfl",        sport: "Soccer", league: "NPFL (Nigeria)"     },
+    { key: "soccer_south_africa_premiership", sport: "Soccer", league: "PSL (SA)"     },
+  ],
+};
+
+// Bookmaker keys to request per region in the Odds API `bookmakers` param
+const REGION_BOOKMAKERS: Record<ArbRegion, string> = {
+  africa: "1xbet,betway,22bet,melbet,hollywoodbets",
+  us:     "draftkings,fanduel,betmgm,caesars,espnbet,pointsbet,betrivers,pinnacle",
+  uk:     "bet365,williamhill,betfair,paddypower,skybet,unibet,bwin,pinnacle,888sport",
+  asia:   "bet365,pinnacle,1xbet,betway,unibet",
+  global: "bet365,williamhill,betfair,draftkings,fanduel,betmgm,caesars,unibet,1xbet,betway,22bet,melbet,hollywoodbets,pinnacle",
+};
+
+export const REGION_DISCLAIMERS: Record<string, string> = {
+  africa:  "Verify that your local bookmaker holds a valid gaming license. 1xBet and Melbet operate with limited regulation — use with caution. Only use regulated operators. 18+ only.",
+  africa_ng: "Sports betting is regulated by the National Lottery Regulatory Commission (NLRC). Only use NLRC-licensed operators. 18+ only.",
+  africa_ke: "Sports betting is regulated by the Betting Control and Licensing Board (BCLB). Note: 20% excise duty applies to all winnings in Kenya.",
+  africa_za: "Sports betting is regulated by the National Gambling Board (NGB). Only use NGB-licensed operators. 18+ only.",
+  africa_gh: "Sports betting is regulated by the Gaming Commission of Ghana. Play responsibly. 18+ only.",
+  us:      "Sports betting regulations vary by state. Only bet where it is legal in your jurisdiction. 18+ (21+ in some states).",
+  uk:      "Sports betting is regulated by the UK Gambling Commission (UKGC). BeGambleAware.org. 18+ only.",
+  global:  "Sports betting laws vary by country. Ensure betting is legal in your jurisdiction. 18+ only. Gamble responsibly.",
+  asia:    "Sports betting laws vary significantly across Asia. Verify legality in your country before placing bets. 18+ only.",
+};
+
+// ─── Cache per region ─────────────────────────────────────────────────────────
+
+const regionCache = new Map<ArbRegion, { arbs: ArbOpportunity[]; ts: number }>();
+const CACHE_MS = 30_000;
+
+// ─── Odds API fetch ───────────────────────────────────────────────────────────
+
+async function fetchOddsForSport(
+  sportKey: string,
+  bookmakersParam: string,
+): Promise<Record<string, unknown>[]> {
   if (!ODDS_API_KEY) return [];
   try {
+    const bkParam = bookmakersParam ? `&bookmakers=${bookmakersParam}` : "&regions=us,uk,eu,au";
     const url =
       `https://api.the-odds-api.com/v4/sports/${sportKey}/odds` +
-      `?apiKey=${ODDS_API_KEY}&regions=us,uk,eu&markets=h2h&oddsFormat=decimal`;
+      `?apiKey=${ODDS_API_KEY}&markets=h2h&oddsFormat=decimal${bkParam}`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) {
-      logger.warn({ sportKey, status: resp.status }, "Odds API non-OK for arb scan");
+      logger.warn({ sportKey, status: resp.status }, "Odds API non-OK");
       return [];
     }
     return (await resp.json()) as Record<string, unknown>[];
   } catch (err) {
-    logger.warn({ err, sportKey }, "Odds API fetch failed for arb");
+    logger.warn({ err, sportKey }, "Odds API fetch failed");
     return [];
   }
 }
 
-// ─── Detect arb in a single game ─────────────────────────────────────────────
+// ─── Arb detection logic ──────────────────────────────────────────────────────
 
 function detectArb(
   game: Record<string, unknown>,
   sport: string,
   league: string,
+  region: ArbRegion,
 ): ArbOpportunity | null {
   const bookmakers = game["bookmakers"] as Record<string, unknown>[] | undefined;
   if (!bookmakers || bookmakers.length < 2) return null;
 
-  // Build map: outcome name → { best decimal odds, bookmaker }
   const bestMap = new Map<string, { odds: number; bookmaker: string; bookmakerId: string }>();
 
   for (const bk of bookmakers) {
@@ -106,7 +236,6 @@ function detectArb(
 
   if (!homeEntry || !awayEntry) return null;
 
-  // Build legs and check if arb exists
   const selections = drawEntry
     ? [
         { selection: homeTeam, ...homeEntry },
@@ -133,12 +262,11 @@ function detectArb(
     });
   }
 
-  if (totalImplied >= 1.0) return null; // No arb opportunity
-
+  if (totalImplied >= 1.0) return null;
   const profitPercent = parseFloat(((1 - totalImplied) * 100).toFixed(2));
-  if (profitPercent < 0.1) return null; // Too tiny to be actionable
+  if (profitPercent < 0.1) return null;
 
-  const gameId = (game["id"] as string | undefined) ?? `${sport}-${homeTeam}-${awayTeam}`;
+  const gameId = (game["id"] as string | undefined) ?? `${region}-${sport}-${homeTeam}-${awayTeam}`;
 
   return {
     id: gameId,
@@ -153,26 +281,33 @@ function detectArb(
     totalImplied: parseFloat(totalImplied.toFixed(4)),
     legs,
     discoveredAt: new Date().toISOString(),
+    region,
   };
 }
 
-// ─── Main scan ────────────────────────────────────────────────────────────────
+// ─── Main scan (region-aware) ─────────────────────────────────────────────────
 
-export async function scanForArbitrage(forceRefresh = false): Promise<ArbOpportunity[]> {
+export async function scanByRegion(
+  region: ArbRegion = "global",
+  forceRefresh = false,
+): Promise<ArbOpportunity[]> {
   if (!ODDS_API_KEY) {
-    logger.info("No ODDS_API_KEY — returning demo arbitrage data");
-    return getDemoArbs();
+    return getDemoArbs(region);
   }
 
   const now = Date.now();
-  if (!forceRefresh && now - lastFetched < CACHE_MS && cachedArbs.length > 0) {
-    return cachedArbs;
+  const cached = regionCache.get(region);
+  if (!forceRefresh && cached && now - cached.ts < CACHE_MS) {
+    return cached.arbs;
   }
+
+  const sports = REGION_SPORTS[region] ?? REGION_SPORTS.global;
+  const bookmakerStr = REGION_BOOKMAKERS[region] ?? "";
 
   try {
     const sportResults = await Promise.allSettled(
-      SPORTS_TO_SCAN.map(async (s) => {
-        const games = await fetchOddsForSport(s.key);
+      sports.map(async (s) => {
+        const games = await fetchOddsForSport(s.key, bookmakerStr);
         return games.map((g) => ({ game: g, sport: s.sport, league: s.league }));
       }),
     );
@@ -181,70 +316,60 @@ export async function scanForArbitrage(forceRefresh = false): Promise<ArbOpportu
     for (const result of sportResults) {
       if (result.status !== "fulfilled") continue;
       for (const { game, sport, league } of result.value) {
-        const arb = detectArb(game, sport, league);
+        const arb = detectArb(game, sport, league, region);
         if (arb) opportunities.push(arb);
       }
     }
 
     opportunities.sort((a, b) => b.profitPercent - a.profitPercent);
-    cachedArbs = opportunities;
-    lastFetched = now;
-    logger.info({ count: opportunities.length }, "Arbitrage scan complete");
+    regionCache.set(region, { arbs: opportunities, ts: now });
+    logger.info({ region, count: opportunities.length }, "Arb scan complete");
     return opportunities;
   } catch (err) {
-    logger.error({ err }, "Arbitrage scan failed — returning demo data");
-    return getDemoArbs();
+    logger.error({ err, region }, "Arb scan failed — returning demo data");
+    return getDemoArbs(region);
   }
 }
 
-// ─── Demo arbs (shown when no API key or no real opportunities) ───────────────
+// Legacy wrapper used by existing code
+export async function scanForArbitrage(forceRefresh = false): Promise<ArbOpportunity[]> {
+  return scanByRegion("global", forceRefresh);
+}
 
-function getDemoArbs(): ArbOpportunity[] {
+// ─── Demo arbs ────────────────────────────────────────────────────────────────
+
+function getDemoArbs(region: ArbRegion = "global"): ArbOpportunity[] {
   const now = Date.now();
-  return [
+
+  const globalArbs: ArbOpportunity[] = [
     {
-      id: "demo-arb-1",
-      sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
+      id: "demo-arb-1", sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
       homeTeam: "Arsenal", awayTeam: "Chelsea",
       commenceTime: new Date(now + 4 * 60_000 + 32_000).toISOString(),
       marketType: "2way", profitPercent: 2.3, totalImplied: 0.977,
-      discoveredAt: new Date().toISOString(),
+      discoveredAt: new Date().toISOString(), region,
       legs: [
         { bookmaker: "Bet365",       bookmakerId: "bet365",      selection: "Arsenal", odds: 2.10, impliedProb: 0.476 },
         { bookmaker: "William Hill", bookmakerId: "williamhill", selection: "Chelsea", odds: 2.20, impliedProb: 0.454 },
       ],
     },
     {
-      id: "demo-arb-2",
-      sport: "NBA", sportKey: "basketball_nba", league: "NBA",
+      id: "demo-arb-2", sport: "NBA", sportKey: "basketball_nba", league: "NBA",
       homeTeam: "Los Angeles Lakers", awayTeam: "Golden State Warriors",
       commenceTime: new Date(now + 12 * 60_000 + 15_000).toISOString(),
       marketType: "2way", profitPercent: 1.8, totalImplied: 0.982,
-      discoveredAt: new Date().toISOString(),
+      discoveredAt: new Date().toISOString(), region,
       legs: [
         { bookmaker: "DraftKings", bookmakerId: "draftkings", selection: "Los Angeles Lakers",    odds: 2.05, impliedProb: 0.488 },
         { bookmaker: "FanDuel",    bookmakerId: "fanduel",    selection: "Golden State Warriors", odds: 2.15, impliedProb: 0.465 },
       ],
     },
     {
-      id: "demo-arb-3",
-      sport: "NFL", sportKey: "americanfootball_nfl", league: "NFL",
-      homeTeam: "Kansas City Chiefs", awayTeam: "Baltimore Ravens",
-      commenceTime: new Date(now + 2 * 60_000 + 45_000).toISOString(),
-      marketType: "2way", profitPercent: 3.1, totalImplied: 0.969,
-      discoveredAt: new Date().toISOString(),
-      legs: [
-        { bookmaker: "BetMGM",   bookmakerId: "betmgm",   selection: "Kansas City Chiefs", odds: 2.30, impliedProb: 0.435 },
-        { bookmaker: "Caesars",  bookmakerId: "caesars",  selection: "Baltimore Ravens",   odds: 2.40, impliedProb: 0.417 },
-      ],
-    },
-    {
-      id: "demo-arb-4",
-      sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
+      id: "demo-arb-3", sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
       homeTeam: "Man City", awayTeam: "Liverpool",
       commenceTime: new Date(now + 25 * 60_000).toISOString(),
       marketType: "3way", profitPercent: 4.2, totalImplied: 0.958,
-      discoveredAt: new Date().toISOString(),
+      discoveredAt: new Date().toISOString(), region,
       legs: [
         { bookmaker: "Bet365",  bookmakerId: "bet365",  selection: "Man City",  odds: 2.40, impliedProb: 0.417 },
         { bookmaker: "Unibet",  bookmakerId: "unibet",  selection: "Liverpool", odds: 3.80, impliedProb: 0.263 },
@@ -252,6 +377,66 @@ function getDemoArbs(): ArbOpportunity[] {
       ],
     },
   ];
+
+  if (region === "africa") {
+    return [
+      {
+        id: "demo-africa-1", sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
+        homeTeam: "Arsenal", awayTeam: "Chelsea",
+        commenceTime: new Date(now + 8 * 60_000 + 24_000).toISOString(),
+        marketType: "2way", profitPercent: 2.1, totalImplied: 0.979,
+        discoveredAt: new Date().toISOString(), region: "africa",
+        legs: [
+          { bookmaker: "Bet9ja",    bookmakerId: "bet9ja",    selection: "Arsenal", odds: 2.05, impliedProb: 0.488 },
+          { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Chelsea", odds: 2.35, impliedProb: 0.426 },
+        ],
+      },
+      {
+        id: "demo-africa-2", sport: "Soccer", sportKey: "soccer_nigeria_npfl", league: "NPFL (Nigeria)",
+        homeTeam: "Enyimba", awayTeam: "Remo Stars",
+        commenceTime: new Date(now + 3 * 60_000 + 10_000).toISOString(),
+        marketType: "2way", profitPercent: 3.8, totalImplied: 0.962,
+        discoveredAt: new Date().toISOString(), region: "africa",
+        legs: [
+          { bookmaker: "Bet9ja",  bookmakerId: "bet9ja",  selection: "Enyimba",    odds: 2.60, impliedProb: 0.385 },
+          { bookmaker: "BetKing", bookmakerId: "betking", selection: "Remo Stars", odds: 2.80, impliedProb: 0.357 },
+        ],
+      },
+      {
+        id: "demo-africa-3", sport: "Soccer", sportKey: "soccer_south_africa_premiership", league: "PSL (South Africa)",
+        homeTeam: "Kaizer Chiefs", awayTeam: "Orlando Pirates",
+        commenceTime: new Date(now + 18 * 60_000).toISOString(),
+        marketType: "3way", profitPercent: 4.7, totalImplied: 0.953,
+        discoveredAt: new Date().toISOString(), region: "africa",
+        legs: [
+          { bookmaker: "Hollywoodbets", bookmakerId: "hollywoodbets", selection: "Kaizer Chiefs",   odds: 2.50, impliedProb: 0.400 },
+          { bookmaker: "Betway",        bookmakerId: "betway",        selection: "Orlando Pirates", odds: 3.20, impliedProb: 0.313 },
+          { bookmaker: "1xBet",         bookmakerId: "1xbet",         selection: "Draw",            odds: 4.00, impliedProb: 0.250 },
+        ],
+      },
+      {
+        id: "demo-africa-4", sport: "Soccer", sportKey: "soccer_caf_champions_league", league: "CAF Champions League",
+        homeTeam: "Wydad AC", awayTeam: "Al Ahly",
+        commenceTime: new Date(now + 32 * 60_000).toISOString(),
+        marketType: "2way", profitPercent: 2.9, totalImplied: 0.971,
+        discoveredAt: new Date().toISOString(), region: "africa",
+        legs: [
+          { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Wydad AC", odds: 2.15, impliedProb: 0.465 },
+          { bookmaker: "1xBet",     bookmakerId: "1xbet",     selection: "Al Ahly",  odds: 2.30, impliedProb: 0.435 },
+        ],
+      },
+    ];
+  }
+
+  if (region === "us") {
+    return globalArbs.filter((a) => ["NBA", "NFL", "MLB"].includes(a.sport));
+  }
+
+  if (region === "uk") {
+    return globalArbs.filter((a) => a.sport === "Soccer");
+  }
+
+  return globalArbs;
 }
 
 // ─── Stake calculator ─────────────────────────────────────────────────────────
