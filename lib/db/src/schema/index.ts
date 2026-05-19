@@ -22,3 +22,5 @@ export * from "./messages";
 export * from "./users";
 export * from "./bankrollEntries";
 export * from "./predictions";
+export * from "./adminLogs";
+export * from "./appConfig";

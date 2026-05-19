@@ -72,6 +72,42 @@ export interface UserData {
   tier: "free" | "pro" | "elite";
   bankroll: number;
   dailyLossLimit: number;
+  isAdmin?: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  username: string;
+  tier: string;
+  effectiveTier: string;
+  bankroll: number;
+  dailyLossLimit: number;
+  isAdmin: boolean | null;
+  isBanned: boolean | null;
+  isSuspended: boolean | null;
+  manualTierOverride: string | null;
+  freeTrialUntil: string | null;
+  createdAt: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  todaySignups: number;
+  tierBreakdown: { free: number; pro: number; elite: number };
+  banned: number;
+  suspended: number;
+}
+
+export interface AdminLogEntry {
+  id: string;
+  adminEmail: string | null;
+  action: string | null;
+  targetUserId: number | null;
+  details: string | null;
+  createdAt: string | null;
 }
 
 export interface ApiPrediction {
@@ -389,5 +425,42 @@ export const api = {
       }),
     africanTeams: (token: string) =>
       apiFetch<{ teams: WCAfricanTeam[] }>("/worldcup/african-teams", { token }),
+  },
+  admin: {
+    stats: (token: string) =>
+      apiFetch<AdminStats>("/admin/stats", { token }),
+    users: (token: string, params?: { search?: string; filter?: string; page?: number }) => {
+      const qs = params
+        ? "?" + Object.entries(params).filter(([, v]) => v != null && v !== "").map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&")
+        : "";
+      return apiFetch<{ users: AdminUser[]; page: number; limit: number }>(`/admin/users${qs}`, { token });
+    },
+    user: (token: string, id: number) =>
+      apiFetch<AdminUser>(`/admin/users/${id}`, { token }),
+    updateUser: (token: string, id: number, body: Record<string, unknown>) =>
+      apiFetch<AdminUser>(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+    config: (token: string) =>
+      apiFetch<Record<string, string>>("/admin/config", { token }),
+    updateConfig: (token: string, key: string, value: string) =>
+      apiFetch<{ key: string; value: string }>(`/admin/config/${key}`, {
+        method: "PUT",
+        body: JSON.stringify({ value }),
+        token,
+      }),
+    logs: (token: string, page?: number) =>
+      apiFetch<{ logs: AdminLogEntry[]; page: number; limit: number }>(
+        `/admin/logs${page ? `?page=${page}` : ""}`,
+        { token }
+      ),
+    setAdmin: (password: string) =>
+      apiFetch<{ ok: boolean; email: string }>("/admin/set-admin", {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      }),
+    verifyPassword: (password: string) =>
+      apiFetch<{ ok: boolean }>("/admin/verify-password", {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      }),
   },
 };

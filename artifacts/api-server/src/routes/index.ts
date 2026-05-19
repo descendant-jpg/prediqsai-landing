@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 
+import adminRouter from "./admin";
 import arbitrageRouter from "./arbitrage";
 import worldcupRouter from "./worldcup";
 import authRouter from "./auth";
@@ -27,5 +28,6 @@ router.use(soccerRouter);
 router.use(slipRouter);
 router.use(arbitrageRouter);
 router.use(worldcupRouter);
+router.use(adminRouter);
 
 export default router;

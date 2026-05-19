@@ -1,4 +1,4 @@
-import { pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,11 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  isAdmin: boolean("is_admin").default(false),
+  isBanned: boolean("is_banned").default(false),
+  isSuspended: boolean("is_suspended").default(false),
+  manualTierOverride: text("manual_tier_override"),
+  freeTrialUntil: timestamp("free_trial_until", { withTimezone: true }),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -21,6 +26,11 @@ export const insertUserSchema = createInsertSchema(users).omit({
   passwordHash: true,
   stripeCustomerId: true,
   stripeSubscriptionId: true,
+  isAdmin: true,
+  isBanned: true,
+  isSuspended: true,
+  manualTierOverride: true,
+  freeTrialUntil: true,
 }).extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });

@@ -1,7 +1,7 @@
-import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, LogOut, Settings, Star, X, Zap } from "lucide-react-native";
+import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, LogOut, Settings, Shield, Star, X, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useRef, useState } from "react";
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
@@ -152,6 +152,45 @@ export default function SettingsScreen() {
   const { user, token, logout, refreshUser } = useAuth();
   const [isChangingTier, setIsChangingTier] = useState(false);
   const [annualMode, setAnnualMode] = useState(false);
+  const [versionTaps, setVersionTaps] = useState(0);
+  const [showSecretModal, setShowSecretModal] = useState(false);
+  const [secretPassword, setSecretPassword] = useState("");
+  const [secretLoading, setSecretLoading] = useState(false);
+  const [secretError, setSecretError] = useState("");
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleVersionTap() {
+    const next = versionTaps + 1;
+    setVersionTaps(next);
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    if (next >= 7) {
+      setVersionTaps(0);
+      setSecretPassword("");
+      setSecretError("");
+      setShowSecretModal(true);
+      return;
+    }
+    tapTimer.current = setTimeout(() => setVersionTaps(0), 2000);
+  }
+
+  async function handleSecretLogin() {
+    if (!secretPassword) return;
+    setSecretLoading(true);
+    setSecretError("");
+    try {
+      const r = await api.admin.verifyPassword(secretPassword);
+      if (r.ok) {
+        setShowSecretModal(false);
+        router.push("/admin");
+      } else {
+        setSecretError("Incorrect password.");
+      }
+    } catch {
+      setSecretError("Verification failed. Try again.");
+    } finally {
+      setSecretLoading(false);
+    }
+  }
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding = insets.top + topPaddingWeb;
@@ -390,9 +429,18 @@ export default function SettingsScreen() {
         )}
 
         {/* Admin */}
-        {user?.id === 1 && (
+        {user?.isAdmin && (
           <>
             <Text style={[styles.adminLabel, { color: colors.textMuted }]}>ADMIN</Text>
+            <TouchableOpacity
+              style={[styles.rowBtn, { backgroundColor: "rgba(168,85,247,0.08)", borderColor: "rgba(168,85,247,0.35)" }]}
+              onPress={() => router.push("/admin")}
+              activeOpacity={0.8}
+            >
+              <Shield size={18} color="#A855F7" />
+              <Text style={[styles.rowBtnText, { color: "#A855F7" }]}>Admin Panel</Text>
+              <ChevronRight size={16} color="#A855F7" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
               onPress={() => router.push("/setup")}
@@ -416,8 +464,49 @@ export default function SettingsScreen() {
           <Text style={[styles.rowBtnText, { color: "#FF4D4D" }]}>Sign Out</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.footer, { color: colors.textMuted }]}>PrediQs AI v1.0 — Beta</Text>
+        <TouchableOpacity onPress={handleVersionTap} activeOpacity={0.8}>
+          <Text style={[styles.footer, { color: versionTaps > 0 ? colors.cyan : colors.textMuted }]}>
+            PrediQs AI v1.0 — Beta{versionTaps > 0 ? ` (${7 - versionTaps} more…)` : ""}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Secret Admin Password Modal */}
+      <Modal visible={showSecretModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: "rgba(168,85,247,0.4)" }]}>
+            <Shield size={28} color="#A855F7" />
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Admin Access</Text>
+            <Text style={[styles.modalSub, { color: colors.textMuted }]}>Enter the admin password to continue</Text>
+            <TextInput
+              style={[styles.modalInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+              secureTextEntry
+              placeholder="Admin password"
+              placeholderTextColor={colors.textMuted}
+              value={secretPassword}
+              onChangeText={setSecretPassword}
+              onSubmitEditing={handleSecretLogin}
+              autoFocus
+            />
+            {secretError ? <Text style={styles.modalError}>{secretError}</Text> : null}
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={() => setShowSecretModal(false)}
+              >
+                <Text style={{ color: colors.textMuted }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: "#A855F7", borderColor: "#A855F7", opacity: secretLoading ? 0.7 : 1 }]}
+                onPress={handleSecretLogin}
+                disabled={secretLoading}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>{secretLoading ? "Checking…" : "Enter"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -473,5 +562,13 @@ const styles = StyleSheet.create({
   adminLabel: { fontSize: 11, letterSpacing: 1, marginTop: 4 },
   rowBtn: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 14, borderWidth: 1 },
   rowBtnText: { flex: 1, fontSize: 15 },
-  footer: { fontSize: 11, textAlign: "center", marginTop: 8 },
+  footer: { fontSize: 11, textAlign: "center", marginTop: 8, paddingVertical: 6 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 32 },
+  modalCard: { width: "100%", maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 28, alignItems: "center", gap: 12 },
+  modalTitle: { fontSize: 20, fontWeight: "700" },
+  modalSub: { fontSize: 13, textAlign: "center" },
+  modalInput: { width: "100%", borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
+  modalError: { fontSize: 13, color: "#FF4D4D" },
+  modalBtns: { flexDirection: "row", gap: 12, width: "100%", marginTop: 4 },
+  modalBtn: { flex: 1, alignItems: "center", paddingVertical: 13, borderRadius: 12, borderWidth: 1 },
 });

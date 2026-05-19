@@ -44,6 +44,7 @@ function RootLayoutNav() {
       <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="arbitrage" options={{ headerShown: false }} />
       <Stack.Screen name="worldcup"  options={{ headerShown: false }} />
+      <Stack.Screen name="admin"     options={{ headerShown: false }} />
     </Stack>
   );
 }

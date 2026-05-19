@@ -15,6 +15,7 @@ function publicUser(u: typeof users.$inferSelect) {
     tier: u.tier,
     bankroll: u.bankroll,
     dailyLossLimit: u.dailyLossLimit,
+    isAdmin: u.isAdmin ?? false,
   };
 }
 
