@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SUGGESTED_PROMPTS } from "@/constants/mockData";
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 import { chatUrl } from "@/lib/api";
 import type { ChatMessage } from "@/types";
 
@@ -30,6 +31,7 @@ function generateId(): string {
 export default function AssistantScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -75,7 +77,7 @@ export default function AssistantScreen() {
       const response = await fetch(chatUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, language: language.claudeInstruction }),
       });
 
       if (!response.body) throw new Error("No response body");

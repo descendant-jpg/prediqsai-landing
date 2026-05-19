@@ -10,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 if (process.env.EXPO_PUBLIC_DOMAIN) {
   setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
@@ -45,6 +46,7 @@ function RootLayoutNav() {
       <Stack.Screen name="arbitrage" options={{ headerShown: false }} />
       <Stack.Screen name="worldcup"  options={{ headerShown: false }} />
       <Stack.Screen name="admin"     options={{ headerShown: false }} />
+      <Stack.Screen name="about"     options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -60,11 +62,13 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
-              <AuthProvider>
-                <AppProvider>
-                  <RootLayoutNav />
-                </AppProvider>
-              </AuthProvider>
+              <LanguageProvider>
+                <AuthProvider>
+                  <AppProvider>
+                    <RootLayoutNav />
+                  </AppProvider>
+                </AuthProvider>
+              </LanguageProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

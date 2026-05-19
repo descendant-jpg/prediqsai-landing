@@ -7,8 +7,9 @@ const router = Router();
 const SYSTEM_PROMPT = `You are PrediQs AI, a world-class sports betting intelligence assistant. You analyze NFL, NBA, MLB, and soccer matches, provide data-driven predictions with clear reasoning, explain betting concepts, build smart accumulators, help with bankroll management, and proactively warn users when NOT to bet. Be direct, honest, and data-focused. Keep responses concise and well-structured for mobile reading. Never encourage gambling addiction. Always recommend responsible gambling. If someone shows signs of problem gambling, provide the helpline: 1-800-522-4700.`;
 
 router.post("/chat", async (req, res) => {
-  const { messages } = req.body as {
+  const { messages, language } = req.body as {
     messages: Array<{ role: "user" | "assistant"; content: string }>;
+    language?: string;
   };
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -22,10 +23,14 @@ router.post("/chat", async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   try {
+    const systemPrompt = language && language !== "Respond in English."
+      ? `${SYSTEM_PROMPT}\n\nIMPORTANT: ${language}`
+      : SYSTEM_PROMPT;
+
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     });
 
