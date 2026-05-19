@@ -227,7 +227,7 @@ export default function DashboardScreen() {
         <View style={[styles.setupBanner, { backgroundColor: "rgba(255,165,0,0.1)", borderColor: "rgba(255,165,0,0.3)", marginBottom: 12 }]}>
           <AlertTriangle size={14} color="#FFA500" />
           <Text style={[styles.setupBannerText, { color: "#FFA500", flex: 1 }]}>
-            Late night alert: Take breaks, avoid chasing losses, and only bet within your preset limits.
+            Late night alert: Take breaks, avoid chasing losses, and only track within your preset limits.
           </Text>
         </View>
       )}
@@ -289,7 +289,7 @@ export default function DashboardScreen() {
         <Text style={{ fontSize: 20 }}>🎟️</Text>
         <View style={{ flex: 1 }}>
           <Text style={[styles.slipBtnTitle, { color: colors.cyan }]}>Analyze My Slip</Text>
-          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>Upload your bet slip for instant AI analysis</Text>
+          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>Upload your slip for instant educational review</Text>
         </View>
         <ChevronRight size={18} color={colors.cyan} />
       </TouchableOpacity>
@@ -404,11 +404,11 @@ export default function DashboardScreen() {
         <>
           <View style={[styles.sectionHeader, { marginTop: 8 }]}>
             <AlertTriangle size={16} color={colors.red} />
-            <Text style={[styles.sectionTitle, { color: colors.red }]}>Don't Bet Today ({avoidPicks.length})</Text>
+            <Text style={[styles.sectionTitle, { color: colors.red }]}>High Risk — Avoid Today ({avoidPicks.length})</Text>
           </View>
           <View style={[styles.avoidBanner, { backgroundColor: "rgba(255,77,77,0.04)", borderColor: "rgba(255,77,77,0.15)" }]}>
             <Text style={[styles.avoidBannerText, { color: colors.textMuted }]}>
-              Our AI flagged {avoidPicks.length} game{avoidPicks.length > 1 ? "s" : ""} as too risky to bet today.
+              Our AI flagged {avoidPicks.length} game{avoidPicks.length > 1 ? "s" : ""} as high risk scenarios to avoid today.
             </Text>
           </View>
           {avoidPicks.map((p) => (

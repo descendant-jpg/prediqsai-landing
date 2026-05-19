@@ -72,10 +72,10 @@ function KellyCalculator() {
     <View style={[styles.kellyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View style={styles.kellyHeader}>
         <Cpu size={18} color={colors.cyan} />
-        <Text style={[styles.kellyTitle, { color: colors.text }]}>Kelly Calculator</Text>
+        <Text style={[styles.kellyTitle, { color: colors.text }]}>Statistical Stake Calculator</Text>
       </View>
       <Text style={[styles.kellyDesc, { color: colors.textSecondary }]}>
-        Calculate optimal stake size using half-Kelly criterion
+        Calculate suggested stake size using statistical analysis
       </Text>
 
       <View style={styles.kellyInputs}>
@@ -210,7 +210,7 @@ export default function BankrollScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { color: colors.text }]}>Bankroll</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Sports Finance</Text>
 
         <View style={[styles.balanceCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Current Balance</Text>
@@ -252,9 +252,9 @@ export default function BankrollScreen() {
           <View style={[styles.emotionalBanner, { backgroundColor: "rgba(255,107,53,0.1)", borderColor: "rgba(255,107,53,0.3)" }]}>
             <AlertTriangle size={16} color="#FF6B35" />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={[styles.emotionalTitle, { color: "#FF6B35" }]}>Emotional Betting Alert</Text>
+              <Text style={[styles.emotionalTitle, { color: "#FF6B35" }]}>Emotional Decision Alert</Text>
               <Text style={[styles.emotionalText, { color: colors.textSecondary }]}>
-                {recentHourLosses.length} losses in 2 hours detected. Take a break before placing more bets.
+                {recentHourLosses.length} losses in 2 hours detected. Take a break before tracking more scenarios.
               </Text>
             </View>
           </View>

@@ -217,7 +217,7 @@ export default function SlipAnalysisScreen() {
             <Text style={{ fontSize: 48 }}>🎟️</Text>
             <Text style={[styles.heroTitle, { color: colors.text }]}>AI Slip Analyser</Text>
             <Text style={[styles.heroSub, { color: colors.textSecondary }]}>
-              Upload or photograph your bet slip and Claude AI will analyse every leg, rate your chances, and spot weak selections instantly.
+              Upload or photograph your slip and Claude AI will review every selection, rate the analysis, and identify weak legs for educational review.
             </Text>
           </View>
 
@@ -510,7 +510,7 @@ export default function SlipAnalysisScreen() {
           {/* Kelly stake */}
           {analysis.kelly_stake != null && (
             <View style={[styles.kellyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-              <Text style={[styles.kellyLabel, { color: colors.textMuted }]}>Kelly Criterion Suggested Stake</Text>
+              <Text style={[styles.kellyLabel, { color: colors.textMuted }]}>Statistical Stake Calculator</Text>
               <Text style={[styles.kellyValue, { color: colors.gold }]}>${analysis.kelly_stake.toFixed(2)}</Text>
             </View>
           )}

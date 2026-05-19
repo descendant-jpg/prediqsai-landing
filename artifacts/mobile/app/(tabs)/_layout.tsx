@@ -82,7 +82,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bankroll"
         options={{
-          title: "Bankroll",
+          title: "Finance",
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="dollarsign.circle.fill" tintColor={color} size={22} />

@@ -1,0 +1,255 @@
+Reposition PrediQs AI language 
+throughout the entire app to match 
+Apple App Store educational guidelines.
+
+This allows the app to get approved
+on App Store and Play Store without
+being rejected for gambling content.
+
+IMPORTANT: Keep all the same features
+but change the LANGUAGE used everywhere.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE CHANGES THROUGHOUT APP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace every instance of:
+
+"Betting prediction" 
+→ "Match analysis"
+
+"Bet on this game"
+→ "View statistical analysis"
+
+"Place a bet"
+→ "Track this scenario"
+
+"Betting tips"
+→ "Sports intelligence insights"
+
+"Win probability"
+→ "Statistical outcome probability"
+
+"Betting advice"
+→ "Educational sports analysis"
+
+"Sharp money signals"
+→ "Market movement observations"
+
+"Value bet detected"
+→ "Statistical edge detected"
+
+"Arbitrage opportunity"
+→ "Odds discrepancy analysis"
+
+"Bankroll manager"
+→ "Sports finance tracker"
+
+"Paper bet simulator"
+→ "Practice scenario simulator"
+
+"Bet slip analyzer"
+→ "Slip review education tool"
+
+"Don't bet this game"
+→ "High risk scenario — avoid"
+
+"Accumulator builder"
+→ "Multi-match scenario builder"
+
+"Profit from arbitrage"
+→ "Odds comparison opportunity"
+
+"Kelly Criterion calculator"
+→ "Statistical stake calculator"
+
+"Sportsbook affiliate"
+→ "Partner platforms"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DISCLAIMERS TO ADD EVERYWHERE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this to every main screen
+as a small footer text:
+
+"PrediQs AI provides sports 
+intelligence for educational and
+informational purposes only.
+We do not accept bets or wagers.
+All analysis is educational.
+Please gamble responsibly. 18+"
+
+Add on onboarding screen 1:
+"PrediQs AI is an educational
+sports intelligence platform.
+All match analysis, probability
+scores and insights are for
+learning and information only.
+Not gambling advice."
+
+Add on predictions screen:
+"Statistical analysis shown is
+for educational purposes only
+and does not constitute betting
+or gambling advice."
+
+Add on arbitrage screen:
+"Odds comparison data is shown
+for educational purposes only.
+PrediQs AI does not facilitate
+placing of any bets or wagers."
+
+Add on AI chat:
+"PrediQs AI Assistant provides
+educational sports information
+only. Not gambling advice."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP STORE METADATA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create an about/info screen with:
+
+App Name:
+PrediQs AI - Sports Intelligence
+
+Tagline:
+AI-Powered Sports Analytics Education
+
+Full Description:
+"PrediQs AI is an educational sports
+intelligence platform that helps you
+understand sports analytics, probability
+and odds movement through AI-powered
+analysis.
+
+WHAT YOU CAN LEARN:
+* How AI analyzes sports matches
+* Understanding probability and 
+  statistical outcomes
+* Reading odds and market movements
+* Sports data analysis techniques
+* Bankroll and risk management concepts
+* How professional analysts think
+
+EDUCATIONAL FEATURES:
+* AI Match Analysis
+  Learn how AI breaks down matches
+  using real statistical data
+
+* Probability Education
+  Understand win/draw/loss 
+  probability calculations
+
+* Odds Comparison Tool
+  Learn how odds differ across
+  different platforms
+
+* Statistical Edge Analysis
+  Understand when statistics 
+  suggest value in odds
+
+* Practice Scenario Simulator
+  Test your analysis skills with
+  virtual scenarios risk-free
+
+* Sports Finance Education
+  Learn proper bankroll management
+  and staking strategies
+
+* AI Learning Assistant
+  Ask any sports analytics question
+  and get educational responses
+
+IMPORTANT DISCLAIMER:
+PrediQs AI is for educational and
+informational purposes only.
+We do not accept bets, provide
+gambling advice, or guarantee
+any outcomes. All statistical
+analysis is educational in nature.
+Sports betting involves risk.
+Please gamble responsibly.
+Must be 18+ to use.
+Check local laws before betting."
+
+Category: Sports OR Education
+Age Rating: 17+
+Keywords: sports analytics, 
+AI sports, match analysis,
+odds education, sports data,
+football analysis, NBA analytics,
+NFL analysis, soccer statistics
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ONBOARDING FLOW UPDATE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Screen 1 (before anything):
+Show educational disclaimer modal:
+
+"Welcome to PrediQs AI
+
+PrediQs AI is an educational
+sports intelligence platform.
+
+✅ What we do:
+* Provide AI sports analysis
+* Teach probability concepts
+* Show odds comparisons
+* Educational insights only
+
+❌ What we don't do:
+* Accept bets or wagers
+* Provide gambling advice
+* Guarantee any outcomes
+
+By continuing you confirm:
+☐ I am 18 years or older
+☐ I understand this is for
+  educational purposes only
+☐ Betting is legal in my area
+☐ I will gamble responsibly
+
+[I Understand - Continue]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBSCRIPTION RENAME:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Rename subscription tiers for
+App Store compliance:
+
+FREE → "Basic Learning"
+PRO → "Advanced Analytics"  
+ELITE → "Professional Intelligence"
+
+Subscription description for Apple:
+"PrediQs AI Advanced Analytics
+Unlock enhanced educational features
+including unlimited match analysis,
+AI assistant access, and advanced
+statistical tools."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE NAMES ON APP STORE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Screenshot 1: "AI Match Analysis"
+Screenshot 2: "Statistical Insights"
+Screenshot 3: "Odds Education Tool"
+Screenshot 4: "Practice Simulator"
+Screenshot 5: "Sports AI Assistant"
+
+These are the screenshots shown
+in App Store — educational framing
+throughout all of them.
+
+Update the app to use all this
+new educational language throughout
+while keeping all the same 
+features and functionality.
+
+Show me the updated onboarding
+disclaimer screen first

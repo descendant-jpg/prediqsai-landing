@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, LogOut, Settings, Shield, Star, X, Zap } from "lucide-react-native";
+import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, Info, LogOut, Settings, Shield, Star, X, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -36,21 +36,21 @@ const TIER_CARDS: {
 }[] = [
   {
     key: "free",
-    label: "FREE",
+    label: "Basic Learning",
     color: "#94A3B8",
     badge: null,
     badgeIcon: null,
     cardFeatures: [
       "3 picks/day (soccer only)",
       "Basic confidence %",
-      "1 Don't Bet warning/day",
+      "1 High Risk warning/day",
       "5 AI messages/day",
-      "5 paper bets max",
+      "5 practice scenarios max",
     ],
   },
   {
     key: "pro",
-    label: "PRO",
+    label: "Advanced Analytics",
     color: "#00E5FF",
     badge: "MOST POPULAR",
     badgeIcon: "star",
@@ -58,15 +58,15 @@ const TIER_CARDS: {
       "Unlimited picks all sports",
       "3 model consensus (StatIQ + PatternAI + PulseAI)",
       "Full AI reasoning & explanation",
-      "Value bet detection",
-      "Sharp money alerts",
+      "Statistical edge detection",
+      "Market movement alerts",
       "50 AI messages/day",
-      "Bet slip analyzer (5/day)",
+      "Slip review tool (5/day)",
     ],
   },
   {
     key: "elite",
-    label: "ELITE",
+    label: "Professional Intelligence",
     color: "#FFD700",
     badge: "BEST ROI",
     badgeIcon: "crown",
@@ -74,7 +74,7 @@ const TIER_CARDS: {
       "Everything in Pro",
       "All 5 AI models (+ SharpIQ + ContextAI)",
       "Live in-game momentum AI",
-      "Arbitrage opportunity scanner",
+      "Odds discrepancy scanner",
       "Voice AI assistant",
       "Unlimited everything",
       "PDF exports & API access",
@@ -90,13 +90,13 @@ const TIER_ACTIVE_FEATURES: Record<Tier, FeatureItem[]> = {
   free: [
     { label: "3 picks per day (soccer only)", active: true },
     { label: "Basic confidence meter", active: true },
-    { label: "1 Don't Bet warning", active: true },
+    { label: "1 High Risk warning", active: true },
     { label: "5 AI messages", active: true },
-    { label: "5 paper bets", active: true },
+    { label: "5 practice scenarios", active: true },
     { label: "View leaderboard", active: true },
     { label: "Full AI reasoning", active: false, requiredTier: "pro" },
-    { label: "Value bets", active: false, requiredTier: "pro" },
-    { label: "Slip analyzer", active: false, requiredTier: "pro" },
+    { label: "Statistical edge", active: false, requiredTier: "pro" },
+    { label: "Slip review tool", active: false, requiredTier: "pro" },
     { label: "Live momentum AI", active: false, requiredTier: "elite" },
     { label: "Voice AI", active: false, requiredTier: "elite" },
   ],
@@ -104,18 +104,18 @@ const TIER_ACTIVE_FEATURES: Record<Tier, FeatureItem[]> = {
     { label: "Unlimited picks all sports", active: true },
     { label: "3 model consensus", active: true },
     { label: "Full AI reasoning", active: true },
-    { label: "Value bet detection", active: true },
+    { label: "Statistical edge detection", active: true },
     { label: "Line movement alerts", active: true },
-    { label: "Sharp money signals", active: true },
-    { label: "Kelly criterion calculator", active: true },
+    { label: "Market movement signals", active: true },
+    { label: "Statistical stake calculator", active: true },
     { label: "AI assistant (50/day)", active: true },
-    { label: "Slip analyzer (5/day)", active: true },
-    { label: "Unlimited paper bets", active: true },
+    { label: "Slip review tool (5/day)", active: true },
+    { label: "Unlimited practice scenarios", active: true },
     { label: "Weather analysis", active: true },
     { label: "Injury scanner", active: true },
     { label: "Push notifications", active: true },
     { label: "Live momentum AI", active: false, requiredTier: "elite" },
-    { label: "Arbitrage scanner", active: false, requiredTier: "elite" },
+    { label: "Odds discrepancy scanner", active: false, requiredTier: "elite" },
     { label: "Voice AI", active: false, requiredTier: "elite" },
     { label: "All 5 models", active: false, requiredTier: "elite" },
   ],
@@ -135,7 +135,7 @@ const TIER_ACTIVE_FEATURES: Record<Tier, FeatureItem[]> = {
     { label: "Fatigue scoring", active: true },
     { label: "Voice AI assistant", active: true },
     { label: "Unlimited AI chat", active: true },
-    { label: "Unlimited slip analyses", active: true },
+    { label: "Unlimited slip reviews", active: true },
     { label: "Syndicate room", active: true },
     { label: "WhatsApp alerts", active: true },
     { label: "PDF exports", active: true },
@@ -404,7 +404,7 @@ export default function SettingsScreen() {
               activeOpacity={0.8}
             >
               <Zap size={15} color="#00E5FF" />
-              <Text style={[styles.upgradeBtnText, { color: "#00E5FF" }]}>🔒 Upgrade to Pro — $14.99/mo</Text>
+              <Text style={[styles.upgradeBtnText, { color: "#00E5FF" }]}>🔒 Advanced Analytics — $14.99/mo</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.upgradeBtn, { backgroundColor: "rgba(255,215,0,0.08)", borderColor: "#FFD700" }]}
@@ -412,7 +412,7 @@ export default function SettingsScreen() {
               activeOpacity={0.8}
             >
               <Crown size={15} color="#FFD700" />
-              <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>🔒 Upgrade to Elite — $39.99/mo</Text>
+              <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>🔒 Professional Intelligence — $39.99/mo</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -424,7 +424,7 @@ export default function SettingsScreen() {
             activeOpacity={0.8}
           >
             <Crown size={15} color="#FFD700" />
-            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>👑 Upgrade to Elite — $39.99/mo</Text>
+            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>👑 Professional Intelligence — $39.99/mo</Text>
           </TouchableOpacity>
         )}
 
@@ -452,6 +452,18 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </>
         )}
+
+        {/* App Info */}
+        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>APP INFO</Text>
+        <TouchableOpacity
+          style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push("/about")}
+          activeOpacity={0.8}
+        >
+          <Info size={18} color={colors.textSecondary} />
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>About PrediQs AI</Text>
+          <ChevronRight size={16} color={colors.textMuted} />
+        </TouchableOpacity>
 
         {/* Account */}
         <Text style={[styles.adminLabel, { color: colors.textMuted }]}>ACCOUNT</Text>

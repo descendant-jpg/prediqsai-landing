@@ -22,7 +22,7 @@ import { useColors } from "@/hooks/useColors";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 type Sport = { key: string; label: string; icon: string };
-type BettorType = { key: string; label: string; sub: string };
+type UserType = { key: string; label: string; sub: string };
 
 const SPORTS: Sport[] = [
   { key: "soccer", label: "Soccer / Football", icon: "⚽" },
@@ -33,14 +33,29 @@ const SPORTS: Sport[] = [
   { key: "boxing", label: "Boxing / MMA", icon: "🥊" },
 ];
 
-const BETTOR_TYPES: BettorType[] = [
-  { key: "casual", label: "Casual", sub: "Bet for fun occasionally" },
-  { key: "regular", label: "Regular", sub: "Bet weekly for extra income" },
-  { key: "serious", label: "Serious", sub: "Bet daily with a system" },
-  { key: "professional", label: "Professional", sub: "Full-time betting" },
+const USER_TYPES: UserType[] = [
+  { key: "casual", label: "Casual Fan", sub: "Follow sports for fun occasionally" },
+  { key: "regular", label: "Sports Enthusiast", sub: "Follow sports closely, weekly" },
+  { key: "serious", label: "Analytics Follower", sub: "Track stats and data daily" },
+  { key: "professional", label: "Professional Analyst", sub: "Full-time sports analysis" },
 ];
 
-function Step1({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
+const DISCLAIMER_ITEMS = [
+  { key: "age", text: "I am 18 years or older" },
+  { key: "edu", text: "I understand this is for educational purposes only" },
+  { key: "legal", text: "Betting is legal in my area" },
+  { key: "resp", text: "I will engage responsibly" },
+];
+
+function Step0({
+  checked,
+  onToggle,
+  colors,
+}: {
+  checked: Record<string, boolean>;
+  onToggle: (key: string) => void;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
   return (
     <View style={styles.stepContainer}>
       <View style={[styles.logoCircle, { backgroundColor: "rgba(0,229,255,0.12)", borderColor: colors.cyan }]}>
@@ -48,20 +63,98 @@ function Step1({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
       </View>
       <Text style={[styles.welcomeTitle, { color: colors.text }]}>Welcome to{"\n"}PrediQs AI</Text>
       <Text style={[styles.welcomeSub, { color: colors.textSecondary }]}>
-        AI-powered sports betting intelligence. Real predictions, real edge, responsible play.
+        PrediQs AI is an educational sports intelligence platform.
+      </Text>
+
+      <View style={[styles.doCard, { backgroundColor: "rgba(0,255,148,0.06)", borderColor: "rgba(0,255,148,0.25)" }]}>
+        <Text style={[styles.doCardTitle, { color: "#00FF94" }]}>✅  What we do</Text>
+        {[
+          "Provide AI sports match analysis",
+          "Teach probability concepts",
+          "Show odds comparisons",
+          "Educational insights only",
+        ].map((t, i) => (
+          <Text key={i} style={[styles.doItem, { color: colors.textSecondary }]}>
+            • {t}
+          </Text>
+        ))}
+      </View>
+
+      <View style={[styles.doCard, { backgroundColor: "rgba(255,77,77,0.06)", borderColor: "rgba(255,77,77,0.25)", marginTop: 10 }]}>
+        <Text style={[styles.doCardTitle, { color: "#FF4D4D" }]}>❌  What we don't do</Text>
+        {[
+          "Accept bets or wagers",
+          "Provide gambling advice",
+          "Guarantee any outcomes",
+        ].map((t, i) => (
+          <Text key={i} style={[styles.doItem, { color: colors.textSecondary }]}>
+            • {t}
+          </Text>
+        ))}
+      </View>
+
+      <Text style={[styles.confirmTitle, { color: colors.textSecondary }]}>
+        By continuing you confirm:
+      </Text>
+
+      {DISCLAIMER_ITEMS.map((item) => (
+        <TouchableOpacity
+          key={item.key}
+          style={[
+            styles.checkRow,
+            {
+              borderColor: checked[item.key] ? colors.cyan : colors.border,
+              backgroundColor: checked[item.key] ? "rgba(0,229,255,0.07)" : colors.card,
+            },
+          ]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            onToggle(item.key);
+          }}
+          activeOpacity={0.75}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              {
+                borderColor: checked[item.key] ? colors.cyan : colors.border,
+                backgroundColor: checked[item.key] ? colors.cyan : "transparent",
+              },
+            ]}
+          >
+            {checked[item.key] && <Check size={12} color={colors.background} />}
+          </View>
+          <Text style={[styles.checkLabel, { color: colors.text }]}>{item.text}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+function Step1({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
+  return (
+    <View style={styles.stepContainer}>
+      <Text style={[styles.stepTitle, { color: colors.text }]}>What's inside</Text>
+      <Text style={[styles.stepSub, { color: colors.textSecondary }]}>
+        AI-powered sports intelligence for educational match analysis, probability learning, and informed decision making.
       </Text>
       <View style={styles.featureList}>
         {[
-          { icon: "🎯", text: "AI predictions across 50+ leagues" },
-          { icon: "📊", text: "Bankroll & bankroll management" },
+          { icon: "🎯", text: "AI match analysis across 50+ leagues" },
+          { icon: "📊", text: "Sports finance tracking & management" },
           { icon: "⚡", text: "Live scores & momentum tracking" },
-          { icon: "🔍", text: "Bet slip analysis with Claude Vision" },
+          { icon: "🔍", text: "Slip review education with Claude Vision" },
         ].map((f, i) => (
           <View key={i} style={[styles.featureRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={styles.featureEmoji}>{f.icon}</Text>
             <Text style={[styles.featureText, { color: colors.textSecondary }]}>{f.text}</Text>
           </View>
         ))}
+      </View>
+      <View style={[styles.eduNote, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
+        <Text style={[styles.eduNoteText, { color: colors.textMuted }]}>
+          All match analysis, probability scores and insights are for learning and information only. Not gambling advice.
+        </Text>
       </View>
     </View>
   );
@@ -72,7 +165,7 @@ function Step2({ selected, onToggle, colors }: { selected: string[]; onToggle: (
     <View style={styles.stepContainer}>
       <Text style={[styles.stepTitle, { color: colors.text }]}>Choose your sports</Text>
       <Text style={[styles.stepSub, { color: colors.textSecondary }]}>
-        We'll tailor predictions and alerts to what you care about most.
+        We'll tailor match analysis and alerts to what you care about most.
       </Text>
       <View style={styles.sportsGrid}>
         {SPORTS.map((s) => {
@@ -105,12 +198,12 @@ function Step2({ selected, onToggle, colors }: { selected: string[]; onToggle: (
 function Step3({ selected, onSelect, colors }: { selected: string; onSelect: (key: string) => void; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
   return (
     <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, { color: colors.text }]}>What type of bettor are you?</Text>
+      <Text style={[styles.stepTitle, { color: colors.text }]}>How do you engage with sports?</Text>
       <Text style={[styles.stepSub, { color: colors.textSecondary }]}>
-        This helps us personalise your stake recommendations and coaching.
+        This helps us personalise your analysis insights and education level.
       </Text>
       <View style={styles.bettorList}>
-        {BETTOR_TYPES.map((b) => {
+        {USER_TYPES.map((b) => {
           const active = selected === b.key;
           return (
             <TouchableOpacity
@@ -141,12 +234,12 @@ function Step4({ limit, onChangeLimit, colors }: { limit: number; onChangeLimit:
   const PRESETS = [25, 50, 100, 250, 500, 1000];
   return (
     <View style={styles.stepContainer}>
-      <Text style={[styles.stepTitle, { color: colors.text }]}>Set your daily loss limit</Text>
+      <Text style={[styles.stepTitle, { color: colors.text }]}>Set your daily tracking limit</Text>
       <Text style={[styles.stepSub, { color: colors.textSecondary }]}>
-        We'll alert you when you're approaching this limit. Responsible gambling starts here.
+        We'll alert you when you're approaching this limit. Responsible tracking starts here.
       </Text>
       <View style={[styles.limitDisplay, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.limitLabel, { color: colors.textMuted }]}>Daily Loss Limit</Text>
+        <Text style={[styles.limitLabel, { color: colors.textMuted }]}>Daily Limit</Text>
         <Text style={[styles.limitValue, { color: colors.cyan }]}>${limit}</Text>
       </View>
       <View style={styles.presetGrid}>
@@ -167,7 +260,7 @@ function Step4({ limit, onChangeLimit, colors }: { limit: number; onChangeLimit:
       <View style={[styles.warningBox, { backgroundColor: "rgba(255,107,53,0.08)", borderColor: "rgba(255,107,53,0.3)" }]}>
         <AlertTriangle size={16} color="#FF6B35" />
         <Text style={[styles.warningText, { color: "#FF6B35" }]}>
-          Gambling can be addictive. Only bet what you can afford to lose. 18+ only.
+          Sports betting involves risk. Only stake what you can afford. For educational use only. 18+ only.
         </Text>
       </View>
     </View>
@@ -182,14 +275,14 @@ function Step5({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
       </View>
       <Text style={[styles.welcomeTitle, { color: colors.text, textAlign: "center" }]}>You're all set! 🎯</Text>
       <Text style={[styles.welcomeSub, { color: colors.textSecondary, textAlign: "center" }]}>
-        Your personalised dashboard is ready. AI predictions refresh every 6 hours with live data from 50+ leagues worldwide.
+        Your personalised dashboard is ready. AI match analysis refreshes every 6 hours with live data from 50+ leagues worldwide.
       </Text>
       <View style={styles.readyList}>
         {[
           "✅ Sports preferences saved",
-          "✅ Daily loss limit configured",
-          "✅ AI predictions activated",
-          "✅ Responsible gambling protection on",
+          "✅ Daily limit configured",
+          "✅ AI match analysis activated",
+          "✅ Responsible play protection on",
         ].map((item, i) => (
           <Text key={i} style={[styles.readyItem, { color: colors.textSecondary }]}>{item}</Text>
         ))}
@@ -205,13 +298,23 @@ export default function OnboardingScreen() {
   const { updateBankroll } = useApp();
 
   const [step, setStep] = useState(0);
+  const [disclaimerChecked, setDisclaimerChecked] = useState<Record<string, boolean>>({
+    age: false,
+    edu: false,
+    legal: false,
+    resp: false,
+  });
   const [selectedSports, setSelectedSports] = useState<string[]>(["soccer", "nfl"]);
-  const [bettorType, setBettorType] = useState("casual");
+  const [userType, setUserType] = useState("casual");
   const [dailyLimit, setDailyLimit] = useState(100);
 
   const flatListRef = useRef<FlatList>(null);
   const progress = useRef(new Animated.Value(0)).current;
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 6;
+
+  function toggleDisclaimer(key: string) {
+    setDisclaimerChecked((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   function goToStep(next: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -229,8 +332,24 @@ export default function OnboardingScreen() {
     router.replace("/(tabs)");
   }
 
-  const canContinue = step === 0 || (step === 1 && selectedSports.length > 0) || (step === 2 && bettorType !== "") || step === 3 || step === 4;
-  const stepData = [{ key: "welcome" }, { key: "sports" }, { key: "type" }, { key: "limit" }, { key: "ready" }];
+  const allDisclaimerChecked = DISCLAIMER_ITEMS.every((d) => disclaimerChecked[d.key]);
+
+  const canContinue =
+    (step === 0 && allDisclaimerChecked) ||
+    step === 1 ||
+    (step === 2 && selectedSports.length > 0) ||
+    (step === 3 && userType !== "") ||
+    step === 4 ||
+    step === 5;
+
+  const stepData = [
+    { key: "disclaimer" },
+    { key: "welcome" },
+    { key: "sports" },
+    { key: "type" },
+    { key: "limit" },
+    { key: "ready" },
+  ];
   const progressWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
 
   return (
@@ -253,11 +372,14 @@ export default function OnboardingScreen() {
         renderItem={({ index }) => (
           <View style={{ width: SCREEN_WIDTH }}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {index === 0 && <Step1 colors={colors} />}
-              {index === 1 && <Step2 selected={selectedSports} onToggle={toggleSport} colors={colors} />}
-              {index === 2 && <Step3 selected={bettorType} onSelect={setBettorType} colors={colors} />}
-              {index === 3 && <Step4 limit={dailyLimit} onChangeLimit={setDailyLimit} colors={colors} />}
-              {index === 4 && <Step5 colors={colors} />}
+              {index === 0 && (
+                <Step0 checked={disclaimerChecked} onToggle={toggleDisclaimer} colors={colors} />
+              )}
+              {index === 1 && <Step1 colors={colors} />}
+              {index === 2 && <Step2 selected={selectedSports} onToggle={toggleSport} colors={colors} />}
+              {index === 3 && <Step3 selected={userType} onSelect={setUserType} colors={colors} />}
+              {index === 4 && <Step4 limit={dailyLimit} onChangeLimit={setDailyLimit} colors={colors} />}
+              {index === 5 && <Step5 colors={colors} />}
             </ScrollView>
           </View>
         )}
@@ -281,7 +403,7 @@ export default function OnboardingScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.nextBtnText, { color: canContinue ? colors.background : colors.textMuted }]}>
-            {step === TOTAL_STEPS - 1 ? "Go to Dashboard" : "Continue"}
+            {step === 0 ? "I Understand — Continue" : step === TOTAL_STEPS - 1 ? "Go to Dashboard" : "Continue"}
           </Text>
           <ArrowRight size={16} color={canContinue ? colors.background : colors.textMuted} />
         </TouchableOpacity>
@@ -298,14 +420,23 @@ const styles = StyleSheet.create({
   skipBtn: { paddingHorizontal: 4, paddingVertical: 4 },
   skipText: { fontSize: 13 },
   stepContainer: { width: SCREEN_WIDTH, padding: 24, paddingTop: 20, gap: 0 },
-  logoCircle: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 24, alignSelf: "center" },
+  logoCircle: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 20, alignSelf: "center" },
   logoEmoji: { fontSize: 44 },
-  welcomeTitle: { fontSize: 30, lineHeight: 38, marginBottom: 12 },
-  welcomeSub: { fontSize: 15, lineHeight: 23, marginBottom: 28 },
-  featureList: { gap: 10 },
+  welcomeTitle: { fontSize: 30, lineHeight: 38, marginBottom: 10 },
+  welcomeSub: { fontSize: 15, lineHeight: 23, marginBottom: 16 },
+  doCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 6 },
+  doCardTitle: { fontSize: 13, marginBottom: 2 },
+  doItem: { fontSize: 13, lineHeight: 20 },
+  confirmTitle: { fontSize: 13, marginTop: 18, marginBottom: 10 },
+  checkRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 8 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  checkLabel: { flex: 1, fontSize: 14 },
+  featureList: { gap: 10, marginTop: 4 },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
   featureEmoji: { fontSize: 20 },
   featureText: { fontSize: 14 },
+  eduNote: { borderRadius: 10, borderWidth: 1, padding: 12, marginTop: 14 },
+  eduNoteText: { fontSize: 12, lineHeight: 18, textAlign: "center" },
   stepTitle: { fontSize: 24, marginBottom: 8, letterSpacing: -0.3 },
   stepSub: { fontSize: 14, lineHeight: 21, marginBottom: 24 },
   sportsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
@@ -333,6 +464,6 @@ const styles = StyleSheet.create({
   navRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 16, borderTopWidth: 1 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6 },
   dot: { height: 7, borderRadius: 3.5 },
-  nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14 },
-  nextBtnText: { fontSize: 15 },
+  nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14 },
+  nextBtnText: { fontSize: 14 },
 });

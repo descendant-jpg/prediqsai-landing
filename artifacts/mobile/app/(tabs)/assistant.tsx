@@ -21,7 +21,7 @@ import { chatUrl } from "@/lib/api";
 import type { ChatMessage } from "@/types";
 
 const SYSTEM_PROMPT_DISPLAY =
-  "PrediQs AI — your sports betting intelligence assistant";
+  "PrediQs AI — your sports analytics education assistant";
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -206,7 +206,7 @@ export default function AssistantScreen() {
                   PrediQs AI
                 </Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                  Ask me anything about sports betting, predictions, or bankroll management.
+                  Ask me anything about sports analytics, match analysis, or finance tracking.
                 </Text>
                 <View style={styles.prompts}>
                   {SUGGESTED_PROMPTS.slice(0, 4).map((prompt, i) => (
@@ -242,7 +242,7 @@ export default function AssistantScreen() {
               style={[styles.input, { color: colors.text }]}
               value={input}
               onChangeText={setInput}
-              placeholder="Ask about picks, odds, bankroll..."
+              placeholder="Ask about match analysis, odds education..."
               placeholderTextColor={colors.textMuted}
               multiline
               maxLength={500}

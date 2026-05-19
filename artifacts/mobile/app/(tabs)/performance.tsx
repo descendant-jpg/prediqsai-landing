@@ -126,7 +126,7 @@ export default function PerformanceScreen() {
     >
       <Text style={[styles.title, { color: colors.text }]}>Performance</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Your betting stats · 30-day window
+        Your analytics · 30-day window
       </Text>
 
       {error ? (
@@ -175,9 +175,9 @@ export default function PerformanceScreen() {
 
       {!hasActivity && !isLoading && (
         <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No betting activity yet</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No activity yet</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Log wins and losses in the Bankroll tab to track your performance here.
+            Log results in the Sports Finance tab to track your performance here.
           </Text>
           <View style={styles.emptyIcons}>
             <TrendingUp size={20} color={colors.green} />
