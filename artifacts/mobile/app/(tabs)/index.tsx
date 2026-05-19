@@ -105,8 +105,8 @@ function PulseDot({ color }: { color: string }) {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 0.2, duration: 600, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.2, duration: 600, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(anim, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== "web" }),
       ]),
     ).start();
   }, [anim]);

@@ -1,0 +1,122 @@
+Build a complete Admin Panel for 
+PrediQs AI app.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIRST: DATABASE SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run these SQL commands in the 
+database immediately:
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS 
+is_admin boolean default false;
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS
+is_banned boolean default false;
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS
+is_suspended boolean default false;
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS
+manual_tier_override text;
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS
+free_trial_until timestamptz;
+
+CREATE TABLE IF NOT EXISTS 
+admin_logs (
+  id uuid primary key 
+    default gen_random_uuid(),
+  admin_email text,
+  action text,
+  target_user_id uuid,
+  details text,
+  created_at timestamptz 
+    default now()
+);
+
+CREATE TABLE IF NOT EXISTS
+app_config (
+  key text primary key,
+  value text,
+  updated_at timestamptz 
+    default now()
+);
+
+INSERT INTO app_config VALUES
+('maintenance_mode', 'false', now()),
+('allow_signups', 'true', now()),
+('free_daily_limit', '3', now()),
+('pro_chat_limit', '50', now()),
+('arbitrage_enabled', 'true', now()),
+('slip_analyzer_enabled', 'true', now()),
+('worldcup_enabled', 'true', now()),
+('paper_bet_enabled', 'true', now()),
+('voice_ai_enabled', 'true', now())
+ON CONFLICT (key) DO NOTHING;
+
+UPDATE profiles 
+SET is_admin = true 
+WHERE email = 
+  (SELECT value FROM app_config 
+   WHERE key = 'admin_email'
+   LIMIT 1);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECOND: ADD TO REPLIT SECRETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these new secrets:
+ADMIN_EMAIL = your email address
+ADMIN_PASSWORD = strong password
+
+Then run:
+UPDATE profiles 
+SET is_admin = true 
+WHERE email = '{ADMIN_EMAIL}';
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THIRD: ADMIN ACCESS POINTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3 ways to access admin panel:
+
+1. Settings screen:
+If profiles.is_admin = true
+show button at bottom of settings:
+"🔐 Admin Panel →"
+Only visible to admin account
+Tapping navigates to admin dashboard
+
+2. Secret tap:
+On settings screen tap app 
+version number 7 times quickly
+Shows password prompt
+Enter ADMIN_PASSWORD
+Grants admin access
+
+3. URL route:
+/admin or screen AdminPanel
+Checks is_admin = true
+Redirects non-admins away
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FOURTH: BUILD ALL ADMIN SCREENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SCREEN 1: ADMIN OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+Header shows:
+"PrediQs AI Admin"
+"Welcome back, [name]"
+Current date and time
+
+Stats grid (tap each for detail):
+┌────────┬────────┬────────┐
+│ USE

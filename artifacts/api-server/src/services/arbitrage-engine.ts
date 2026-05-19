@@ -1,4 +1,6 @@
 import { logger } from "../lib/logger";
+import { getLiveRates } from "./currency-service";
+import { getAfricanBookmakerArbs } from "./african-bookmaker-service";
 
 const ODDS_API_KEY = process.env["ODDS_API_KEY"];
 
@@ -82,18 +84,33 @@ export interface CurrencyInfo {
   rateToUSD: number; // units of this currency per 1 USD
 }
 
+// Static fallback rates — overridden by live ExchangeRate API data
+const STATIC_RATES: Record<string, number> = {
+  USD: 1, NGN: 1580, KES: 129, GHS: 15.5, ZAR: 18.8,
+  UGX: 3720, TZS: 2650, ZMW: 27.5, GBP: 0.79, EUR: 0.93,
+};
+
 export const CURRENCIES: Record<string, CurrencyInfo> = {
   USD: { code: "USD", symbol: "$",    name: "US Dollar",           rateToUSD: 1       },
   NGN: { code: "NGN", symbol: "₦",    name: "Nigerian Naira",      rateToUSD: 1580    },
-  KES: { code: "KES", symbol: "KES",  name: "Kenyan Shilling",     rateToUSD: 129     },
-  GHS: { code: "GHS", symbol: "GHS",  name: "Ghanaian Cedi",       rateToUSD: 15.5    },
+  KES: { code: "KES", symbol: "KES ", name: "Kenyan Shilling",     rateToUSD: 129     },
+  GHS: { code: "GHS", symbol: "GHS ", name: "Ghanaian Cedi",       rateToUSD: 15.5    },
   ZAR: { code: "ZAR", symbol: "R",    name: "South African Rand",  rateToUSD: 18.8    },
-  UGX: { code: "UGX", symbol: "UGX",  name: "Ugandan Shilling",    rateToUSD: 3720    },
-  TZS: { code: "TZS", symbol: "TZS",  name: "Tanzanian Shilling",  rateToUSD: 2650    },
-  ZMW: { code: "ZMW", symbol: "ZMW",  name: "Zambian Kwacha",      rateToUSD: 27.5    },
+  UGX: { code: "UGX", symbol: "UGX ", name: "Ugandan Shilling",    rateToUSD: 3720    },
+  TZS: { code: "TZS", symbol: "TZS ", name: "Tanzanian Shilling",  rateToUSD: 2650    },
+  ZMW: { code: "ZMW", symbol: "ZMW ", name: "Zambian Kwacha",      rateToUSD: 27.5    },
   GBP: { code: "GBP", symbol: "£",    name: "British Pound",       rateToUSD: 0.79    },
   EUR: { code: "EUR", symbol: "€",    name: "Euro",                rateToUSD: 0.93    },
 };
+
+/** Return live exchange rates (USD base). Cached 1 hour. */
+export async function getLiveExchangeRates(): Promise<Record<string, number>> {
+  try {
+    return await getLiveRates();
+  } catch {
+    return STATIC_RATES;
+  }
+}
 
 // ─── Regional config ──────────────────────────────────────────────────────────
 
@@ -307,14 +324,20 @@ export async function scanByRegion(
   const bookmakerStr = REGION_BOOKMAKERS[region] ?? "";
 
   try {
-    const sportResults = await Promise.allSettled(
-      sports.map(async (s) => {
-        const games = await fetchOddsForSport(s.key, bookmakerStr);
-        return games.map((g) => ({ game: g, sport: s.sport, league: s.league }));
-      }),
-    );
+    const [sportResults, africanArbs] = await Promise.all([
+      Promise.allSettled(
+        sports.map(async (s) => {
+          const games = await fetchOddsForSport(s.key, bookmakerStr);
+          return games.map((g) => ({ game: g, sport: s.sport, league: s.league }));
+        }),
+      ),
+      // For Africa region, also pull from African bookmaker service (Bet9ja, SportyBet, etc.)
+      region === "africa"
+        ? getAfricanBookmakerArbs(sports.map((s) => s.key), region, forceRefresh)
+        : Promise.resolve([] as ArbOpportunity[]),
+    ]);
 
-    const opportunities: ArbOpportunity[] = [];
+    const opportunities: ArbOpportunity[] = [...africanArbs];
     for (const result of sportResults) {
       if (result.status !== "fulfilled") continue;
       for (const { game, sport, league } of result.value) {

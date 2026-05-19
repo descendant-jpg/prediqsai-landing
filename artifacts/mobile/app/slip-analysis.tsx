@@ -93,14 +93,14 @@ function ScanningScreen({ colors }: { colors: ReturnType<typeof import("@/hooks/
   React.useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(scanAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(scanAnim, { toValue: 0, duration: 1400, useNativeDriver: true }),
+        Animated.timing(scanAnim, { toValue: 1, duration: 1400, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(scanAnim, { toValue: 0, duration: 1400, useNativeDriver: Platform.OS !== "web" }),
       ]),
     ).start();
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 0.5, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.5, duration: 700, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== "web" }),
       ]),
     ).start();
   }, []);

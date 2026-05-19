@@ -9,6 +9,7 @@ import {
   CURRENCIES,
   REGION_DISCLAIMERS,
   calculateStakes,
+  getLiveExchangeRates,
   scanByRegion,
 } from "../services/arbitrage-engine";
 
@@ -118,6 +119,29 @@ router.post("/arbitrage/calculate", requireAuth, async (req, res) => {
 // GET /api/arbitrage/meta — bookmaker trust + currency data
 router.get("/arbitrage/meta", requireAuth, async (_req, res) => {
   res.json({ bookmakers: BOOKMAKER_META, currencies: CURRENCIES });
+});
+
+// GET /api/arbitrage/rates — live exchange rates (public, no auth needed)
+router.get("/arbitrage/rates", async (_req, res) => {
+  try {
+    const rates = await getLiveExchangeRates();
+    const hasApiKey = !!process.env["EXCHANGE_RATE_API_KEY"];
+    res.json({
+      rates,
+      base: "USD",
+      source: hasApiKey ? "live" : "static_fallback",
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Return static fallback so the mobile app never breaks
+    void err;
+    res.json({
+      rates: { USD: 1, NGN: 1580, KES: 129, GHS: 15.5, ZAR: 18.8, UGX: 3720, GBP: 0.79, EUR: 0.93 },
+      base: "USD",
+      source: "static_fallback",
+      updatedAt: new Date().toISOString(),
+    });
+  }
 });
 
 export default router;

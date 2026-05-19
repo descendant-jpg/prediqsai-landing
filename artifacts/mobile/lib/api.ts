@@ -373,6 +373,8 @@ export const api = {
         body: JSON.stringify({ arbId, budget, region }),
         token,
       }),
+    rates: () =>
+      apiFetch<{ rates: Record<string, number>; base: string; source: string; updatedAt: string }>("/arbitrage/rates"),
   },
   worldcup: {
     overview: () =>

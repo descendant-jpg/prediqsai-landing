@@ -48,6 +48,11 @@ const REGION_DEFAULT_CURRENCY: Record<ArbRegion, string> = {
   global: "USD", us: "USD", uk: "GBP", africa: "NGN", asia: "USD",
 };
 
+// Live rate lookup — falls back to static CURRENCIES rate
+function getRate(code: string, liveRates: Record<string, number>): number {
+  return liveRates[code] ?? CURRENCIES[code]?.rate ?? 1;
+}
+
 interface CurrencyInfo { symbol: string; name: string; rate: number }
 const CURRENCIES: Record<string, CurrencyInfo> = {
   USD: { symbol: "$",    name: "US Dollar",           rate: 1     },
@@ -145,13 +150,14 @@ function MobileMoneyRow({ bookmakerId, region }: { bookmakerId: string; region: 
 // ─── Stake Calculator Modal ───────────────────────────────────────────────────
 
 function CalcModal({
-  arb, visible, onClose, token, region,
+  arb, visible, onClose, token, region, liveRates,
 }: {
   arb: ArbOpportunity | null;
   visible: boolean;
   onClose: () => void;
   token: string;
   region: ArbRegion;
+  liveRates: Record<string, number>;
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -165,13 +171,14 @@ function CalcModal({
   useEffect(() => { setCurrency(REGION_DEFAULT_CURRENCY[region]); }, [region]);
 
   const currencyList = region === "africa" ? AFRICA_CURRENCIES : GLOBAL_CURRENCIES;
-  const currInfo = CURRENCIES[currency] ?? CURRENCIES["USD"];
+  const currInfo = CURRENCIES[currency] ?? CURRENCIES["USD"]!;
+  const currLiveRate = getRate(currency, liveRates);
 
   async function calculate() {
     if (!arb) return;
     const localAmt = parseFloat(budgetLocal.replace(/,/g, ""));
     if (!localAmt || localAmt <= 0) return;
-    const usdBudget = parseFloat((localAmt / currInfo.rate).toFixed(4));
+    const usdBudget = parseFloat((localAmt / currLiveRate).toFixed(4));
     setIsLoading(true);
     try {
       const r = await api.arbitrage.calculate(token, arb.id, usdBudget, region);
@@ -243,7 +250,7 @@ function CalcModal({
             </View>
             {currency !== "USD" && parseFloat(budgetLocal) > 0 && (
               <Text style={{ fontSize: 10, color: colors.textMuted }}>
-                ≈ ${(parseFloat(budgetLocal.replace(/,/g, "")) / currInfo.rate).toFixed(2)} USD
+                ≈ ${(parseFloat(budgetLocal.replace(/,/g, "")) / currLiveRate).toFixed(2)} USD
               </Text>
             )}
           </View>
@@ -341,11 +348,12 @@ function CalcModal({
 
 // ─── Arb Opportunity Card ─────────────────────────────────────────────────────
 
-function ArbCard({ arb, region, onCalculate }: { arb: ArbOpportunity; region: ArbRegion; onCalculate: (a: ArbOpportunity) => void }) {
+function ArbCard({ arb, region, liveRates, onCalculate }: { arb: ArbOpportunity; region: ArbRegion; liveRates: Record<string, number>; onCalculate: (a: ArbOpportunity) => void }) {
   const colors = useColors();
   const pColor = profitColor(arb.profitPercent);
-  const currSymbol = CURRENCIES[REGION_DEFAULT_CURRENCY[region]]?.symbol ?? "$";
-  const currRate   = CURRENCIES[REGION_DEFAULT_CURRENCY[region]]?.rate ?? 1;
+  const defCurrency = REGION_DEFAULT_CURRENCY[region] ?? "USD";
+  const currSymbol  = CURRENCIES[defCurrency]?.symbol ?? "$";
+  const currRate    = getRate(defCurrency, liveRates);
 
   return (
     <View style={[styles.arbCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, borderLeftColor: pColor, borderLeftWidth: 3 }]}>
@@ -416,6 +424,7 @@ export default function ArbitrageScreen() {
   const [data, setData]           = useState<ArbScanResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [liveRates, setLiveRates] = useState<Record<string, number>>({});
   const [error, setError]         = useState("");
   const [selectedArb, setSelectedArb] = useState<ArbOpportunity | null>(null);
   const [calcVisible, setCalcVisible] = useState(false);
@@ -432,8 +441,8 @@ export default function ArbitrageScreen() {
     if (!isElite) return;
     Animated.loop(
       Animated.sequence([
-        Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
-        Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: true }),
+        Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: Platform.OS !== "web" }),
+        Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: Platform.OS !== "web" }),
       ]),
     ).start();
   }, [isElite, scanAnim]);
@@ -454,6 +463,11 @@ export default function ArbitrageScreen() {
       setIsRefreshing(false);
     }
   }, [token, isElite, selectedRegion]);
+
+  // Fetch live exchange rates on mount (public endpoint — no auth needed)
+  useEffect(() => {
+    api.arbitrage.rates().then((r) => { if (r.rates) setLiveRates(r.rates); }).catch(() => {});
+  }, []);
 
   // Reload when region changes
   useEffect(() => { setData(null); load(); }, [selectedRegion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -642,7 +656,7 @@ export default function ArbitrageScreen() {
             )}
 
             {opps.map((arb) => (
-              <ArbCard key={arb.id} arb={arb} region={selectedRegion} onCalculate={(a) => { setSelectedArb(a); setCalcVisible(true); }} />
+              <ArbCard key={arb.id} arb={arb} region={selectedRegion} liveRates={liveRates} onCalculate={(a) => { setSelectedArb(a); setCalcVisible(true); }} />
             ))}
 
             {!isElite && opps.length > 0 && (
@@ -700,6 +714,7 @@ export default function ArbitrageScreen() {
           onClose={() => setCalcVisible(false)}
           token={token}
           region={selectedRegion}
+          liveRates={liveRates}
         />
       )}
     </View>
