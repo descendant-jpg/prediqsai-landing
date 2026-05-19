@@ -1,0 +1,435 @@
+Do a complete error fix across the 
+entire PrediQs AI codebase.
+
+Find every single error and fix it.
+Do not stop until the app runs 
+perfectly with zero errors.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: FIX EXPO GO ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix the asset download error:
+"Unable to download asset from url
+expo vector icons and expo font"
+
+Do this:
+1. Uninstall problematic packages:
+npx expo install --fix
+
+2. Replace @expo/vector-icons:
+npm uninstall @expo/vector-icons
+npm install lucide-react-native
+
+3. Replace every icon import:
+Find: import { Ionicons } from 
+      '@expo/vector-icons'
+Replace with: import { 
+  Home, Search, Settings,
+  TrendingUp, DollarSign,
+  ChevronRight, Star, Bell,
+  BarChart2, Zap, Users,
+  Shield, AlertTriangle,
+  CheckCircle, XCircle,
+  RefreshCw, Upload, Camera,
+  MessageCircle, Award
+} from 'lucide-react-native'
+
+4. Remove ALL font loading:
+Delete every useFonts() hook
+Delete every Font.loadAsync() call
+Delete every AppLoading component
+Use system fonts instead:
+const fonts = {
+  heading: Platform.select({
+    ios: 'Georgia',
+    android: 'serif'
+  }),
+  body: Platform.select({
+    ios: 'System',
+    android: 'sans-serif'
+  }),
+  mono: Platform.select({
+    ios: 'Courier New',
+    android: 'monospace'
+  })
+}
+
+5. Fix missing assets:
+Remove any require('./assets/...')
+that reference missing files
+Replace with placeholder colors
+
+6. Clear all caches:
+npx expo start --clear
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: FIX TYPESCRIPT ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix every TypeScript error:
+
+1. Add missing type definitions:
+   - All API response types
+   - All component prop types
+   - All navigation types
+   - All state types
+
+2. Fix undefined variables:
+   Replace any 'any' types with
+   proper TypeScript interfaces
+
+3. Fix missing imports:
+   Add every missing import
+   at top of each file
+
+4. Fix type mismatches:
+   string vs number errors
+   undefined vs null errors
+   missing property errors
+
+5. Run TypeScript check:
+npx tsc --noEmit
+Fix every error shown
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: FIX NAVIGATION ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix all navigation issues:
+
+1. Make sure all screens are 
+   registered in navigation:
+   - Dashboard
+   - Picks
+   - AI Assistant
+   - Bankroll
+   - Performance
+   - Community
+   - Settings
+   - Arbitrage
+   - Paper Bet Simulator
+   - Bet Slip Analyzer
+   - World Cup
+   - Onboarding
+   - Login
+   - Signup
+
+2. Fix all navigation.navigate()
+   calls that reference wrong 
+   screen names
+
+3. Fix back button on every screen
+
+4. Fix tab bar showing correctly
+   on all main screens
+
+5. Fix deep linking if any errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: FIX API ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix all API connection errors:
+
+1. Add try/catch to EVERY 
+   API call in the codebase
+
+2. Fix API-Sports connection:
+   Test this exact call works:
+   fetch('https://v3.football.api-sports.io/fixtures?date=TODAY&league=39',
+   { headers: { 
+     'x-apisports-key': 
+     process.env.API_SPORTS_KEY 
+   }})
+
+3. Fix Odds API connection:
+   Test this works:
+   fetch('https://api.the-odds-api.com/v4/sports/soccer_epl/odds?apiKey=KEY&regions=uk&markets=h2h')
+
+4. Fix Claude API connection:
+   Test prediction generation works
+   with real match data
+
+5. Fix News API:
+   Test news fetching works
+
+6. Fix Weather API:
+   Test weather fetching works
+
+7. Fix Exchange Rate API:
+   Test currency conversion works
+
+8. If any API returns error:
+   Show friendly message to user
+   Log error to console
+   Continue app without crashing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: FIX CRASH ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix anything causing app to crash:
+
+1. Add error boundaries to 
+   every screen component:
+
+class ErrorBoundary extends 
+  React.Component {
+  state = { hasError: false }
+  
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.error}>
+          <Text>Something went wrong</Text>
+          <TouchableOpacity 
+            onPress={() => 
+              this.setState({hasError: false})
+            }>
+            <Text>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )
+    }
+    return this.props.children
+  }
+}
+
+2. Fix null/undefined crashes:
+   Add optional chaining everywhere:
+   data?.games?.map(...)
+   user?.profile?.name
+   odds?.bookmakers?.[0]?.price
+
+3. Fix array crashes:
+   Always check array exists:
+   (array || []).map(...)
+   Array.isArray(data) ? data : []
+
+4. Fix async crashes:
+   Every async function needs
+   try/catch/finally
+
+5. Fix state update crashes:
+   Check component is mounted
+   before updating state
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: FIX UI ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix all visual and UI errors:
+
+1. Fix overflow issues:
+   Text cutting off on small screens
+   Cards extending beyond screen
+   Buttons not fully visible
+
+2. Fix keyboard issues:
+   Keyboard covers input fields
+   Add KeyboardAvoidingView to
+   all screens with inputs
+
+3. Fix scroll issues:
+   Lists not scrolling properly
+   Add proper FlatList or 
+   ScrollView to all long screens
+
+4. Fix image loading errors:
+   Add fallback for broken images
+   Add loading placeholder
+   Add error placeholder
+
+5. Fix button press areas:
+   All touchable areas minimum
+   44x44 points for accessibility
+
+6. Fix dark theme consistency:
+   Every screen uses #070B12 background
+   Every card uses #0C1422
+   Every border uses #131E2E
+   Accent colors consistent throughout
+
+7. Fix safe area issues:
+   Add SafeAreaView to all screens
+   Fix notch/status bar overlap
+   Fix bottom navigation overlap
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: FIX PERFORMANCE ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix performance issues:
+
+1. Fix slow loading:
+   Add loading skeletons
+   Use FlatList not ScrollView
+   for long lists
+   Implement pagination
+
+2. Fix memory leaks:
+   Clean up subscriptions in
+   useEffect cleanup functions
+   Cancel API calls on unmount
+
+3. Fix re-render issues:
+   Add useMemo for expensive
+   calculations
+   Add useCallback for functions
+   passed as props
+
+4. Fix large list performance:
+   Add getItemLayout to FlatList
+   Add keyExtractor to all lists
+   Add windowSize={5} to FlatList
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8: FIX AUTH ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix authentication issues:
+
+1. Fix login not working:
+   Test email/password login
+   Test session persistence
+   Fix token storage
+
+2. Fix signup not working:
+   Test new account creation
+   Fix email verification
+   Fix profile creation
+
+3. Fix auth state:
+   App shows correct screen
+   based on auth state:
+   - Not logged in → Onboarding
+   - Logged in → Dashboard
+   - Session expired → Login
+
+4. Fix logout:
+   Clear all stored data
+   Navigate to login screen
+   Clear API cache
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 9: FIX DATABASE ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix all database issues:
+
+1. Make sure all tables exist:
+   - profiles
+   - predictions
+   - user_bets
+   - bankroll_entries
+   - chat_messages
+   - paper_bets
+   - slip_analyses
+   - arbitrage_opportunities
+
+2. Fix database queries:
+   Add error handling to all
+   database operations
+
+3. Fix data not saving:
+   Test profile saves correctly
+   Test bets save correctly
+   Test chat saves correctly
+
+4. Fix data not loading:
+   Test predictions load
+   Test user data loads
+   Test history loads
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 10: FINAL TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After fixing everything:
+
+Run through complete app:
+
+ONBOARDING:
+□ Welcome screen loads
+□ Sport selection works
+□ Profile setup works
+□ Navigates to dashboard
+
+AUTH:
+□ Sign up works
+□ Login works
+□ Logout works
+□ Session persists
+
+DASHBOARD:
+□ Loads real data
+□ Stats show correctly
+□ Featured pick shows
+□ No crashes
+
+PICKS:
+□ Real games loading
+□ All sport tabs work
+□ Prediction cards show
+□ Modal opens on tap
+□ Confidence arc animates
+
+AI CHAT:
+□ Messages send
+□ Claude responds
+□ History saves
+□ No timeout errors
+
+BANKROLL:
+□ Balance shows
+□ Add entry works
+□ Chart displays
+□ Kelly calculator works
+
+ARBITRAGE:
+□ Scanner loads
+□ Real opportunities show
+□ Calculator works
+□ Currency conversion works
+
+WORLD CUP:
+□ Section loads
+□ Fixtures show
+□ Group standings show
+□ Countdown shows
+
+BET SLIP:
+□ Camera opens
+□ Gallery opens
+□ Claude reads slip
+□ Analysis shows
+
+PAPER BETS:
+□ Place bet works
+□ Active bets show
+□ Settlement works
+□ Stats update
+
+SETTINGS:
+□ Profile edits save
+□ Notifications toggle
+□ Tier simulator works
+□ Sign out works
+
+AFTER ALL TESTS PASS:
+1. Run: npx expo start --clear
+2. Generate fresh QR code
+3. Show me QR code to scan
+4. List everything that was fixed
+5. List anything still needing
+   manual attention
+
+The app must work perfectly
+before showing me the QR code.
+Zero crashes. Zero blank screens.
+Zero fake data. 100% real.
