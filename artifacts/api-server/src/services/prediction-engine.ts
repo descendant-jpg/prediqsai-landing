@@ -45,14 +45,14 @@ const SPORTS = [
   },
   {
     sport: "soccer",
-    league: "Premier League",
+    league: "Soccer",
     apiSportsBase: "https://v3.football.api-sports.io",
     apiSportsPath: "/fixtures",
     oddsKey: "soccer_epl",
     espnSport: "soccer",
     espnLeague: "eng.1",
     outdoor: true,
-    newsQuery: "Premier League injury suspension",
+    newsQuery: "Premier League La Liga Bundesliga soccer injury suspension lineup",
   },
 ] as const;
 
@@ -103,6 +103,7 @@ async function fetchApiSportsGames(
   base: string,
   path: string,
   sport: string,
+  leagueId?: number,
 ): Promise<GameInfo[]> {
   if (!API_SPORTS_KEY) return [];
   try {
@@ -112,7 +113,8 @@ async function fetchApiSportsGames(
     if (sport === "soccer") {
       const now = new Date();
       const season = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-      url = `${base}${path}?date=${today}&league=39&season=${season}`;
+      const lid = leagueId ?? 39;
+      url = `${base}${path}?date=${today}&league=${lid}&season=${season}`;
     }
 
     const resp = await fetch(url, {
@@ -333,9 +335,19 @@ async function generateForSport(
   outdoor: boolean,
   newsQuery: string,
 ) {
-  // Fetch everything in parallel
+  // Fetch everything in parallel — for soccer, fan out across top leagues
+  const SOCCER_LEAGUE_IDS = [39, 140, 78, 135, 61, 2, 3, 253, 88];
   const [apiSportsGames, odds, newsHeadlines, espnNews] = await Promise.all([
-    fetchApiSportsGames(apiSportsBase, apiSportsPath, sport),
+    sport === "soccer"
+      ? Promise.allSettled(
+          SOCCER_LEAGUE_IDS.map((id) => fetchApiSportsGames(apiSportsBase, apiSportsPath, sport, id)),
+        ).then((results) =>
+          results
+            .filter((r): r is PromiseFulfilledResult<GameInfo[]> => r.status === "fulfilled")
+            .flatMap((r) => r.value)
+            .slice(0, 12),
+        )
+      : fetchApiSportsGames(apiSportsBase, apiSportsPath, sport),
     fetchOdds(oddsKey),
     fetchNewsApi(newsQuery),
     fetchESPNNews(espnSport, espnLeague),

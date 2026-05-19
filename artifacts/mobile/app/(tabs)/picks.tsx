@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { PredictionCard } from "@/components/PredictionCard";
 import { SPORT_FILTERS } from "@/constants/mockData";
 import { useAuth } from "@/context/AuthContext";
@@ -151,6 +152,7 @@ export default function PicksScreen() {
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No picks for this filter</Text>
             </View>
           }
+          ListFooterComponent={filtered.length > 0 ? <DisclaimerFooter /> : null}
         />
       )}
     </View>

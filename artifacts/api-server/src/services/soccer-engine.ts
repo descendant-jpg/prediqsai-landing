@@ -1,3 +1,4 @@
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { logger } from "../lib/logger";
 
 const API_SPORTS_KEY = process.env.API_SPORTS_KEY;
@@ -116,16 +117,25 @@ export interface SoccerFeedResponse {
   hasApiKey: boolean;
 }
 
-// In-memory cache
+// ─── In-memory caches ─────────────────────────────────────────────────────────
+
 const cache: {
   fixtures?: { data: SoccerFixture[]; expiresAt: number };
   live?: { data: SoccerFixture[]; expiresAt: number };
 } = {};
 
+const predCache: {
+  predictions?: Map<number, ClaudePrediction>;
+  expiresAt?: number;
+} = {};
+
 const FIXTURE_TTL = 30 * 60 * 1000;
 const LIVE_TTL = 60 * 1000;
+const PRED_TTL = 30 * 60 * 1000;
 
 const LIVE_STATUSES = new Set(["1H", "HT", "2H", "ET", "BT", "P", "LIVE"]);
+
+// ─── Derived prediction helpers (fallback) ────────────────────────────────────
 
 function deriveConfidence(fixtureId: number, tier: number): number {
   const hash = Math.abs((fixtureId * 2654435769) % 100);
@@ -146,6 +156,94 @@ function deriveRisk(confidence: number): "low" | "medium" | "high" {
   if (confidence >= 57) return "medium";
   return "high";
 }
+
+// ─── Claude batch predictions ─────────────────────────────────────────────────
+
+interface ClaudePrediction {
+  prediction: "home_win" | "away_win" | "draw";
+  confidence: number;
+  riskLevel: "low" | "medium" | "high";
+  valueDetected: boolean;
+}
+
+async function batchSoccerPredictions(fixtures: SoccerFixture[]): Promise<Map<number, ClaudePrediction>> {
+  const now = Date.now();
+  if (predCache.predictions && predCache.expiresAt && predCache.expiresAt > now) {
+    return predCache.predictions;
+  }
+
+  const top = fixtures
+    .filter((f) => f.leagueTier <= 2)
+    .sort((a, b) => a.leagueTier - b.leagueTier || new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())
+    .slice(0, 18);
+
+  if (top.length === 0) return new Map();
+
+  const gameLines = top
+    .map((f) => `[ID:${f.id}] ${f.leagueFlag} ${f.leagueName}: ${f.homeTeam} vs ${f.awayTeam}`)
+    .join("\n");
+
+  const prompt = `You are an expert soccer betting analyst. Predict outcomes for today's fixtures.
+
+FIXTURES:
+${gameLines}
+
+Return ONLY a JSON array — no markdown, no prose. Each object:
+{
+  "fixtureId": <number from ID:X>,
+  "prediction": "home_win"|"away_win"|"draw",
+  "confidence": <integer 45-88>,
+  "riskLevel": "low"|"medium"|"high",
+  "valueDetected": <boolean>
+}
+
+Apply standard football analysis:
+- Home teams win ~52% in top leagues, draws ~24%, away wins ~24%
+- UCL/UEL have higher draw rates due to tactical caution
+- High confidence (70%+) = clear form advantage + historical h2h edge
+- valueDetected = true when your implied probability meaningfully exceeds typical bookmaker prices
+Return predictions for all ${top.length} listed fixtures.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1500,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const raw = response.content[0].type === "text" ? response.content[0].text.trim() : "[]";
+    const jsonStr = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
+    const parsed = JSON.parse(jsonStr) as Array<{
+      fixtureId: number;
+      prediction: "home_win" | "away_win" | "draw";
+      confidence: number;
+      riskLevel: "low" | "medium" | "high";
+      valueDetected: boolean;
+    }>;
+
+    const map = new Map<number, ClaudePrediction>();
+    for (const p of parsed) {
+      if (p.fixtureId && p.prediction) {
+        map.set(p.fixtureId, {
+          prediction: p.prediction,
+          confidence: Math.min(90, Math.max(45, p.confidence)),
+          riskLevel: p.riskLevel ?? deriveRisk(p.confidence),
+          valueDetected: p.valueDetected ?? false,
+        });
+      }
+    }
+
+    predCache.predictions = map;
+    predCache.expiresAt = now + PRED_TTL;
+    logger.info({ count: map.size, total: top.length }, "Claude soccer batch predictions cached");
+    return map;
+  } catch (err) {
+    logger.warn({ err }, "Claude batch soccer predictions failed — falling back to derived");
+    return new Map();
+  }
+}
+
+// ─── Fixture parsing ──────────────────────────────────────────────────────────
 
 function parseFixture(raw: Record<string, unknown>): SoccerFixture | null {
   const fixture = raw.fixture as Record<string, unknown> | undefined;
@@ -189,6 +287,8 @@ function parseFixture(raw: Record<string, unknown>): SoccerFixture | null {
   };
 }
 
+// ─── Sorting / grouping ───────────────────────────────────────────────────────
+
 function sortByKickoff(a: SoccerFixture, b: SoccerFixture) {
   return new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime();
 }
@@ -219,6 +319,8 @@ function buildGroups(fixtures: SoccerFixture[]): SoccerLeagueGroup[] {
   return groups;
 }
 
+// ─── API fetch ────────────────────────────────────────────────────────────────
+
 async function fetchFromApi(params: string): Promise<SoccerFixture[]> {
   if (!API_SPORTS_KEY) return [];
   const url = `${FOOTBALL_BASE}/fixtures?${params}`;
@@ -236,6 +338,8 @@ async function fetchFromApi(params: string): Promise<SoccerFixture[]> {
   parsed.sort(sortByKickoff);
   return parsed;
 }
+
+// ─── Response builder ─────────────────────────────────────────────────────────
 
 function buildResponse(fixtures: SoccerFixture[], lastUpdated: Date): SoccerFeedResponse {
   const leagueGroups = buildGroups(fixtures);
@@ -258,6 +362,8 @@ function buildResponse(fixtures: SoccerFixture[], lastUpdated: Date): SoccerFeed
   };
 }
 
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 export async function getTodaysFixtures(): Promise<SoccerFeedResponse> {
   const now = Date.now();
   if (cache.fixtures && cache.fixtures.expiresAt > now) {
@@ -266,11 +372,30 @@ export async function getTodaysFixtures(): Promise<SoccerFeedResponse> {
 
   const today = new Date().toISOString().split("T")[0];
   const fixtures = await fetchFromApi(`date=${today}`);
+
+  // Enhance tier 1-2 fixtures with Claude AI predictions (30-min cache)
+  if (fixtures.length > 0) {
+    try {
+      const claudePreds = await batchSoccerPredictions(fixtures);
+      for (const f of fixtures) {
+        const cp = claudePreds.get(f.id);
+        if (cp) {
+          f.prediction = cp.prediction;
+          f.confidence = cp.confidence;
+          f.riskLevel = cp.riskLevel;
+          f.valueDetected = cp.valueDetected;
+        }
+      }
+    } catch (err) {
+      logger.warn({ err }, "Failed to apply Claude soccer predictions");
+    }
+  }
+
   cache.fixtures = { data: fixtures, expiresAt: now + FIXTURE_TTL };
 
   logger.info(
     { count: fixtures.length, leagues: new Set(fixtures.map((f) => f.leagueId)).size },
-    "Soccer fixtures fetched and cached",
+    "Soccer fixtures fetched, Claude-enhanced, and cached",
   );
 
   return buildResponse(fixtures, new Date());

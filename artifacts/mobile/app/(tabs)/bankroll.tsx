@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import type { BankrollEntry, EntryType } from "@/types";
@@ -171,6 +172,11 @@ export default function BankrollScreen() {
 
   const lossPercent = Math.min(100, (todayLoss / (profile.dailyLossLimit || 200)) * 100);
 
+  const recentHourLosses = bankrollEntries.filter(
+    (e) => e.type === "loss" && Date.now() - new Date(e.createdAt).getTime() < 2 * 60 * 60 * 1000,
+  );
+  const showEmotionalWarning = recentHourLosses.length >= 3;
+
   async function handleAddEntry() {
     const parsed = parseFloat(amount);
     if (!amount || isNaN(parsed) || parsed <= 0) return;
@@ -242,6 +248,18 @@ export default function BankrollScreen() {
           </View>
         </View>
 
+        {showEmotionalWarning && (
+          <View style={[styles.emotionalBanner, { backgroundColor: "rgba(255,107,53,0.1)", borderColor: "rgba(255,107,53,0.3)" }]}>
+            <AlertTriangle size={16} color="#FF6B35" />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[styles.emotionalTitle, { color: "#FF6B35" }]}>Emotional Betting Alert</Text>
+              <Text style={[styles.emotionalText, { color: colors.textSecondary }]}>
+                {recentHourLosses.length} losses in 2 hours detected. Take a break before placing more bets.
+              </Text>
+            </View>
+          </View>
+        )}
+
         <View style={styles.actionsRow}>
           {ENTRY_TYPES.map((t) => (
             <TouchableOpacity
@@ -271,6 +289,7 @@ export default function BankrollScreen() {
             ))}
           </View>
         )}
+        <DisclaimerFooter />
       </ScrollView>
 
       <Modal
@@ -386,6 +405,9 @@ const styles = StyleSheet.create({
   historyTitle: { fontSize: 16 },
   emptyHistory: { alignItems: "center", paddingVertical: 30, gap: 8 },
   emptyText: { fontSize: 14 },
+  emotionalBanner: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
+  emotionalTitle: { fontSize: 14 },
+  emotionalText: { fontSize: 13, lineHeight: 18 },
   historyList: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   entryRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1 },
   entryIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },

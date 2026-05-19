@@ -329,7 +329,7 @@ export default function SlipAnalysisScreen() {
             disabled={!manualText.trim()}
             activeOpacity={0.85}
           >
-            <Ionicons name="flash" size={18} color={manualText.trim() ? colors.background : colors.textMuted} />
+            <Zap size={18} color={manualText.trim() ? colors.background : colors.textMuted} />
             <Text style={[styles.analyzeBtnText, { color: manualText.trim() ? colors.background : colors.textMuted }]}>
               Analyse with AI
             </Text>

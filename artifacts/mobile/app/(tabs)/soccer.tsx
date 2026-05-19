@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ConfidenceMeter } from "@/components/ConfidenceMeter";
+import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type SoccerFixture, type SoccerLeagueGroup } from "@/lib/api";
@@ -612,9 +613,12 @@ export default function SoccerScreen() {
         }
         ListFooterComponent={
           totalFiltered > 0 ? (
-            <Text style={[styles.footer, { color: colors.textMuted }]}>
-              Showing {totalFiltered} of {totalCount} matches today
-            </Text>
+            <View style={{ paddingBottom: 8 }}>
+              <Text style={[styles.footer, { color: colors.textMuted }]}>
+                Showing {totalFiltered} of {totalCount} matches today
+              </Text>
+              <DisclaimerFooter />
+            </View>
           ) : null
         }
         contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}

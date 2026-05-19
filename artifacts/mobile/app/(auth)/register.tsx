@@ -29,6 +29,7 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [ageVerified, setAgeVerified] = useState(false);
 
   async function handleRegister() {
     if (!username.trim() || !email.trim() || !password) return;
@@ -141,9 +142,9 @@ export default function RegisterScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.submitBtn, { backgroundColor: colors.cyan, opacity: isLoading ? 0.7 : 1 }]}
+            style={[styles.submitBtn, { backgroundColor: colors.cyan, opacity: (isLoading || !ageVerified) ? 0.5 : 1 }]}
             onPress={handleRegister}
-            disabled={isLoading || !username || !email || !password}
+            disabled={isLoading || !username || !email || !password || !ageVerified}
             activeOpacity={0.85}
           >
             {isLoading ? (
@@ -166,6 +167,19 @@ export default function RegisterScreen() {
             ))}
           </View>
         </View>
+
+        <TouchableOpacity
+          style={[styles.ageCheckRow, { borderColor: ageVerified ? colors.cyan : colors.border, backgroundColor: ageVerified ? "rgba(0,229,255,0.06)" : "transparent" }]}
+          onPress={() => setAgeVerified((v) => !v)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.checkbox, { borderColor: ageVerified ? colors.cyan : colors.border, backgroundColor: ageVerified ? "rgba(0,229,255,0.15)" : "transparent" }]}>
+            {ageVerified && <CheckCircle size={13} color={colors.cyan} />}
+          </View>
+          <Text style={[styles.ageCheckText, { color: colors.textSecondary }]}>
+            I confirm I am 18 years or older and that online betting is legal in my jurisdiction
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
@@ -219,4 +233,7 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 14 },
   footerLink: { fontSize: 14 },
   disclaimer: { fontSize: 11, textAlign: "center" },
+  ageCheckRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  ageCheckText: { flex: 1, fontSize: 13, lineHeight: 18 },
 });

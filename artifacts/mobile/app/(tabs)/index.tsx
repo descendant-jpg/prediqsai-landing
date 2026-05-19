@@ -16,6 +16,7 @@ import { ConfidenceMeter } from "@/components/ConfidenceMeter";
 import { PredictionCard } from "@/components/PredictionCard";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SkeletonCard, SkeletonStatRow } from "@/components/SkeletonLoader";
+import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { SportBadge } from "@/components/SportBadge";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
@@ -222,6 +223,15 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       )}
 
+      {(new Date().getHours() >= 22 || new Date().getHours() < 6) && (
+        <View style={[styles.setupBanner, { backgroundColor: "rgba(255,165,0,0.1)", borderColor: "rgba(255,165,0,0.3)", marginBottom: 12 }]}>
+          <AlertTriangle size={14} color="#FFA500" />
+          <Text style={[styles.setupBannerText, { color: "#FFA500", flex: 1 }]}>
+            Late night alert: Take breaks, avoid chasing losses, and only bet within your preset limits.
+          </Text>
+        </View>
+      )}
+
       {/* 4-stat row */}
       {isLoading ? (
         <SkeletonStatRow />
@@ -376,9 +386,7 @@ export default function DashboardScreen() {
         </>
       )}
 
-      <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
-        PrediQs AI is for informational purposes only. Gamble responsibly. 18+. Call 1-800-522-4700 if you need help.
-      </Text>
+      <DisclaimerFooter />
     </ScrollView>
   );
 }

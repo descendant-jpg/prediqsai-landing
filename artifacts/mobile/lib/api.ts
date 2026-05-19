@@ -174,6 +174,23 @@ export interface SlipAnalysisResult {
   analysis: unknown;
 }
 
+export interface PerformanceData {
+  winRate: number;
+  roi: number;
+  totalBets: number;
+  netPnl: number;
+  totalWon: number;
+  totalLost: number;
+  sportStats: Record<string, { picks: number; avgConfidence: number; valueCount: number }>;
+  predictionCount: number;
+  avgConfidence: number;
+  confidenceTiers: {
+    high: { count: number; label: string };
+    medium: { count: number; label: string };
+    low: { count: number; label: string };
+  };
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -198,6 +215,8 @@ export const api = {
         body: JSON.stringify(data),
         token,
       }),
+    performance: (token: string) =>
+      apiFetch<PerformanceData>("/user/performance", { token }),
   },
   predictions: {
     list: (token: string) => apiFetch<ApiPrediction[]>("/predictions", { token }),
