@@ -1,0 +1,276 @@
+dd Sports Arbitrage feature to 
+PrediQs AI.
+
+PRO tier: Basic Arbitrage Alerts
+ELITE tier: Full Real-Time Arbitrage Scanner
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW ARBITRAGE WORKS IN THE APP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Fetch odds from multiple bookmakers
+   via The Odds API (ODDS_API_KEY)
+
+2. For each game compare odds across
+   all available bookmakers
+
+3. Calculate if arbitrage exists:
+
+   For 2-way markets (home/away):
+   arb exists if:
+   (1/odds1) + (1/odds2) < 1.0
+
+   For 3-way markets (home/draw/away):
+   arb exists if:
+   (1/odds1) + (1/odds2) + (1/odds3) < 1.0
+
+   Profit % = (1 - sum) × 100
+
+4. If arb detected → alert user instantly
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRO TIER — BASIC ARBITRAGE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Features:
+- Scan for 2-way arbitrage only
+- Show top 3 opportunities per day
+- Manual stake calculator
+- Alert banner when arb found
+- Basic bookmaker comparison table
+
+Arbitrage card shows:
+┌──────────────────────────────┐
+│ 🔄 ARB OPPORTUNITY FOUND     │
+│                              │
+│ Arsenal vs Chelsea           │
+│ Premier League               │
+│                              │
+│ Bet365:    Arsenal  @ 2.10  │
+│ William H: Chelsea  @ 2.20  │
+│                              │
+│ Profit margin: +2.3%        │
+│ On $1,000 stake: +$23       │
+│                              │
+│ ⏱️ Window closes in: 4:32   │
+│                              │
+│ [Calculate Stakes]           │
+│ [Open Bet365] [Open WillH]  │
+└──────────────────────────────┘
+
+Stake calculator:
+User enters total budget: $1,000
+App calculates:
+- Stake on Bet365: $512
+- Stake on William Hill: $488
+- Guaranteed profit: $23
+- Profit %: 2.3%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ELITE TIER — FULL ARB SCANNER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Features:
+- Real-time scanning every 30 seconds
+- 2-way AND 3-way arbitrage
+- Unlimited opportunities shown
+- Instant push notification
+- Auto stake calculator
+- Profit optimizer
+- Historical tracking
+- Success rate stats
+
+Real-time scanner screen:
+┌──────────────────────────────┐
+│ ⚡ LIVE ARB SCANNER          │
+│ Scanning 40+ bookmakers...   │
+│ Last scan: 23 seconds ago    │
+│                              │
+│ 🟢 ACTIVE OPPORTUNITIES: 3  │
+│                              │
+│ 1. Arsenal vs Chelsea  +2.3%│
+│    Bet365 vs William Hill    │
+│    Window: 4:32 remaining   │
+│    Profit on $1k: $23       │
+│    [CALCULATE NOW →]        │
+│                              │
+│ 2. Lakers vs Warriors +1.8% │
+│    DraftKings vs FanDuel    │
+│    Window: 12:15 remaining  │
+│    Profit on $1k: $18       │
+│    [CALCULATE NOW →]        │
+│                              │
+│ 3. Chiefs vs Ravens  +3.1%  │
+│    BetMGM vs Caesars        │
+│    Window: 2:45 remaining   │
+│    Profit on $1k: $31       │
+│    [CALCULATE NOW →]        │
+└──────────────────────────────┘
+
+Full calculation screen:
+┌──────────────────────────────┐
+│ ARB CALCULATOR               │
+│ Arsenal vs Chelsea           │
+│                              │
+│ Your budget: $1,000         │
+│                              │
+│ BET 1:                      │
+│ Bookmaker: Bet365           │
+│ Selection: Arsenal Win      │
+│ Odds: 2.10                  │
+│ Stake: $512.20              │
+│ Returns: $1,075.62          │
+│                              │
+│ BET 2:                      │
+│ Bookmaker: William Hill     │
+│ Selection: Chelsea Win      │
+│ Odds: 2.20                  │
+│ Stake: $487.80              │
+│ Returns: $1,073.16          │
+│                              │
+│ ━━━━━━━━━━━━━━━━━━━━━        │
+│ GUARANTEED PROFIT: $73.16   │
+│ PROFIT %: 7.3%              │
+│ ROI: Instant                │
+│                              │
+│ [Open Bet365 →]             │
+│ [Open William Hill →]       │
+│ [Save to History]           │
+└──────────────────────────────┘
+
+3-way arbitrage (soccer draw):
+┌──────────────────────────────┐
+│ 3-WAY ARB DETECTED ⚡        │
+│ Man City vs Liverpool        │
+│                              │
+│ Bet365:   Man City  @ 2.40  │
+│ Unibet:   Liverpool @ 3.80  │
+│ Betfair:  Draw      @ 4.20  │
+│                              │
+│ Profit: +4.2%               │
+│                              │
+│ Stake $500 on Man City      │
+│ Stake $316 on Liverpool     │
+│ Stake $286 on Draw          │
+│ Total: $1,102               │
+│ Guaranteed return: $1,149   │
+│ Guaranteed profit: $47      │
+│                              │
+│ [Place All 3 Bets →]        │
+└──────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARBITRAGE ALERTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Push notification (Elite):
+"🔄 ARB ALERT! Arsenal vs Chelsea
+Guaranteed +2.3% profit
+Window closing in 4 minutes
+Tap to calculate stakes NOW"
+
+SMS alert (Elite):
+"PrediQs ARB: Man City vs Liverpool
+3-way arb detected +4.2% profit
+$1,102 → guaranteed $1,149
+Act fast - window closing"
+
+In-app banner (Pro):
+"🔄 Arbitrage opportunity detected!
+Arsenal vs Chelsea → +2.3% profit
+[View Details - Elite Feature]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARBITRAGE HISTORY (Elite):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Track all past arb opportunities:
+- Date and match
+- Profit % achieved
+- Amount staked
+- Amount profited
+- Whether user acted on it
+- Missed opportunities (could have made)
+
+Stats dashboard:
+Total arbs found: 47
+Acted on: 12
+Total profit: $384
+Average profit per arb: $32
+Biggest single arb: $127
+Missed profit: $890 (motivates upgrade)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BOOKMAKERS TO COMPARE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+US bookmakers:
+- DraftKings
+- FanDuel
+- BetMGM
+- Caesars
+- ESPN Bet
+- PointsBet
+- BetRivers
+- Fanatics
+
+UK/Europe bookmakers:
+- Bet365
+- William Hill
+- Betfair
+- Paddy Power
+- Sky Bet
+- Unibet
+- Bwin
+- Pinnacle
+- 888Sport
+
+Africa bookmakers:
+- Betway
+- SportyBet
+- 1xBet
+- Melbet
+- 22Bet
+
+All fetched via The Odds API
+which already covers 40+ bookmakers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT DISCLAIMER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this warning on the arb screen:
+"⚠️ Important: Arbitrage betting is 
+legal but bookmakers may limit or 
+close accounts of known arb bettors.
+Use responsibly. Spread stakes across
+multiple bookmakers. Never exceed 
+bookmaker limits. PrediQs AI is not 
+responsible for account restrictions."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add "Arbitrage" as a new section:
+- Accessible from dashboard
+- Own tab in the odds section
+- Quick access button on Elite 
+  dashboard with live count badge:
+  "🔄 3 arbs live"
+
+PRO users see:
+- Basic arb alerts
+- Top 3 per day
+- Manual calculator
+- Locked scanner with Elite upgrade prompt
+
+ELITE users see:
+- Full real-time scanner
+- Unlimited opportunities
+- Auto calculator
+- Instant alerts
+- Full history
+
+Build this now and show me the 
+arbitrage scanner screen.

@@ -191,6 +191,45 @@ export interface PerformanceData {
   };
 }
 
+export interface ArbLeg {
+  bookmaker: string;
+  bookmakerId: string;
+  selection: string;
+  odds: number;
+  impliedProb: number;
+}
+
+export interface ArbOpportunity {
+  id: string;
+  sport: string;
+  sportKey: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+  marketType: "2way" | "3way";
+  profitPercent: number;
+  totalImplied: number;
+  legs: ArbLeg[];
+  discoveredAt: string;
+}
+
+export interface ArbScanResponse {
+  opportunities: ArbOpportunity[];
+  totalFound: number;
+  lastScanned: string;
+  hasApiKey: boolean;
+  tier: string;
+}
+
+export interface ArbCalcResult {
+  arb: ArbOpportunity;
+  stakes: Array<{ selection: string; bookmaker: string; stake: number; returns: number }>;
+  guaranteedReturn: number;
+  guaranteedProfit: number;
+  profitPercent: number;
+}
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
@@ -271,6 +310,18 @@ export const api = {
       apiFetch<{ tier: string }>("/subscription/tier", {
         method: "PUT",
         body: JSON.stringify({ tier }),
+        token,
+      }),
+  },
+  arbitrage: {
+    list: (token: string) =>
+      apiFetch<ArbScanResponse>("/arbitrage", { token }),
+    scan: (token: string) =>
+      apiFetch<ArbScanResponse>("/arbitrage/scan", { method: "POST", token }),
+    calculate: (token: string, arbId: string, budget: number) =>
+      apiFetch<ArbCalcResult>("/arbitrage/calculate", {
+        method: "POST",
+        body: JSON.stringify({ arbId, budget }),
         token,
       }),
   },

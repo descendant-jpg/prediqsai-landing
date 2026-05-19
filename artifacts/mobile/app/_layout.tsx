@@ -42,6 +42,7 @@ function RootLayoutNav() {
       <Stack.Screen name="slip-analysis" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="setup" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="arbitrage" options={{ headerShown: false }} />
     </Stack>
   );
 }

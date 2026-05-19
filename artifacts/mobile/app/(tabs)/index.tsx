@@ -258,6 +258,20 @@ export default function DashboardScreen() {
         <ChevronRight size={18} color={colors.cyan} />
       </TouchableOpacity>
 
+      {/* Arbitrage quick-access */}
+      <TouchableOpacity
+        style={[styles.slipBtn, { backgroundColor: "rgba(0,255,148,0.07)", borderColor: "#00FF9455" }]}
+        onPress={() => router.push("/arbitrage")}
+        activeOpacity={0.8}
+      >
+        <Text style={{ fontSize: 20 }}>🔄</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.slipBtnTitle, { color: "#00FF94" }]}>ARB Scanner</Text>
+          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>Find guaranteed profit across bookmakers</Text>
+        </View>
+        <ChevronRight size={18} color="#00FF94" />
+      </TouchableOpacity>
+
       {/* Error */}
       {error && !isLoading && (
         <TouchableOpacity
