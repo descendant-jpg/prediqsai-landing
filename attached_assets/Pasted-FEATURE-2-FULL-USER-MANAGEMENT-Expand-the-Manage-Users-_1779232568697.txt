@@ -1,0 +1,242 @@
+FEATURE 2: FULL USER MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Expand the Manage Users section:
+
+User list shows all users:
+┌─────────────────────────────┐
+│ 👤 peterdamian              │
+│ nextgensynthex@gmail.com    │
+│ 🇳🇬 Nigeria                 │
+│ Tier: 👑 ELITE              │
+│ Admin: ✅ Yes               │
+│ Joined: May 19 2026         │
+│ Last active: Just now       │
+│ 🟢 Online                   │
+│                             │
+│ [View] [Edit] [Message]     │
+└─────────────────────────────┘
+
+Actions per user:
+- View full profile
+- Change tier (Free/Pro/Elite)
+- Give 7 day free trial
+- Give 30 day free trial
+- Make admin / Remove admin
+- Ban account
+- Suspend (24hr/7day/30day)
+- Send personal notification
+- Reset password
+- Delete account
+- Export user data
+
+Filters:
+All | Free | Pro | Elite | 
+Online | Banned | New Today
+
+Search by email or username
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 3: PREDICTIONS MANAGER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Full predictions control:
+
+View all predictions:
+- Today's predictions list
+- Sport filter tabs
+- Confidence levels
+- Which users followed each
+- Result tracking (correct/wrong)
+
+Actions:
+- Add manual prediction
+- Edit AI prediction
+- Delete prediction
+- Mark result (Win/Loss/Push)
+- Override AI pick
+
+Stats shown:
+- Overall accuracy: X%
+- By sport accuracy
+- High confidence accuracy
+- Value bet accuracy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 4: SEND NOTIFICATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Send push notifications directly
+from admin panel:
+
+Target:
+○ All users (3)
+○ Free users only (1)
+○ Elite users only (1)
+○ Specific user
+○ By country
+
+Compose:
+Title: [______]
+Message: [______]
+Link to: [which screen]
+
+[Send Now] [Schedule]
+
+History of sent notifications
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 5: APP CONFIG / SETTINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Toggle features on/off:
+
+FEATURE FLAGS:
+[x] Arbitrage Scanner ON/OFF
+[x] Bet Slip Analyzer ON/OFF
+[x] World Cup Section ON/OFF
+[x] Paper Bet Simulator ON/OFF
+[x] Voice AI ON/OFF
+[x] Community Tipsters ON/OFF
+[x] Live Match Tracker ON/OFF
+
+APP LIMITS:
+Free daily picks: [3] (editable)
+Pro chat limit: [50] (editable)
+Elite API calls: [100] (editable)
+
+MAINTENANCE MODE:
+[ ] Enable maintenance mode
+Shows all users maintenance screen
+
+ANNOUNCEMENT BANNER:
+[ ] Show banner to all users
+Banner text: [______]
+Color: Cyan / Gold / Red
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 6: API HEALTH MONITOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Real-time API status dashboard:
+
+Each API shows:
+- Status: ✅ / ❌ / ⚠️
+- Response time (ms)
+- Calls used today
+- Quota remaining
+- Cost this month (Claude)
+- Last successful call
+- Error rate %
+
+Auto-refresh every 60 seconds
+
+Alert settings:
+[x] Email me if any API fails
+[x] Alert when quota below 20%
+[x] Alert if response > 2000ms
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 7: ERROR LOG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Real-time error tracking:
+
+Each error shows:
+- Error type and message
+- Which screen it happened
+- Which user experienced it
+- Device (iOS/Android)
+- Timestamp
+- Stack trace
+- Status: Unresolved/Resolved
+
+[Mark Resolved] button
+Filter: All / Crashes / API Errors
+Sort: Newest / Most Common
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 8: REVENUE DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Revenue tracking:
+- Revenue today: $0 (pre-launch)
+- Revenue this month: $0
+- Total users: 3
+- Paying users: 0
+- Conversion rate: 0%
+
+When payments are added later
+this will show:
+- Daily/monthly revenue chart
+- Revenue by tier
+- Revenue by country
+- New vs churned subscribers
+- MRR and ARR
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 9: WORLD CUP ADMIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+World Cup specific controls:
+- All 104 matches listed
+- AI predictions per match
+- User engagement per match
+- Send WC specific notifications:
+  "Nigeria kicks off in 1 hour!"
+  → Target: Nigerian users only
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 10: AUDIT LOGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every admin action logged:
+- Timestamp
+- Admin email
+- Action taken
+- Target user (if any)
+- Details
+
+Actions logged:
+- tier_changed
+- user_banned
+- notification_sent
+- api_key_updated
+- feature_toggled
+- prediction_edited
+- maintenance_mode_changed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADMIN NAVIGATION UPDATE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update admin bottom/side nav to:
+📊 Overview (current)
+👥 Users
+🎯 Predictions
+🔌 API Keys ← NEW MOST IMPORTANT
+💰 Revenue
+📣 Notifications
+⚠️ Errors
+🏆 World Cup
+⚙️ Config
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECURITY FOR API KEYS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+API keys stored in database must be:
+1. Encrypted before storing
+2. Only decrypted server-side
+3. Never sent to client/phone
+4. Only last 4 characters shown
+5. Require admin password to update
+
+When showing keys always mask:
+sk-ant-api03-xxxx...ABCD (last 4)
+Never show full key on screen
+
+Build all 10 admin features and
+show me the API Keys management
+screen first as it is the 
+most important new feature

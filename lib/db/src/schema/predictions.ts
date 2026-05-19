@@ -25,6 +25,7 @@ export const predictions = pgTable("predictions", {
   valueDetected: boolean("value_detected").notNull().default(false),
   tierRequired: text("tier_required").notNull().default("free"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  result: text("result"), // 'win' | 'loss' | 'push' | null
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

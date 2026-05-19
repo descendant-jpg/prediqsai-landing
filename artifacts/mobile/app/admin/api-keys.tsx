@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import { AdminTabBar } from "@/components/AdminTabBar";
 import { useRouter } from "expo-router";
 import { AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, RefreshCw, XCircle, Zap } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
@@ -366,6 +367,7 @@ export default function AdminApiKeysScreen() {
           ))}
         </ScrollView>
       )}
+      <AdminTabBar />
     </View>
   );
 }

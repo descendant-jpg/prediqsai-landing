@@ -9,6 +9,12 @@ export default function AdminLayout() {
       <Stack.Screen name="config" />
       <Stack.Screen name="logs" />
       <Stack.Screen name="api-keys" />
+      <Stack.Screen name="predictions" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="health" />
+      <Stack.Screen name="errors" />
+      <Stack.Screen name="revenue" />
+      <Stack.Screen name="worldcup" />
     </Stack>
   );
 }

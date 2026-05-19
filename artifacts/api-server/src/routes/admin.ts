@@ -1,8 +1,8 @@
-import { count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod/v4";
 
-import { adminLogs, appConfig, db, users } from "@workspace/db";
+import { adminLogs, appConfig, bankrollEntries, db, errorLogs, notificationHistory, predictions, users } from "@workspace/db";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -496,6 +496,316 @@ router.post("/admin/verify-password", async (req, res) => {
     return;
   }
   res.json({ ok: password === adminPassword });
+});
+
+// ─── GET /api/admin/predictions ───────────────────────────────────────────────
+
+router.get("/admin/predictions", requireAdmin, async (req, res) => {
+  const { sport, result, page = "1" } = req.query as Record<string, string>;
+  const limit = 30;
+  const offset = (parseInt(page) - 1) * limit;
+
+  const rows = await db
+    .select()
+    .from(predictions)
+    .where(
+      and(
+        sport && sport !== "all" ? eq(predictions.sport, sport) : undefined,
+        result === "win" ? eq(sql`predictions.result`, "win") : undefined,
+        result === "loss" ? eq(sql`predictions.result`, "loss") : undefined,
+        result === "push" ? eq(sql`predictions.result`, "push") : undefined,
+        result === "pending" ? sql`predictions.result IS NULL` : undefined,
+      ),
+    )
+    .orderBy(desc(predictions.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  res.json({ predictions: rows, page: parseInt(page), limit });
+});
+
+// ─── PUT /api/admin/predictions/:id/result ────────────────────────────────────
+
+router.put("/admin/predictions/:id/result", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id ?? ""), 10);
+  const { result } = z.object({ result: z.enum(["win", "loss", "push"]).nullable() }).parse(req.body);
+
+  const [updated] = await db
+    .update(predictions)
+    .set({ result })
+    .where(eq(predictions.id, id))
+    .returning();
+
+  await db.insert(adminLogs).values({ action: "prediction_result_set", details: JSON.stringify({ id, result }), adminEmail: "admin" });
+  res.json(updated);
+});
+
+// ─── DELETE /api/admin/predictions/:id ───────────────────────────────────────
+
+router.delete("/admin/predictions/:id", requireAdmin, async (req, res) => {
+  const id = parseInt(String(req.params.id ?? ""), 10);
+  await db.delete(predictions).where(eq(predictions.id, id));
+  await db.insert(adminLogs).values({ action: "prediction_deleted", details: JSON.stringify({ id }), adminEmail: "admin" });
+  res.json({ ok: true });
+});
+
+// ─── GET /api/admin/notifications ─────────────────────────────────────────────
+
+router.get("/admin/notifications", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(notificationHistory)
+    .orderBy(desc(notificationHistory.createdAt))
+    .limit(50);
+  res.json(rows);
+});
+
+// ─── POST /api/admin/notifications/send ──────────────────────────────────────
+
+router.post("/admin/notifications/send", requireAdmin, async (req, res) => {
+  const body = z.object({
+    title: z.string().min(1).max(100),
+    message: z.string().min(1).max(500),
+    target: z.string(), // 'all' | 'free' | 'pro' | 'elite' | 'user:123' | 'country:NG'
+    linkTo: z.string().optional(),
+  }).parse(req.body);
+
+  const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
+  const oneSignalKey = process.env.ONESIGNAL_API_KEY;
+
+  let recipientCount = 0;
+  let oneSignalResult: unknown = null;
+
+  if (oneSignalAppId && oneSignalKey) {
+    // Build OneSignal filters
+    const filters: unknown[] = [];
+    if (body.target === "all") {
+      // No filters — send to all
+    } else if (body.target.startsWith("user:")) {
+      const userId = body.target.split(":")[1];
+      filters.push({ field: "tag", key: "user_id", relation: "=", value: userId });
+    } else if (["free", "pro", "elite"].includes(body.target)) {
+      filters.push({ field: "tag", key: "tier", relation: "=", value: body.target });
+    } else if (body.target.startsWith("country:")) {
+      const country = body.target.split(":")[1];
+      filters.push({ field: "country", relation: "=", value: country });
+    }
+
+    try {
+      const r = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${oneSignalKey}` },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          headings: { en: body.title },
+          contents: { en: body.message },
+          ...(filters.length > 0 ? { filters } : { included_segments: ["All"] }),
+          ...(body.linkTo ? { data: { linkTo: body.linkTo } } : {}),
+        }),
+      });
+      oneSignalResult = await r.json();
+      recipientCount = (oneSignalResult as { recipients?: number })?.recipients ?? 0;
+    } catch (err) {
+      req.log.warn({ err }, "OneSignal send failed");
+    }
+  }
+
+  const [saved] = await db.insert(notificationHistory).values({
+    title: body.title,
+    message: body.message,
+    target: body.target,
+    linkTo: body.linkTo,
+    recipientCount,
+    sentByAdminId: req.userId,
+  }).returning();
+
+  await db.insert(adminLogs).values({
+    action: "notification_sent",
+    details: JSON.stringify({ title: body.title, target: body.target, recipientCount }),
+    adminEmail: "admin",
+  });
+
+  res.json({ ok: true, notification: saved, oneSignalResult });
+});
+
+// ─── GET /api/admin/revenue ───────────────────────────────────────────────────
+
+router.get("/admin/revenue", requireAdmin, async (_req, res) => {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  const [allUsers] = await db.select({ total: count() }).from(users);
+  const tierCounts = await db
+    .select({ tier: users.tier, count: count() })
+    .from(users)
+    .groupBy(users.tier);
+  const [newToday] = await db.select({ count: count() }).from(users).where(gte(users.createdAt, today));
+  const [newWeek] = await db.select({ count: count() }).from(users).where(gte(users.createdAt, sevenDaysAgo));
+  const [newMonth] = await db.select({ count: count() }).from(users).where(gte(users.createdAt, thirtyDaysAgo));
+
+  const deposits = await db
+    .select({ total: sql<number>`sum(amount)`, count: count() })
+    .from(bankrollEntries)
+    .where(eq(bankrollEntries.type, "deposit"));
+
+  const recentDeposits = await db
+    .select({ total: sql<number>`sum(amount)`, count: count() })
+    .from(bankrollEntries)
+    .where(and(eq(bankrollEntries.type, "deposit"), gte(bankrollEntries.createdAt, thirtyDaysAgo)));
+
+  const PRO_PRICE = 9.99;
+  const ELITE_PRICE = 24.99;
+  const proCount = tierCounts.find((t) => t.tier === "pro")?.count ?? 0;
+  const eliteCount = tierCounts.find((t) => t.tier === "elite")?.count ?? 0;
+  const mrr = proCount * PRO_PRICE + eliteCount * ELITE_PRICE;
+
+  res.json({
+    totalUsers: allUsers?.total ?? 0,
+    newToday: newToday?.count ?? 0,
+    newWeek: newWeek?.count ?? 0,
+    newMonth: newMonth?.count ?? 0,
+    tierBreakdown: {
+      free: tierCounts.find((t) => t.tier === "free")?.count ?? 0,
+      pro: proCount,
+      elite: eliteCount,
+    },
+    mrr: parseFloat(mrr.toFixed(2)),
+    arr: parseFloat((mrr * 12).toFixed(2)),
+    totalDeposits: parseFloat((deposits[0]?.total ?? 0).toFixed(2)),
+    depositCount: deposits[0]?.count ?? 0,
+    recentDeposits: parseFloat((recentDeposits[0]?.total ?? 0).toFixed(2)),
+    conversionRate: (allUsers?.total ?? 0) > 0
+      ? parseFloat((((proCount + eliteCount) / (allUsers?.total ?? 1)) * 100).toFixed(1))
+      : 0,
+    prices: { pro: PRO_PRICE, elite: ELITE_PRICE },
+  });
+});
+
+// ─── GET /api/admin/errors ────────────────────────────────────────────────────
+
+router.get("/admin/errors", requireAdmin, async (req, res) => {
+  const { filter = "all", page = "1" } = req.query as Record<string, string>;
+  const limit = 30;
+  const offset = (parseInt(page) - 1) * limit;
+
+  const rows = await db
+    .select()
+    .from(errorLogs)
+    .where(
+      filter === "resolved" ? eq(errorLogs.resolved, true) :
+      filter === "unresolved" ? eq(errorLogs.resolved, false) : undefined,
+    )
+    .orderBy(desc(errorLogs.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  res.json({ errors: rows, page: parseInt(page), limit });
+});
+
+// ─── POST /api/admin/errors ───────────────────────────────────────────────────
+// Called from client to log frontend errors
+
+router.post("/admin/errors", async (req, res) => {
+  const body = z.object({
+    errorType: z.string(),
+    message: z.string(),
+    screen: z.string().optional(),
+    device: z.string().optional(),
+    os: z.string().optional(),
+    stackTrace: z.string().optional(),
+  }).parse(req.body);
+
+  const [saved] = await db.insert(errorLogs).values({
+    ...body,
+    userId: (req as { userId?: number }).userId ?? null,
+  }).returning();
+
+  res.status(201).json(saved);
+});
+
+// ─── PUT /api/admin/errors/:id/resolve ───────────────────────────────────────
+
+router.put("/admin/errors/:id/resolve", requireAdmin, async (req, res) => {
+  const id = String(req.params.id ?? "");
+  const [updated] = await db
+    .update(errorLogs)
+    .set({ resolved: true, resolvedAt: new Date(), resolvedByAdminId: req.userId })
+    .where(sql`${errorLogs.id} = ${id}`)
+    .returning();
+  res.json(updated);
+});
+
+// ─── DELETE /api/admin/users/:id ─────────────────────────────────────────────
+
+router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
+  const userId = parseInt(String(req.params.id ?? ""), 10);
+  const [deleted] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!deleted) { res.status(404).json({ error: "User not found" }); return; }
+
+  await db.delete(users).where(eq(users.id, userId));
+  await db.insert(adminLogs).values({ action: "user_deleted", targetUserId: userId, details: JSON.stringify({ email: deleted.email }), adminEmail: "admin" });
+  res.json({ ok: true });
+});
+
+// ─── PUT /api/admin/users/:id/toggle-admin ────────────────────────────────────
+
+router.put("/admin/users/:id/toggle-admin", requireAdmin, async (req, res) => {
+  const userId = parseInt(String(req.params.id ?? ""), 10);
+  const { isAdmin } = z.object({ isAdmin: z.boolean() }).parse(req.body);
+  const [updated] = await db.update(users).set({ isAdmin }).where(eq(users.id, userId)).returning();
+  if (!updated) { res.status(404).json({ error: "Not found" }); return; }
+  await db.insert(adminLogs).values({ action: isAdmin ? "admin_granted" : "admin_revoked", targetUserId: userId, adminEmail: "admin" });
+  res.json(updated);
+});
+
+// ─── POST /api/admin/users/:id/notify ────────────────────────────────────────
+
+router.post("/admin/users/:id/notify", requireAdmin, async (req, res) => {
+  const userId = parseInt(String(req.params.id ?? ""), 10);
+  const { title, message } = z.object({ title: z.string().min(1), message: z.string().min(1) }).parse(req.body);
+
+  const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
+  const oneSignalKey = process.env.ONESIGNAL_API_KEY;
+  let oneSignalResult: unknown = null;
+
+  if (oneSignalAppId && oneSignalKey) {
+    try {
+      const r = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Basic ${oneSignalKey}` },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          headings: { en: title },
+          contents: { en: message },
+          filters: [{ field: "tag", key: "user_id", relation: "=", value: String(userId) }],
+        }),
+      });
+      oneSignalResult = await r.json();
+    } catch (err) {
+      req.log.warn({ err }, "OneSignal personal notify failed");
+    }
+  }
+
+  const [saved] = await db.insert(notificationHistory).values({
+    title, message, target: `user:${userId}`, recipientCount: 1, sentByAdminId: req.userId,
+  }).returning();
+
+  res.json({ ok: true, notification: saved, oneSignalResult });
+});
+
+// ─── GET /api/admin/worldcup ──────────────────────────────────────────────────
+
+router.get("/admin/worldcup", requireAdmin, async (_req, res) => {
+  const rows = await db
+    .select()
+    .from(predictions)
+    .where(eq(predictions.sport, "Soccer"))
+    .orderBy(desc(predictions.matchDate))
+    .limit(100);
+
+  const [totalCount] = await db.select({ count: count() }).from(predictions).where(eq(predictions.sport, "Soccer"));
+  res.json({ matches: rows, total: totalCount?.count ?? 0 });
 });
 
 export default router;

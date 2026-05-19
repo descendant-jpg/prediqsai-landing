@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronRight, Search, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AdminTabBar } from "@/components/AdminTabBar";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -161,6 +162,7 @@ export default function AdminUsersScreen() {
           </>
         )}
       </ScrollView>
+      <AdminTabBar />
     </View>
   );
 }

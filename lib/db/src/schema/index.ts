@@ -24,3 +24,5 @@ export * from "./bankrollEntries";
 export * from "./predictions";
 export * from "./adminLogs";
 export * from "./appConfig";
+export * from "./notificationHistory";
+export * from "./errorLogs";
