@@ -78,8 +78,21 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
-  const token = signToken(user.id);
-  res.json({ token, user: publicUser(user) });
+  // Auto-promote admin email on every login
+  let finalUser = user;
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail && user.email === adminEmail.toLowerCase() && !user.isAdmin) {
+    const [promoted] = await db
+      .update(users)
+      .set({ isAdmin: true })
+      .where(eq(users.id, user.id))
+      .returning();
+    if (promoted) finalUser = promoted;
+    req.log.info({ email: user.email }, "✅ Admin auto-promoted on login");
+  }
+
+  const token = signToken(finalUser.id);
+  res.json({ token, user: publicUser(finalUser) });
 });
 
 export default router;

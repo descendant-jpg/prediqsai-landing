@@ -1,0 +1,310 @@
+Update the PrediQs AI login and signup 
+screen to match this exact design 
+from the screenshot.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LOGIN/SIGNUP SCREEN DESIGN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Copy this exact layout:
+
+TOP RIGHT CORNER:
+Language selector button showing:
+🌐 English ✓
+Tapping opens language dropdown
+
+TOP CENTER:
+App logo icon (circular, dark)
+App name: "PrediQs AI"
+Subtitle: "SPORTS INTELLIGENCE AI"
+(in small caps, gold/cyan color)
+
+MIDDLE SECTION:
+Tab switcher:
+[  Sign In  ] [  Sign Up  ]
+(pill shaped, active tab = white/gold)
+
+Sign Up form shows:
+- Username field (person icon)
+- Email field (envelope icon)  
+- Password field (lock icon + eye toggle)
+- Country field (flag icon) ← ADD THIS
+- [Sign Up] button (gold/yellow)
+
+Sign In form shows:
+- Email field (envelope icon)
+- Password field (lock icon + eye toggle)
+- Forgot Password link
+- [Sign In] button (gold/yellow)
+
+BELOW BUTTON:
+"OR CONTINUE WITH"
+(small caps, muted color)
+
+Two social buttons side by side:
+[G  Google] [🍎  Apple]
+(dark background, rounded)
+
+VERY BOTTOM:
+Three trust badges in a row:
+🔒 Encrypted  🔐 Secure  🌐 Global
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE SELECTOR FEATURE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add language selector top right
+on login/signup screen.
+
+Show current language with flag:
+🌐 English ✓
+
+When tapped opens bottom sheet
+with all supported languages:
+
+🇬🇧 English ✓ (default)
+🇫🇷 Français
+🇪🇸 Español  
+🇵🇹 Português
+🇩🇪 Deutsch
+🇮🇹 Italiano
+🇦🇪 العربية (Arabic)
+🇳🇬 Pidgin English
+🇰🇪 Swahili
+🇮🇳 Hindi
+🇰🇷 한국어 (Korean)
+🇯🇵 日本語 (Japanese)
+🇨🇳 中文 (Chinese)
+🇷🇺 Русский (Russian)
+🇧🇷 Português BR
+
+Store selected language:
+AsyncStorage.setItem('language', 'en');
+
+Apply to entire app immediately
+when language is changed.
+
+For Claude AI chat responses:
+Pass selected language to Claude:
+"Respond in [language] only"
+
+This makes PrediQs AI truly global.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GOOGLE SIGN IN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Install:
+npm install @react-native-google-signin/google-signin
+
+Setup:
+import { GoogleSignin } 
+  from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure({
+  webClientId: process.env
+    .GOOGLE_WEB_CLIENT_ID,
+});
+
+const signInWithGoogle = async () => {
+  await GoogleSignin.hasPlayServices();
+  const userInfo = 
+    await GoogleSignin.signIn();
+  
+  const { data, error } = await supabase
+    .auth.signInWithIdToken({
+      provider: 'google',
+      token: userInfo.idToken,
+    });
+    
+  if (data.user) {
+    createProfile(data.user);
+    navigation.navigate('Dashboard');
+  }
+};
+
+Add to Replit Secrets:
+GOOGLE_WEB_CLIENT_ID=xxx.apps.googleusercontent.com
+
+Get from:
+console.cloud.google.com →
+APIs & Services →
+Credentials →
+OAuth 2.0 Client IDs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APPLE SIGN IN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Install:
+npx expo install expo-apple-authentication
+
+import * as AppleAuthentication 
+  from 'expo-apple-authentication';
+
+const signInWithApple = async () => {
+  const credential = await 
+    AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication
+          .AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication
+          .AppleAuthenticationScope.EMAIL,
+      ],
+    });
+  
+  const { data, error } = await supabase
+    .auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+    });
+    
+  if (data.user) {
+    createProfile(data.user);
+    navigation.navigate('Dashboard');
+  }
+};
+
+Note: Apple Sign In only shows
+on iOS devices automatically.
+Hide Apple button on Android.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CREATE PROFILE AFTER SIGNUP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const createProfile = async (user) => {
+  const { data: existing } = await 
+    supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+  
+  if (!existing) {
+    await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata
+          ?.full_name || '',
+        username: generateUsername(
+          user.email
+        ),
+        tier: 'free',
+        disclaimer_accepted: false,
+        created_at: new Date()
+          .toISOString()
+      });
+  }
+};
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORGOT PASSWORD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On Sign In tab show:
+"Forgot Password?" link
+
+Tapping shows email input:
+"Enter your email to reset password"
+
+Sends reset email via Supabase:
+const resetPassword = async (email) => {
+  await supabase.auth
+    .resetPasswordForEmail(email, {
+      redirectTo: 
+        'prediqsai://reset-password'
+    });
+  
+  Alert.alert(
+    'Check your email',
+    'Password reset link sent!'
+  );
+};
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COUNTRY SELECTION ON SIGNUP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add country field to signup form.
+This is critical for:
+- Showing correct payment method
+- Showing correct bookmakers
+- Showing correct currency
+- Sending correct notifications
+
+Country picker shows:
+Most popular first:
+🇺🇸 United States
+🇬🇧 United Kingdom
+🇳🇬 Nigeria
+🇬🇭 Ghana
+🇰🇪 Kenya
+🇿🇦 South Africa
+🇮🇳 India
+🇩🇪 Germany
+🇫🇷 France
+🇧🇷 Brazil
+--- All countries ---
+(alphabetical list)
+
+Save to profiles.user_country
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRUST BADGES AT BOTTOM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show 3 small trust indicators:
+🔒 Encrypted
+🔐 Secure  
+🌐 Global
+
+These match SignalPro's design
+and build immediate trust.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN SPECIFICATIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Background: #070B12 (dark navy)
+Card/form area: #0C1422 (slightly lighter)
+Input fields: #131E2E background
+Input text: #E0EAF5
+Placeholder: #3A5060
+Active tab: white/gold background
+Inactive tab: transparent
+Sign Up/In button: #FFD700 (gold)
+Button text: #070B12 (dark)
+Social buttons: #0C1422 background
+Social button border: #1A2535
+Trust badge text: #3A5060 (muted)
+Language button: #0C1422 background
+Language button border: #1A2535
+
+App name font: bold serif
+Subtitle font: small caps mono
+Input font: system
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FLOW ORDER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. App opens
+2. Check if disclaimer accepted
+   → NO: Show disclaimer screen
+   → YES: Continue
+3. Check if logged in
+   → NO: Show login/signup screen
+   → YES: Go to dashboard
+4. User signs up/logs in
+5. If new user → show onboarding
+6. If existing user → dashboard
+
+Build the complete login/signup
+screen with language selector
+and show me the result.
+Make it look exactly like 
+SignalPro but with PrediQs AI
+branding and dark theme.
