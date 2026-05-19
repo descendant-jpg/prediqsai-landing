@@ -8,6 +8,7 @@ export default function AdminLayout() {
       <Stack.Screen name="user-detail" />
       <Stack.Screen name="config" />
       <Stack.Screen name="logs" />
+      <Stack.Screen name="api-keys" />
     </Stack>
   );
 }

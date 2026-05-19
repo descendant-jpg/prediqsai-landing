@@ -279,6 +279,181 @@ router.get("/admin/logs", requireAdmin, async (req, res) => {
   }
 });
 
+// ─── API Key helpers ──────────────────────────────────────────────────────────
+
+async function getConfigValue(key: string): Promise<string | null> {
+  const [row] = await db.select().from(appConfig).where(eq(appConfig.key, key)).limit(1);
+  return row?.value ?? process.env[key] ?? null;
+}
+
+function maskKey(value: string | null): string {
+  if (!value) return "";
+  if (value.length <= 8) return "••••••••";
+  return "••••••" + value.slice(-4);
+}
+
+const API_KEYS_META: { name: string; label: string; category: string }[] = [
+  { name: "ANTHROPIC_API_KEY",   label: "Anthropic Claude AI",  category: "AI" },
+  { name: "API_SPORTS_KEY",      label: "API-Sports",           category: "Sports" },
+  { name: "ODDS_API_KEY",        label: "The Odds API",         category: "Betting" },
+  { name: "NEWS_API_KEY",        label: "News API",             category: "Content" },
+  { name: "WEATHER_API_KEY",     label: "Weather API",          category: "Data" },
+  { name: "ONESIGNAL_APP_ID",    label: "OneSignal App ID",     category: "Push" },
+  { name: "ONESIGNAL_API_KEY",   label: "OneSignal API Key",    category: "Push" },
+  { name: "RESEND_API_KEY",      label: "Resend Email",         category: "Email" },
+  { name: "GOOGLE_ANALYTICS_ID", label: "Google Analytics",     category: "Analytics" },
+  { name: "EXCHANGE_RATE_API_KEY", label: "Exchange Rate API",  category: "Finance" },
+];
+
+async function testOneKey(
+  keyName: string,
+  value: string,
+): Promise<{ ok: boolean; responseTime: number; message: string; metadata?: Record<string, unknown> }> {
+  const start = Date.now();
+  try {
+    switch (keyName) {
+      case "ANTHROPIC_API_KEY": {
+        const r = await fetch("https://api.anthropic.com/v1/models", {
+          headers: { "x-api-key": value, "anthropic-version": "2023-06-01" },
+        });
+        const ms = Date.now() - start;
+        if (r.ok) {
+          const d = await r.json() as { data?: unknown[] };
+          return { ok: true, responseTime: ms, message: "Anthropic working", metadata: { models: d.data?.length ?? 0 } };
+        }
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      case "API_SPORTS_KEY": {
+        const r = await fetch("https://v3.football.api-sports.io/status", {
+          headers: { "x-apisports-key": value },
+        });
+        const ms = Date.now() - start;
+        if (r.ok) {
+          const d = await r.json() as { response?: { requests?: { current?: number; limit_day?: number } } };
+          const req = d.response?.requests;
+          return { ok: true, responseTime: ms, message: "API-Sports working", metadata: { callsToday: req?.current, limitDay: req?.limit_day } };
+        }
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      case "ODDS_API_KEY": {
+        const r = await fetch(`https://api.the-odds-api.com/v4/sports?apiKey=${value}`);
+        const ms = Date.now() - start;
+        if (r.ok) {
+          const remaining = r.headers.get("x-requests-remaining");
+          const used = r.headers.get("x-requests-used");
+          return { ok: true, responseTime: ms, message: "Odds API working", metadata: { remaining: remaining ? parseInt(remaining) : null, used: used ? parseInt(used) : null } };
+        }
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      case "NEWS_API_KEY": {
+        const r = await fetch(`https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=${value}`);
+        const ms = Date.now() - start;
+        if (r.ok) {
+          const d = await r.json() as { totalResults?: number };
+          return { ok: true, responseTime: ms, message: "News API working", metadata: { totalResults: d.totalResults } };
+        }
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      case "WEATHER_API_KEY": {
+        const r = await fetch(`https://api.weatherapi.com/v1/current.json?key=${value}&q=London`);
+        const ms = Date.now() - start;
+        if (r.ok) return { ok: true, responseTime: ms, message: "Weather API working" };
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      case "ONESIGNAL_APP_ID": {
+        const ms = Date.now() - start;
+        const valid = value.length > 10 && value.includes("-");
+        return { ok: valid, responseTime: ms, message: valid ? "App ID format valid" : "Invalid format" };
+      }
+      case "ONESIGNAL_API_KEY": {
+        const ms = Date.now() - start;
+        const valid = value.length > 20;
+        return { ok: valid, responseTime: ms, message: valid ? "Key format valid" : "Key too short" };
+      }
+      case "RESEND_API_KEY": {
+        const r = await fetch("https://api.resend.com/domains", {
+          headers: { Authorization: `Bearer ${value}` },
+        });
+        const ms = Date.now() - start;
+        if (r.ok) {
+          const d = await r.json() as { data?: unknown[] };
+          return { ok: true, responseTime: ms, message: "Resend working", metadata: { domains: d.data?.length ?? 0 } };
+        }
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      case "GOOGLE_ANALYTICS_ID": {
+        const ms = Date.now() - start;
+        const valid = /^G-[A-Z0-9]+$/.test(value);
+        return { ok: valid, responseTime: ms, message: valid ? "Valid GA4 ID" : "Expected format: G-XXXXXXXX" };
+      }
+      case "EXCHANGE_RATE_API_KEY": {
+        const r = await fetch(`https://v6.exchangerate-api.com/v6/${value}/latest/USD`);
+        const ms = Date.now() - start;
+        if (r.ok) {
+          const d = await r.json() as { result?: string };
+          return { ok: d.result === "success", responseTime: ms, message: "Exchange Rate API working" };
+        }
+        return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
+      }
+      default:
+        return { ok: false, responseTime: Date.now() - start, message: "Unknown key" };
+    }
+  } catch (err) {
+    return { ok: false, responseTime: Date.now() - start, message: err instanceof Error ? err.message : "Test failed" };
+  }
+}
+
+// ─── GET /api/admin/api-keys ──────────────────────────────────────────────────
+
+router.get("/admin/api-keys", requireAdmin, async (_req, res) => {
+  const allRows = await db.select().from(appConfig);
+  const dbMap: Record<string, typeof allRows[0]> = {};
+  for (const r of allRows) dbMap[r.key] = r;
+
+  const statuses = API_KEYS_META.map((k) => {
+    const dbRow = dbMap[k.name];
+    const envVal = process.env[k.name];
+    const value = dbRow?.value ?? envVal ?? null;
+    return {
+      name: k.name,
+      label: k.label,
+      category: k.category,
+      configured: Boolean(value),
+      masked: maskKey(value),
+      source: dbRow?.value ? "database" : (envVal ? "env" : "none"),
+      updatedAt: dbRow?.updatedAt ?? null,
+    };
+  });
+  res.json(statuses);
+});
+
+// ─── POST /api/admin/api-keys/test ───────────────────────────────────────────
+
+router.post("/admin/api-keys/test", requireAdmin, async (req, res) => {
+  const { keyName } = z.object({ keyName: z.string() }).parse(req.body);
+  const value = await getConfigValue(keyName);
+  if (!value) {
+    res.json({ keyName, ok: false, responseTime: 0, message: "Not configured" });
+    return;
+  }
+  const result = await testOneKey(keyName, value);
+  res.json({ ...result, keyName });
+});
+
+// ─── POST /api/admin/api-keys/test-all ───────────────────────────────────────
+
+router.post("/admin/api-keys/test-all", requireAdmin, async (req, res) => {
+  const results = await Promise.all(
+    API_KEYS_META.map(async ({ name }) => {
+      const value = await getConfigValue(name);
+      if (!value) return { keyName: name, ok: false, responseTime: 0, message: "Not configured" };
+      const result = await testOneKey(name, value);
+      return { ...result, keyName: name };
+    }),
+  );
+  res.json(results);
+});
+
 // ─── POST /api/admin/set-admin ────────────────────────────────────────────────
 // One-time endpoint to bootstrap the first admin from ADMIN_EMAIL env
 

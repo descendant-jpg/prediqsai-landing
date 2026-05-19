@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft, FileText, Settings2, Shield, Users } from "lucide-react-native";
+import { ArrowLeft, FileText, KeyRound, Settings2, Shield, Users } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -125,6 +125,12 @@ export default function AdminOverviewScreen() {
                 label="Feature Flags"
                 onPress={() => router.push("/admin/config")}
                 color="#FFD700"
+              />
+              <QuickAction
+                icon={<KeyRound size={20} color="#FF9900" />}
+                label="API Key Management"
+                onPress={() => router.push("/admin/api-keys")}
+                color="#FF9900"
               />
               <QuickAction
                 icon={<FileText size={20} color={colors.textSecondary} />}

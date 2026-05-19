@@ -110,6 +110,24 @@ export interface AdminLogEntry {
   createdAt: string | null;
 }
 
+export interface ApiKeyStatus {
+  name: string;
+  label: string;
+  category: string;
+  configured: boolean;
+  masked: string;
+  source: "database" | "env" | "none";
+  updatedAt: string | null;
+}
+
+export interface ApiKeyTestResult {
+  keyName: string;
+  ok: boolean;
+  responseTime: number;
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ApiPrediction {
   id: string;
   sport: string;
@@ -461,6 +479,20 @@ export const api = {
       apiFetch<{ ok: boolean }>("/admin/verify-password", {
         method: "POST",
         body: JSON.stringify({ password }),
+      }),
+    apiKeys: (token: string) =>
+      apiFetch<ApiKeyStatus[]>("/admin/api-keys", { token }),
+    testApiKey: (token: string, keyName: string) =>
+      apiFetch<ApiKeyTestResult>("/admin/api-keys/test", {
+        method: "POST",
+        body: JSON.stringify({ keyName }),
+        token,
+      }),
+    testAllApiKeys: (token: string) =>
+      apiFetch<ApiKeyTestResult[]>("/admin/api-keys/test-all", {
+        method: "POST",
+        body: JSON.stringify({}),
+        token,
       }),
   },
 };

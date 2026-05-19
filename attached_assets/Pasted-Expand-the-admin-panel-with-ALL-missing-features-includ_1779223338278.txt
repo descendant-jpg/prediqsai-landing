@@ -1,0 +1,130 @@
+Expand the admin panel with ALL 
+missing features including a full
+API Key Management system.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 1: API KEY MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is the most important addition.
+Admin can view, update and test
+all API keys directly from the
+admin panel without touching Replit.
+
+Create API Keys screen showing:
+
+┌─────────────────────────────┐
+│ 🔌 API Key Management       │
+│                             │
+│ ANTHROPIC_API_KEY           │
+│ Status: ✅ Working          │
+│ sk-ant-••••••••••••••••last4│
+│ Last tested: 2 mins ago     │
+│ Response time: 847ms        │
+│ Cost this month: $43.20     │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ API_SPORTS_KEY              │
+│ Status: ✅ Working          │
+│ ••••••••••••••••••••••last4 │
+│ Calls today: 247/100        │
+│ Remaining: 9,753            │
+│ Last tested: 5 mins ago     │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ ODDS_API_KEY                │
+│ Status: ✅ Working          │
+│ ••••••••••••••••••••••last4 │
+│ Credits used: 234/500       │
+│ Remaining: 266              │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ NEWS_API_KEY                │
+│ Status: ✅ Working          │
+│ Calls today: 47/100         │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ WEATHER_API_KEY             │
+│ Status: ✅ Working          │
+│ Calls today: 23/1,000,000   │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ ONESIGNAL_APP_ID            │
+│ Status: ✅ Working          │
+│ Subscribers: 3              │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ ONESIGNAL_API_KEY           │
+│ Status: ✅ Working          │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ RESEND_API_KEY              │
+│ Status: ✅ Working          │
+│ Emails sent today: 5        │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ GOOGLE_ANALYTICS_ID         │
+│ Status: ✅ Working          │
+│ Active users: 2             │
+│ [Test] [Update Key]         │
+├─────────────────────────────┤
+│ EXCHANGE_RATE_API_KEY       │
+│ Status: ✅ Working          │
+│ Last rate update: 1hr ago   │
+│ [Test] [Update Key]         │
+└─────────────────────────────┘
+
+[🔄 Test All APIs]
+[+ Add New API Key]
+
+UPDATE KEY FLOW:
+When admin taps "Update Key":
+1. Show input field
+2. Admin pastes new key
+3. App tests the new key first
+4. If test passes → save to database
+5. App uses new key immediately
+6. Show success confirmation
+
+Store API keys in app_config table:
+INSERT INTO app_config 
+(key, value) VALUES
+('ANTHROPIC_API_KEY', 'sk-ant-xxx')
+ON CONFLICT (key) 
+DO UPDATE SET value = EXCLUDED.value;
+
+Then read from database instead
+of process.env for all API calls:
+const getApiKey = async (keyName) => {
+  const config = await db
+    .select()
+    .from(appConfig)
+    .where(eq(appConfig.key, keyName))
+    .limit(1);
+  
+  return config[0]?.value || 
+    process.env[keyName];
+};
+
+TEST API BUTTON:
+When admin taps "Test":
+- Makes a test call to that API
+- Shows response time
+- Shows success or error
+- Updates status badge instantly
+
+TEST ALL APIS button:
+- Tests all 10 APIs simultaneously
+- Shows live results as they come in
+- Highlights any failing APIs in red
+- Sends email alert if any fail
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 2: FULL USER MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Expand the Manage Users section:
+
+User list shows all users:
+┌─────────────────────────────┐
+│ 👤
