@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 
 import arbitrageRouter from "./arbitrage";
+import worldcupRouter from "./worldcup";
 import authRouter from "./auth";
 import bankrollRouter from "./bankroll";
 import chatRouter from "./chat";
@@ -25,5 +26,6 @@ router.use(setupRouter);
 router.use(soccerRouter);
 router.use(slipRouter);
 router.use(arbitrageRouter);
+router.use(worldcupRouter);
 
 export default router;

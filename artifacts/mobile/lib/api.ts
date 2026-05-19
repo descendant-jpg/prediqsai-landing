@@ -193,6 +193,47 @@ export interface PerformanceData {
 
 export type ArbRegion = "global" | "us" | "uk" | "africa" | "asia";
 
+// ─── World Cup types ──────────────────────────────────────────────────────────
+
+export interface WCCountdown {
+  days: number; hours: number; minutes: number; seconds: number;
+  started: boolean; label: string; totalMs: number;
+}
+
+export interface WCPrediction {
+  homeWinPct: number; drawPct: number; awayWinPct: number;
+  prediction: "home_win" | "draw" | "away_win";
+  confidence: number; reasoning: string; keyFactors: string[];
+}
+
+export interface WCFixture {
+  id: number; date: string;
+  homeTeam: string; awayTeam: string;
+  homeLogo: string; awayLogo: string;
+  venue: string; city: string;
+  homeScore: number | null; awayScore: number | null;
+  status: string; round: string; group?: string;
+  prediction?: WCPrediction;
+}
+
+export interface WCAfricanTeam {
+  team: string; flag: string; qualifyPct: number; fifaRank: number;
+  group: string; note: string; valueBet?: string;
+}
+
+export interface WCOverview {
+  countdown: WCCountdown;
+  winnerOdds: Array<{ team: string; flag: string; pct: number; color: string }>;
+  africanTeams: WCAfricanTeam[];
+  demoArb: {
+    id: string; sport: string; league: string;
+    homeTeam: string; awayTeam: string; commenceTime: string;
+    profitPercent: number;
+    legs: ArbLeg[];
+    localStakes: Record<string, { currency: string; symbol: string; leg1: number; leg2: number; profit: number }>;
+  };
+}
+
 export interface ArbLeg {
   bookmaker: string;
   bookmakerId: string;
@@ -332,5 +373,19 @@ export const api = {
         body: JSON.stringify({ arbId, budget, region }),
         token,
       }),
+  },
+  worldcup: {
+    overview: () =>
+      apiFetch<WCOverview>("/worldcup/overview"),
+    fixtures: (token: string) =>
+      apiFetch<{ fixtures: WCFixture[]; total: number }>("/worldcup/fixtures", { token }),
+    predict: (token: string, homeTeam: string, awayTeam: string) =>
+      apiFetch<WCPrediction>("/worldcup/predict", {
+        method: "POST",
+        body: JSON.stringify({ homeTeam, awayTeam }),
+        token,
+      }),
+    africanTeams: (token: string) =>
+      apiFetch<{ teams: WCAfricanTeam[] }>("/worldcup/african-teams", { token }),
   },
 };

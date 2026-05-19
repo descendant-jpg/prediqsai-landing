@@ -101,6 +101,7 @@ interface SportEntry { key: string; sport: string; league: string }
 
 const REGION_SPORTS: Record<ArbRegion, SportEntry[]> = {
   africa: [
+    { key: "soccer_fifa_world_cup",             sport: "Soccer", league: "FIFA World Cup 2026"    },
     { key: "soccer_epl",                        sport: "Soccer", league: "Premier League"         },
     { key: "soccer_spain_la_liga",              sport: "Soccer", league: "La Liga"                },
     { key: "soccer_nigeria_npfl",               sport: "Soccer", league: "NPFL (Nigeria)"         },
@@ -132,6 +133,7 @@ const REGION_SPORTS: Record<ArbRegion, SportEntry[]> = {
     { key: "soccer_south_korea_kleague1", sport: "Soccer", league: "K League (Korea)" },
   ],
   global: [
+    { key: "soccer_fifa_world_cup",       sport: "Soccer", league: "FIFA World Cup 2026" },
     { key: "soccer_epl",                  sport: "Soccer", league: "Premier League"      },
     { key: "soccer_spain_la_liga",        sport: "Soccer", league: "La Liga"             },
     { key: "soccer_germany_bundesliga",   sport: "Soccer", league: "Bundesliga"          },

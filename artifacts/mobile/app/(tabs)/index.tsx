@@ -232,6 +232,42 @@ export default function DashboardScreen() {
         </View>
       )}
 
+      {/* World Cup 2026 countdown banner */}
+      {(() => {
+        const wcStart = new Date("2026-06-11T21:00:00Z").getTime();
+        const diff = wcStart - Date.now();
+        if (diff <= 0) return null;
+        const days  = Math.floor(diff / 86_400_000);
+        const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+        const mins  = Math.floor((diff % 3_600_000) / 60_000);
+        return (
+          <TouchableOpacity
+            style={[styles.wcBanner, { backgroundColor: "rgba(255,215,0,0.07)", borderColor: "rgba(255,215,0,0.4)" }]}
+            onPress={() => router.push("/worldcup")}
+            activeOpacity={0.85}
+          >
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[styles.wcBannerTitle, { color: "#FFD700" }]}>🏆 FIFA World Cup 2026</Text>
+              <Text style={[styles.wcBannerSub, { color: colors.textSecondary }]}>USA · Canada · Mexico · June 11 – July 19</Text>
+              <View style={{ flexDirection: "row", gap: 16, marginTop: 4 }}>
+                {([[days, "DAYS"], [hours, "HRS"], [mins, "MINS"]] as [number, string][]).map(([val, label]) => (
+                  <View key={label} style={{ alignItems: "center", gap: 1 }}>
+                    <Text style={{ fontSize: 22, color: "#FFD700", letterSpacing: -0.5 }}>{val}</Text>
+                    <Text style={{ fontSize: 8, color: colors.textMuted, letterSpacing: 0.5 }}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={{ alignItems: "flex-end", gap: 6 }}>
+              <View style={{ backgroundColor: "rgba(255,215,0,0.15)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                <Text style={{ color: "#FFD700", fontSize: 9, letterSpacing: 0.5 }}>104 MATCHES</Text>
+              </View>
+              <Text style={{ color: "#FFD700", fontSize: 13 }}>Preview →</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })()}
+
       {/* 4-stat row */}
       {isLoading ? (
         <SkeletonStatRow />
@@ -447,5 +483,8 @@ const styles = StyleSheet.create({
   avoidCardHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   avoidTeams: { fontSize: 14, flex: 1 },
   avoidReason: { fontSize: 12 },
+  wcBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 16 },
+  wcBannerTitle: { fontSize: 14 },
+  wcBannerSub: { fontSize: 11, marginTop: 1 },
   disclaimer: { fontSize: 11, textAlign: "center", lineHeight: 16, paddingTop: 12, paddingBottom: 4 },
 });

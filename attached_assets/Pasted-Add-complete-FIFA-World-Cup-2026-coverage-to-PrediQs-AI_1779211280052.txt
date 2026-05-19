@@ -1,0 +1,351 @@
+Add complete FIFA World Cup 2026 
+coverage to PrediQs AI including
+full AI predictions AND arbitrage
+scanning for all 104 matches.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD CUP 2026 DATA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+API-Sports League IDs for World Cup:
+- FIFA World Cup 2026: League ID 1
+- World Cup Qualifiers AFC: ID 31
+- World Cup Qualifiers UEFA: ID 32
+- World Cup Qualifiers CONMEBOL: ID 33
+- World Cup Qualifiers CONCACAF: ID 34
+- World Cup Qualifiers CAF: ID 36
+- World Cup Qualifiers OFC: ID 37
+
+Fetch ALL World Cup matches:
+GET https://v3.football.api-sports.io/
+fixtures?league=1&season=2026
+Headers: x-apisports-key: {API_SPORTS_KEY}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD CUP SPECIAL FEATURES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. DEDICATED WORLD CUP SECTION:
+   - Special ⚽🏆 World Cup tab
+   - Show on home dashboard
+   - Tournament bracket display
+   - Group stage standings
+   - Knockout round bracket
+   - Live scores during matches
+   - Goal scorers and assists
+   - Player of the tournament tracker
+
+2. GROUP STAGE ANALYSIS:
+   For each group show:
+   - All 6 group matches schedule
+   - AI prediction for each game
+   - Group qualification probabilities
+   - Example:
+   
+   GROUP A
+   🇧🇷 Brazil    ██████████ 94% qualify
+   🇩🇪 Germany   ████████░░ 81% qualify
+   🇲🇽 Mexico    █████░░░░░ 52% qualify
+   🇸🇳 Senegal   ███░░░░░░░ 31% qualify
+
+3. KNOCKOUT PREDICTIONS:
+   AI predicts:
+   - Round of 32 winners
+   - Round of 16 winners
+   - Quarter final predictions
+   - Semi final predictions
+   - Final prediction
+   - Winner probability:
+   
+   🏆 World Cup Winner Predictions:
+   🇧🇷 Brazil    28%
+   🇫🇷 France    22%
+   🇦🇷 Argentina 18%
+   🇩🇪 Germany   12%
+   🇪🇸 Spain     10%
+   🏴󠁧󠁢󠁥󠁮󠁧󠁿 England   8%
+   Others        2%
+
+4. TEAM DEEP ANALYSIS:
+   For every World Cup team show:
+   - Current FIFA ranking
+   - Squad strength rating
+   - Key players (top 5)
+   - Injury updates
+   - Tournament history
+   - Current form (last 10 games)
+   - Manager tactics
+   - Predicted lineup
+   - Strength and weakness
+
+5. PLAYER PERFORMANCE TRACKER:
+   Track top World Cup players:
+   - Goals scored
+   - Assists
+   - Minutes played
+   - AI performance rating
+   - Form trend
+   - Golden Boot race tracker
+   - Golden Glove tracker
+   - Best XI tracker
+
+6. MATCH DAY FEATURES:
+   On World Cup match days show:
+   - Confirmed lineups (from API-Sports)
+   - Head to head history
+   - Venue and weather
+   - Referee stats
+   - AI prediction with reasoning
+   - Expected goals (xG)
+   - Key battles (player vs player)
+   - Pre-match odds comparison
+   - Value bet detection
+
+7. WORLD CUP AI ANALYST:
+   Special Claude prompting for WC:
+   "You are PrediQs AI World Cup 
+   specialist. Analyze this World Cup
+   match considering: tournament 
+   pressure, squad depth, penalty 
+   shootout history, knockout mentality,
+   fatigue from group stage, altitude
+   of US venues, travel between cities,
+   home advantage for USA/Canada/Mexico,
+   tactical evolution through tournament."
+
+8. LIVE WORLD CUP CENTER:
+   During matches show:
+   - Live score
+   - Live stats (possession, shots)
+   - In-game momentum tracker
+   - Goal probability next 10 mins
+   - Win probability shifting live
+   - Key event alerts:
+     "🔴 RED CARD - Brazil reduced 
+      to 10 men. Win probability 
+      drops from 74% to 51%"
+
+9. WORLD CUP SPECIAL MARKETS:
+   AI analyzes special WC bets:
+   - Tournament winner
+   - Top goalscorer (Golden Boot)
+   - Group winner
+   - Both teams to score
+   - Total tournament goals
+   - First team eliminated
+   - Host nation (USA) performance
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD CUP ARBITRAGE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+World Cup creates MASSIVE arbitrage
+opportunities because:
+- Every bookmaker in the world
+  prices these games
+- 200+ bookmakers on same matches
+- Huge odds differences between
+  bookmakers in different regions
+- More arb opportunities than any
+  other event in the world
+
+World Cup arb scanner:
+
+For each World Cup match compare:
+
+US bookmakers:
+DraftKings, FanDuel, BetMGM,
+Caesars, ESPN Bet
+
+UK/Europe bookmakers:
+Bet365, William Hill, Betfair,
+Paddy Power, Unibet, Bwin
+
+African bookmakers:
+Bet9ja, SportyBet, Betway Africa,
+1xBet, Melbet, BetKing
+
+Asian bookmakers:
+Pinnacle, Sbobet, 188Bet
+
+All pricing the SAME match =
+Maximum arbitrage opportunities
+
+Example World Cup arb:
+┌──────────────────────────────┐
+│ 🏆 WORLD CUP ARB DETECTED   │
+│                              │
+│ Brazil vs Germany            │
+│ World Cup Group Stage        │
+│                              │
+│ DraftKings: Brazil  @ 2.15  │
+│ Pinnacle:   Germany @ 2.45  │
+│                              │
+│ Profit margin: +3.8%        │
+│                              │
+│ 🇺🇸 US users:               │
+│ $510 on DraftKings          │
+│ $490 on Betway              │
+│ Guaranteed: +$38            │
+│                              │
+│ 🇳🇬 Nigerian users:         │
+│ ₦255,000 on SportyBet       │
+│ ₦245,000 on Bet9ja          │
+│ Guaranteed: ₦19,000         │
+│                              │
+│ 🇬🇧 UK users:               │
+│ £510 on Bet365              │
+│ £490 on Betfair             │
+│ Guaranteed: +£38            │
+│                              │
+│ ⏱️ Window: 15:42 remaining  │
+│                              │
+│ [Calculate My Stakes →]     │
+└──────────────────────────────┘
+
+Show arb in user's local currency
+automatically based on their region
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFRICAN WORLD CUP FOCUS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Special section for African teams:
+- 🇳🇬 Nigeria Super Eagles
+- 🇬🇭 Ghana Black Stars
+- 🇸🇳 Senegal
+- 🇲🇦 Morocco
+- 🇩🇿 Algeria
+- 🇨🇲 Cameroon
+- 🇨🇮 Ivory Coast
+- 🇪🇬 Egypt
+- 🇿🇦 South Africa
+- 🇹🇳 Tunisia
+- 🇲🇱 Mali
+- 🇧🇫 Burkina Faso
+
+African team features:
+- Dedicated team pages
+- Squad analysis
+- CAF qualifying journey
+- Head to head vs opponents
+- African media sentiment
+- Fan predictions
+- "Your team's chances" widget
+
+Nigeria focused example:
+┌──────────────────────────────┐
+│ 🇳🇬 SUPER EAGLES TRACKER    │
+│                              │
+│ Nigeria vs Argentina         │
+│ World Cup Group Stage        │
+│ June 15, 2026               │
+│                              │
+│ AI Prediction: Argentina Win │
+│ Confidence: 68%             │
+│                              │
+│ Nigeria Win: 18%            │
+│ Draw: 14%                   │
+│                              │
+│ Key factors:                │
+│ • Osimhen fit and in form   │
+│ • Argentina World Champions │
+│ • Nigeria strong defensively│
+│ • Heat in Dallas venue      │
+│                              │
+│ Best odds for Nigeria Win:  │
+│ Bet9ja:    5.50 ✅ best     │
+│ SportyBet: 5.20             │
+│ 1xBet:     5.40             │
+│                              │
+│ Value detected: +12% edge   │
+│ on Nigeria Win at Bet9ja    │
+└──────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD CUP COUNTDOWN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add countdown on dashboard:
+┌──────────────────────────────┐
+│ 🏆 FIFA WORLD CUP 2026      │
+│                              │
+│     23 days remaining        │
+│                              │
+│ ██ Days  ██ Hours  ██ Mins  │
+│                              │
+│ USA • Canada • Mexico       │
+│ June 11 — July 19, 2026     │
+│                              │
+│ [Preview Predictions →]     │
+│ [Set Match Alerts →]        │
+└──────────────────────────────┘
+
+Show on dashboard from today
+until tournament ends
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD CUP NOTIFICATIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Let users follow specific teams:
+"Follow Nigeria 🇳🇬"
+
+Then send automatic alerts:
+- "Nigeria vs Argentina 
+   kicks off in 2 hours ⚽
+   AI says: Argentina favored 68%
+   Value bet: Nigeria @ 5.50 Bet9ja"
+
+- "GOAL! Nigeria 1-0 Argentina 🔥
+   Win probability: Nigeria 34%
+   Momentum: Nigeria surging"
+
+- "FULL TIME: Nigeria 1-1 Argentina
+   Your paper bet: WON! +₦4,500 🎉"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOURNAMENT PREDICTOR GAME:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a fun World Cup Predictor:
+- Before tournament starts:
+  User predicts all group winners
+  User predicts knockout rounds
+  User picks tournament winner
+
+- AI gives each prediction a 
+  probability score
+
+- Leaderboard of best predictors
+
+- Prizes for top predictors:
+  "Top 10 predictors win 
+  3 months Elite free"
+
+This drives massive engagement
+and downloads before launch
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WORLD CUP LAUNCH STRATEGY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The app MUST be fully launched
+before June 11, 2026.
+
+World Cup starts in 23 days.
+This is your biggest marketing moment.
+
+Create a "World Cup Ready" banner:
+"PrediQs AI covers all 104 
+World Cup matches with AI 
+predictions and arbitrage 
+opportunities. Download now."
+
+Build and show me the World Cup
+dedicated section with:
+1. Countdown timer
+2. Group stage overview
+3. Team tracker
+4. First arbitrage opportunity
+   for an upcoming WC match
