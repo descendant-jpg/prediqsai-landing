@@ -1,0 +1,484 @@
+Add the following major features and 
+modifications to PrediQs AI:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 1: BET SLIP UPLOAD & ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a "Analyze My Slip" button on:
+- Dashboard page (prominent position)
+- Picks page (top right corner)
+- AI Assistant page (as a suggested action)
+- Bottom navigation as dedicated icon
+
+PRO users: 5 slip analyses per day
+ELITE users: Unlimited
+FREE users: Locked with upgrade prompt
+
+UPLOAD FLOW:
+1. User taps "Analyze My Slip"
+2. Screen shows 3 options:
+   - 📷 Take Photo (camera)
+   - 🖼️ Upload from Gallery
+   - ✏️ Enter Manually (type selections)
+3. Loading screen shows:
+   "🔍 AI is scanning your slip..."
+   with animated scanning line effect
+   across the slip image
+4. Results screen appears in 3-5 seconds
+
+CLAUDE VISION INTEGRATION:
+Use Claude claude-sonnet-4-20250514 with 
+vision to read the slip image.
+
+System prompt:
+"You are PrediQs AI slip analyzer. 
+You are an expert sports betting analyst.
+Analyze this bet slip image carefully.
+
+Extract every selection and return 
+ONLY valid JSON:
+{
+  bookmaker: string,
+  slip_type: 'single|accumulator|system',
+  total_odds: number,
+  stake: number or null,
+  potential_payout: number or null,
+  selections: [
+    {
+      match: string,
+      home_team: string,
+      away_team: string,
+      market: string,
+      selection: string,
+      odds: number,
+      sport: string,
+      league: string,
+      match_date: string,
+      ai_confidence: number (0-100),
+      status: 'STRONG|GOOD|RISKY|AVOID',
+      reasoning: string (one sentence),
+      alternative: string or null
+    }
+  ],
+  overall_rating: number (1-10),
+  verdict: 'PLACE IT|MODIFY|AVOID',
+  verdict_reason: string,
+  weakest_leg: string,
+  strongest_leg: string,
+  win_probability: number,
+  recommendations: [string],
+  safer_alternative: string or null,
+  kelly_stake: number or null
+}"
+
+RESULTS SCREEN UI:
+Show beautiful analysis with:
+
+TOP SECTION:
+- Bookmaker logo/name detected
+- Slip type (Single/Accumulator/System)
+- Total odds + Stake + Potential payout
+- Large verdict badge:
+  ✅ PLACE IT (green)
+  ⚠️ MODIFY (yellow)  
+  ❌ AVOID (red)
+- Overall AI rating: ★★★★☆ (4/10)
+- Win probability: 34%
+
+MIDDLE SECTION (Per leg):
+Each leg shown as a card:
+┌────────────────────────────┐
+│ LEG 1          STRONG ✅   │
+│ Arsenal vs Chelsea         │
+│ Arsenal Win  @ 1.85        │
+│ AI Confidence: 78%         │
+│ "Arsenal dominant at home" │
+└────────────────────────────┘
+
+┌────────────────────────────┐
+│ LEG 3          AVOID ❌    │
+│ Man Utd vs Liverpool       │
+│ Over 2.5  @ 1.72          │
+│ AI Confidence: 38%         │
+│ "Both teams low scoring    │
+│  last 5 games"             │
+│ Better: Under 2.5 @ 2.10  │
+└────────────────────────────┘
+
+BOTTOM SECTION:
+- Weakest leg highlighted in red
+- Strongest leg highlighted in green
+- AI Recommendations list
+- Safer alternative slip built by AI
+- Kelly Criterion stake suggestion
+- "Save Analysis" button
+- "Share" button (WhatsApp/Twitter)
+
+SHARE CARD:
+Generate shareable image showing:
+- PrediQs AI logo
+- Slip verdict
+- Each leg with rating
+- Overall score
+- "Analyzed by PrediQs AI" watermark
+
+HISTORY TAB:
+- All past slip analyses saved
+- Shows date, verdict, result (won/lost)
+- Accuracy tracking:
+  "AI correctly flagged weak legs 
+   in 78% of your past slips"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 2: LIVE MATCH TRACKER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For ELITE users add live match tracking:
+
+- Real-time score updates every 60 seconds
+- Live momentum indicator (which team 
+  is dominating right now)
+- In-game probability shifts:
+  "Goal probability next 10 mins: 67%"
+- Key event alerts:
+  🔴 Red card → recalculates prediction
+  ⚽ Goal scored → updates win probability
+  🔄 Substitution → assesses impact
+- Live stats bar:
+  Possession | Shots | Corners | Cards
+- "Cash Out Recommendation":
+  "Consider cashing out — 
+   momentum has shifted to Chelsea"
+
+For PRO users:
+- Live scores only
+- No momentum analysis
+
+For FREE users:
+- Scores locked
+- "Upgrade for live tracking"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 3: PERSONAL AI COACH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add an AI Coach section that learns 
+each user's betting patterns and gives
+personalized weekly coaching:
+
+Weekly Report (every Monday):
+"Your PrediQs AI Weekly Report 🏆
+
+Last week performance:
+- Bets followed: 12
+- Won: 8 | Lost: 4
+- ROI: +23%
+- Best pick: Arsenal Win ✅
+- Worst pick: Over 2.5 Spurs ❌
+
+Your betting pattern analysis:
+✅ You're great at: Home favorites
+⚠️ You struggle with: Away underdogs
+❌ Avoid: Over/Under markets (42% win rate)
+
+This week AI recommends:
+- Focus on: Premier League home games
+- Avoid: Multi-leg accumulators
+- Stake strategy: Max 3% per bet
+- Top pick this week: [prediction]"
+
+Personalized tips based on history:
+- "You tend to bet more after losses 
+   (revenge betting detected)"
+- "Your best results are on Saturdays"
+- "You win 71% when following 
+   HIGH confidence picks only"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 4: SMART NOTIFICATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use OneSignal to send smart alerts:
+
+DAILY ALERTS (all users):
+- 9am: "Today's top 3 picks are ready 🎯"
+- 1 hour before big match: 
+  "Arsenal vs Chelsea kicks off in 1 hour
+   AI confidence: 74% Arsenal Win"
+
+PRO ALERTS:
+- Lineup drops: 
+  "⚠️ Lineup Alert: Salah not starting 
+   for Liverpool. Prediction updated."
+- Value detected:
+  "💰 Value Alert: AI spotted +18% edge 
+   on Man City vs Wolves"
+- Line movement:
+  "📈 Sharp money detected on Arsenal"
+
+ELITE ALERTS:
+- All Pro alerts PLUS:
+- Live momentum:
+  "⚡ Liverpool on 3-0 run in last 
+   15 minutes. Goal probability: 71%"
+- Arbitrage:
+  "🔄 Arbitrage opportunity detected!
+   Guaranteed profit window: 4 mins"
+- Cash out:
+  "💡 Consider cashing out your 
+   Chelsea bet — momentum shifted"
+
+RESPONSIBLE GAMBLING ALERTS:
+- After 3 losses: 
+  "You've had 3 losses today. 
+   Take a break 🛑"
+- Late night:
+  "It's 2am. Best bets are made 
+   with a clear head 😴"
+- Spending spike:
+  "Your betting activity is higher 
+   than usual this week"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 5: ENHANCED DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Redesign the dashboard to show:
+
+TOP ROW STATS:
+┌──────┬──────┬──────┬──────┐
+│Today │Win % │Streak│Value │
+│ 12   │ 71%  │ 🔥5  │ +3   │
+│picks │30day │wins  │found │
+└──────┴──────┴──────┴──────┘
+
+FEATURED PICK OF THE DAY:
+- Largest card at top
+- Most confident prediction today
+- Animated confidence arc
+- Quick "Add Paper Bet" button
+- "View Analysis" button
+
+LIVE NOW section:
+- Any games currently being played
+- Live scores + momentum
+- Pulsing red LIVE badge
+
+TODAY'S PICKS FEED:
+- Sorted by confidence (highest first)
+- Sport filter pills
+- Value bets highlighted in cyan
+
+MARKET MOVERS sidebar:
+- Top 3 sharp money movements today
+- "Odds shifted from 2.10 to 1.85 
+   on Arsenal in last 2 hours"
+
+DON'T BET TODAY section:
+- Red bordered cards for avoid matches
+- Clear explanation why to avoid
+- "Our AI flagged 3 games today 
+   as too risky to bet"
+
+BOTTOM of dashboard:
+- Your paper bet performance
+- Recent won/lost bets
+- Quick access to AI chat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 6: COMMUNITY TIPSTERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build the community leaderboard:
+
+VERIFIED TIPSTER BADGES:
+- 🥇 Gold: 500+ bets, 65%+ win rate
+- 🥈 Silver: 200+ bets, 60%+ win rate  
+- 🥉 Bronze: 100+ bets, 55%+ win rate
+- ❌ Unverified: Under 100 bets
+
+TIPSTER CARD shows:
+- Username + badge
+- Sport specialty
+- Win rate % (last 30 days)
+- ROI % (last 30 days)
+- Total bets (for credibility)
+- Recent form: W W L W W
+- Follow button
+- "Copy picks" button (Pro/Elite)
+
+LEADERBOARD TABS:
+- Overall ROI
+- Best this week
+- Soccer specialists
+- NFL specialists
+- NBA specialists
+- Highest win rate
+
+SCAM DETECTION:
+- Flag suspicious tipsters
+- Auto-hide accounts with:
+  Less than 50 bets history
+  Claiming 90%+ win rate
+  Sudden massive winning streak
+  New account with perfect record
+- Show warning: 
+  "⚠️ This tipster has insufficient 
+   history to verify claims"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 7: UI IMPROVEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ONBOARDING FLOW (new users):
+   Screen 1: "Welcome to PrediQs AI"
+             AI-powered sports intelligence
+             [Get Started]
+   
+   Screen 2: "Choose your sports"
+             Select: NFL NBA MLB Soccer
+             (multi-select with icons)
+   
+   Screen 3: "What type of bettor are you?"
+             - Casual (bet for fun)
+             - Regular (bet weekly)  
+             - Serious (bet daily)
+             - Professional (full-time)
+   
+   Screen 4: "Set your bankroll limit"
+             Daily loss limit slider
+             Responsible gambling setup
+   
+   Screen 5: "You're ready!"
+             Show personalized dashboard
+
+2. DARK/LIGHT MODE toggle in settings
+
+3. PREDICTION CARD improvements:
+   - Team crests/logos from API-Sports
+   - Country flags on league names
+   - Kick-off time in user's timezone
+   - "X hours until kickoff" countdown
+   - Tap card to expand full analysis
+   - Swipe right to add paper bet
+   - Swipe left to dismiss/hide
+
+4. CONFIDENCE METER animation:
+   - Arc fills up animatedly on load
+   - Color changes: 
+     >70% = green glow
+     50-70% = yellow glow
+     <50% = red glow
+   - Pulse animation for >85% picks
+
+5. LOADING STATES:
+   Every screen needs skeleton loaders
+   not plain spinners:
+   - Grey shimmer cards while loading
+   - "Fetching today's matches..." text
+   - Progressive loading (show first 
+     3 results then load rest)
+
+6. ERROR STATES:
+   - No internet: "No connection 📡
+     Check your internet and retry"
+   - No games today: "No matches 
+     scheduled today. Check tomorrow!"
+   - API error: "Having trouble fetching 
+     data. Pull down to retry"
+
+7. SUCCESS ANIMATIONS:
+   - Paper bet placed: 
+     confetti animation ✨
+   - Bet won: 
+     green explosion + sound 🎉
+   - New streak: 
+     fire animation 🔥
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 8: SETTINGS PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Complete settings page with:
+
+PROFILE SECTION:
+- Profile photo (upload)
+- Username (editable)
+- Email
+- Country (with flag)
+- Preferred currency
+- Timezone (auto-detected)
+
+SPORTS PREFERENCES:
+- Toggle on/off each sport
+- Select favorite leagues
+- Set preferred bookmakers
+- Notification preferences per sport
+
+BANKROLL SETTINGS:
+- Daily loss limit
+- Weekly budget
+- Monthly budget
+- Alert when 50% of limit reached
+- Alert when 80% of limit reached
+- Hard stop at 100% of limit
+
+RESPONSIBLE GAMBLING:
+- Self-exclusion (24hr cool-off)
+- Betting diary
+- Reality check intervals
+- Link to help resources:
+  ncpgambling.org
+  gamcare.org.uk
+  begambleaware.org
+
+NOTIFICATION SETTINGS:
+- Daily picks alert: ON/OFF + time
+- Pre-match alerts: ON/OFF
+- Lineup drops: ON/OFF
+- Sharp money alerts: ON/OFF (Pro+)
+- Live momentum: ON/OFF (Elite)
+- Weekly report: ON/OFF
+
+DISPLAY SETTINGS:
+- Dark/Light mode
+- Odds format: 
+  Decimal (1.85) 
+  Fractional (17/20)
+  American (-120)
+- Language selection
+- Currency display
+
+ACCOUNT:
+- Change password
+- Delete account
+- Export my data
+- Privacy policy
+- Terms of service
+- App version
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep the existing dark theme:
+- Background: #070B12
+- Cards: #0C1422
+- Borders: #131E2E
+- Cyan accent: #00E5FF
+- Gold: #FFD700
+- Green: #00FF94
+- Red: #FF4D4D
+- Font: existing fonts
+
+Make sure ALL screens are:
+- Fully mobile responsive
+- Smooth 60fps animations
+- Fast loading (under 2 seconds)
+- Works on iOS and Android
+- Accessible (large touch targets)
+
+Build all features and run the app.
+Show me the updated dashboard first,
+then the bet slip analyzer screen
