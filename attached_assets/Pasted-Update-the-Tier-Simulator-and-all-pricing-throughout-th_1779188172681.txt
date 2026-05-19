@@ -1,0 +1,223 @@
+Update the Tier Simulator and all pricing 
+throughout the entire app to match these 
+exact specifications:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CORRECT PRICING (fix immediately):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FREE TIER:
+- Price: $0 forever
+- Change "5 picks per day" to 
+  "3 picks per day"
+- Change "AI assistant 10 msgs/day" to
+  "AI assistant 5 msgs/day"
+- Remove "Basic confidence scores"
+  Replace with these exact features:
+  • 3 AI picks per day
+  • Soccer only (top 3 leagues)
+  • Basic confidence % only
+  • 1 Don't Bet warning per day
+  • Paper bet (5 active max)
+  • Community leaderboard (view only)
+  • 5 AI messages per day
+
+PRO TIER:
+- Price: $14.99/month
+- Annual: $99/year (save 45%)
+- Remove current features
+- Replace with these exact features:
+  • Unlimited picks all sports
+  • NFL, NBA, MLB + 50 soccer leagues
+  • 3 Model consensus (StatIQ + 
+    PatternAI + PulseAI)
+  • Full AI reasoning & explanation
+  • Value bet detection
+  • Line movement tracker
+  • Sharp money alerts
+  • Kelly Criterion calculator
+  • AI Chat (50 messages/day)
+  • Bet slip analyzer (5/day)
+  • Paper bet unlimited
+  • Weather impact analysis
+  • Injury news scanner
+  • Push notifications
+  • Daily email digest
+  • 30-day ROI dashboard
+
+ELITE TIER:
+- Price: $39.99/month
+- Annual: $299/year (save 38%)
+- Remove current features
+- Replace with these exact features:
+  • Everything in Pro
+  • All 5 models (+ SharpIQ + ContextAI)
+  • Full model breakdown scores shown
+  • Live in-game momentum AI
+  • Real-time goal probability
+  • Arbitrage opportunity scanner
+  • Closing Line Value (CLV) tracker
+  • Referee tendency analysis
+  • Travel & fatigue scoring
+  • Voice AI assistant
+  • Unlimited AI chat
+  • Unlimited slip analyses
+  • Private syndicate room (10 members)
+  • WhatsApp/SMS alerts
+  • White-label PDF reports
+  • API access (100 calls/day)
+  • 10+ language support
+  • Priority AI responses
+  • Full audit trail exportable
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE THESE EVERYWHERE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Tier Simulator screen
+2. Settings/Profile screen
+3. Any pricing page
+4. All upgrade prompt popups
+5. All locked feature banners
+6. Onboarding flow
+7. Any constants/config files
+   where prices are stored
+
+Make sure every locked feature 
+shows correct upgrade price:
+
+FREE user sees Pro feature:
+"🔒 Upgrade to Pro — $14.99/mo"
+
+FREE user sees Elite feature:
+"🔒 Upgrade to Elite — $39.99/mo"
+
+Pro user sees Elite feature:
+"👑 Upgrade to Elite — $39.99/mo"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TIER SIMULATOR (DEV MODE):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep the DEV MODE tier simulator
+but update it to show correct info:
+
+FREE card:
+┌─────────────────────────┐
+│ FREE                    │
+│ $0 forever              │
+│ • 3 picks/day           │
+│ • Soccer only           │
+│ • Basic confidence      │
+│ • 5 AI messages/day     │
+│ • 5 paper bets max      │
+└─────────────────────────┘
+
+PRO card (highlight with cyan border):
+┌─────────────────────────┐
+│ PRO          POPULAR ⭐ │
+│ $14.99/mo               │
+│ $99/year (save 45%)     │
+│ • Unlimited picks       │
+│ • All 4 sports          │
+│ • 3 model consensus     │
+│ • Full AI reasoning     │
+│ • Value detection       │
+│ • Sharp money alerts    │
+│ • 50 AI msgs/day        │
+│ • 5 slip analyses/day   │
+└─────────────────────────┘
+
+ELITE card (highlight with gold border):
+┌─────────────────────────┐
+│ ELITE        BEST ROI 👑│
+│ $39.99/mo               │
+│ $299/year (save 38%)    │
+│ • Everything in Pro     │
+│ • All 5 AI models       │
+│ • Live momentum AI      │
+│ • Arbitrage scanner     │
+│ • Voice AI assistant    │
+│ • Unlimited everything  │
+│ • PDF exports           │
+│ • API access            │
+└─────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ACTIVE FEATURES SECTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When a tier is selected in DEV MODE
+show the correct active features:
+
+FREE active features:
+✅ 3 picks per day (soccer only)
+✅ Basic confidence meter
+✅ 1 Don't Bet warning
+✅ 5 AI messages
+✅ 5 paper bets
+✅ View leaderboard
+❌ Full reasoning (Pro)
+❌ Value bets (Pro)
+❌ Slip analyzer (Pro)
+❌ Live AI (Elite)
+❌ Voice AI (Elite)
+
+PRO active features:
+✅ Unlimited picks all sports
+✅ 3 model consensus
+✅ Full AI reasoning
+✅ Value bet detection
+✅ Line movement alerts
+✅ Sharp money signals
+✅ Kelly criterion calculator
+✅ AI assistant (50/day)
+✅ Slip analyzer (5/day)
+✅ Unlimited paper bets
+✅ Weather analysis
+✅ Injury scanner
+✅ Push notifications
+❌ Live momentum AI (Elite)
+❌ Arbitrage scanner (Elite)
+❌ Voice AI (Elite)
+❌ All 5 models (Elite)
+
+ELITE active features:
+✅ Everything in Pro
+✅ StatIQ model
+✅ PatternAI model
+✅ PulseAI model
+✅ SharpIQ model
+✅ ContextAI model
+✅ Full model breakdown
+✅ Live momentum AI
+✅ Goal probability tracker
+✅ Arbitrage scanner
+✅ CLV tracker
+✅ Referee analysis
+✅ Fatigue scoring
+✅ Voice AI assistant
+✅ Unlimited AI chat
+✅ Unlimited slip analyses
+✅ Syndicate room
+✅ WhatsApp alerts
+✅ PDF exports
+✅ API access
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FREE card: grey border #94A3B8
+PRO card: cyan border #00E5FF 
+          with "MOST POPULAR" badge
+ELITE card: gold border #FFD700
+            with "BEST ROI" badge
+
+Annual savings shown in green:
+"💚 Save $80.88/year with annual"
+"💚 Save $179.89/year with annual"
+
+Make these changes across the 
+entire codebase now and show me
+the updated tier simulator screen.
