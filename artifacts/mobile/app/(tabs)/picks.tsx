@@ -155,7 +155,7 @@ export default function PicksScreen() {
         <View style={styles.centered}>
           <ActivityIndicator color={colors.cyan} size="large" />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Fetching AI picks…
+            Fetching today's matches…
           </Text>
         </View>
       )}
