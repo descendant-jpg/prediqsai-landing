@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { AlertTriangle, ChevronRight, Clock, Settings, TrendingDown, TrendingUp, WifiOff } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -51,19 +51,7 @@ function mapPrediction(p: ApiPrediction): Prediction {
   };
 }
 
-// ─── Mini stat card ───────────────────────────────────────────────────────────
-
-function MiniStat({
-  label,
-  value,
-  sub,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  valueColor: string;
-}) {
+function MiniStat({ label, value, sub, valueColor }: { label: string; value: string; sub?: string; valueColor: string }) {
   const colors = useColors();
   return (
     <View style={[miniStyles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -76,12 +64,10 @@ function MiniStat({
 
 const miniStyles = StyleSheet.create({
   card: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 12, gap: 2 },
-  label: { fontSize: 10, fontFamily: "Inter_500Medium", letterSpacing: 0.3 },
-  value: { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  sub: { fontSize: 10, fontFamily: "Inter_400Regular" },
+  label: { fontSize: 10, letterSpacing: 0.3 },
+  value: { fontSize: 18, letterSpacing: -0.5 },
+  sub: { fontSize: 10 },
 });
-
-// ─── Countdown ────────────────────────────────────────────────────────────────
 
 function Countdown({ isoDate }: { isoDate: string }) {
   const colors = useColors();
@@ -102,7 +88,7 @@ function Countdown({ isoDate }: { isoDate: string }) {
 
   return (
     <View style={[countdownStyles.badge, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: colors.border }]}>
-      <Ionicons name="time-outline" size={11} color={colors.textMuted} />
+      <Clock size={11} color={colors.textMuted} />
       <Text style={[countdownStyles.text, { color: colors.textSecondary }]}>{label}</Text>
     </View>
   );
@@ -110,10 +96,8 @@ function Countdown({ isoDate }: { isoDate: string }) {
 
 const countdownStyles = StyleSheet.create({
   badge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
-  text: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  text: { fontSize: 11 },
 });
-
-// ─── Pulsing live dot ─────────────────────────────────────────────────────────
 
 function PulseDot({ color }: { color: string }) {
   const anim = useRef(new Animated.Value(1)).current;
@@ -128,18 +112,12 @@ function PulseDot({ color }: { color: string }) {
   return <Animated.View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: color, opacity: anim }} />;
 }
 
-// ─── Market mover card ────────────────────────────────────────────────────────
-
-function MarketMoverCard({
-  mover,
-}: {
-  mover: { team: string; move: string; direction: "up" | "down" };
-}) {
+function MarketMoverCard({ mover }: { mover: { team: string; move: string; direction: "up" | "down" } }) {
   const colors = useColors();
   const isUp = mover.direction === "up";
   return (
     <View style={[mmStyles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-      <Feather name={isUp ? "trending-up" : "trending-down"} size={14} color={isUp ? colors.green : colors.red} />
+      {isUp ? <TrendingUp size={14} color={colors.green} /> : <TrendingDown size={14} color={colors.red} />}
       <View style={{ flex: 1 }}>
         <Text style={[mmStyles.team, { color: colors.text }]}>{mover.team}</Text>
         <Text style={[mmStyles.move, { color: isUp ? colors.green : colors.red }]}>{mover.move}</Text>
@@ -150,11 +128,9 @@ function MarketMoverCard({
 
 const mmStyles = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, flex: 1 },
-  team: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  move: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  team: { fontSize: 12 },
+  move: { fontSize: 11, marginTop: 2 },
 });
-
-// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export default function DashboardScreen() {
   const colors = useColors();
@@ -182,15 +158,11 @@ export default function DashboardScreen() {
     }
   }, [token]);
 
-  useEffect(() => {
-    fetchPredictions();
-  }, [fetchPredictions]);
+  useEffect(() => { fetchPredictions(); }, [fetchPredictions]);
 
   useEffect(() => {
     if (user?.id !== 1 || !token) return;
-    api.setup.status(token)
-      .then((s) => setSetupMissing(!s.allCriticalOk))
-      .catch(() => {});
+    api.setup.status(token).then((s) => setSetupMissing(!s.allCriticalOk)).catch(() => {});
   }, [user, token]);
 
   const todayPicks = predictions.filter((p) => !p.avoidMatch);
@@ -200,19 +172,11 @@ export default function DashboardScreen() {
   const winRate = predictions.length
     ? Math.round((todayPicks.filter((p) => p.confidence >= 65).length / Math.max(1, predictions.length)) * 100)
     : 67;
-
-  // Derive streak from high-confidence picks
   const streakCount = todayPicks.filter((p) => p.confidence >= 70).length;
-
-  // Synthetic market movers from predictions
   const marketMovers = todayPicks
     .filter((p) => p.sharpMoneySignal)
     .slice(0, 3)
-    .map((p) => ({
-      team: p.homeTeam,
-      move: p.sharpMoneySignal!,
-      direction: (p.valueDetected ? "up" : "down") as "up" | "down",
-    }));
+    .map((p) => ({ team: p.homeTeam, move: p.sharpMoneySignal!, direction: (p.valueDetected ? "up" : "down") as "up" | "down" }));
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding = insets.top + topPaddingWeb + 8;
@@ -220,13 +184,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        {
-          paddingTop: topPadding,
-          paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 80,
-        },
-      ]}
+      contentContainerStyle={[styles.content, { paddingTop: topPadding, paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 80 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
@@ -246,57 +204,37 @@ export default function DashboardScreen() {
             <Text style={[styles.tierText, { color: colors.cyan }]}>{profile.tier.toUpperCase()}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/settings")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="settings" size={18} color={colors.textMuted} />
+            <Settings size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Admin: Setup incomplete banner */}
+      {/* Admin setup banner */}
       {user?.id === 1 && setupMissing && (
         <TouchableOpacity
           style={[styles.setupBanner, { backgroundColor: `${ORANGE}18`, borderColor: `${ORANGE}50` }]}
           onPress={() => router.push("/setup")}
           activeOpacity={0.85}
         >
-          <Feather name="alert-triangle" size={14} color={ORANGE} />
+          <AlertTriangle size={14} color={ORANGE} />
           <Text style={[styles.setupBannerText, { color: ORANGE }]}>Setup incomplete — configure API keys</Text>
-          <Feather name="chevron-right" size={14} color={ORANGE} />
+          <ChevronRight size={14} color={ORANGE} />
         </TouchableOpacity>
       )}
 
-      {/* ── 4-stat row ── */}
+      {/* 4-stat row */}
       {isLoading ? (
         <SkeletonStatRow />
       ) : (
         <View style={styles.statsRow}>
-          <MiniStat
-            label="TODAY'S PICKS"
-            value={String(todayPicks.length)}
-            sub="available"
-            valueColor={colors.cyan}
-          />
-          <MiniStat
-            label="WIN RATE"
-            value={`${winRate}%`}
-            sub="30 days"
-            valueColor={colors.green}
-          />
-          <MiniStat
-            label="STREAK"
-            value={`🔥${streakCount}`}
-            sub="high conf"
-            valueColor={colors.orange}
-          />
-          <MiniStat
-            label="VALUE"
-            value={`+${valuePicks.length}`}
-            sub="found"
-            valueColor={colors.gold}
-          />
+          <MiniStat label="TODAY'S PICKS" value={String(todayPicks.length)} sub="available" valueColor={colors.cyan} />
+          <MiniStat label="WIN RATE" value={`${winRate}%`} sub="30 days" valueColor={colors.green} />
+          <MiniStat label="STREAK" value={`🔥${streakCount}`} sub="high conf" valueColor={colors.orange} />
+          <MiniStat label="VALUE" value={`+${valuePicks.length}`} sub="found" valueColor={colors.gold} />
         </View>
       )}
 
-      {/* ── Analyze My Slip button ── */}
+      {/* Analyze My Slip button */}
       <TouchableOpacity
         style={[styles.slipBtn, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan + "55" }]}
         onPress={() => router.push("/slip-analysis")}
@@ -305,26 +243,24 @@ export default function DashboardScreen() {
         <Text style={{ fontSize: 20 }}>🎟️</Text>
         <View style={{ flex: 1 }}>
           <Text style={[styles.slipBtnTitle, { color: colors.cyan }]}>Analyze My Slip</Text>
-          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>
-            Upload your bet slip for instant AI analysis
-          </Text>
+          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>Upload your bet slip for instant AI analysis</Text>
         </View>
-        <Feather name="chevron-right" size={18} color={colors.cyan} />
+        <ChevronRight size={18} color={colors.cyan} />
       </TouchableOpacity>
 
-      {/* ── Error ── */}
+      {/* Error */}
       {error && !isLoading && (
         <TouchableOpacity
           style={[styles.errorBanner, { backgroundColor: "rgba(255,77,77,0.08)", borderColor: "rgba(255,77,77,0.25)" }]}
           onPress={fetchPredictions}
           activeOpacity={0.8}
         >
-          <Feather name="wifi-off" size={14} color={colors.red} />
+          <WifiOff size={14} color={colors.red} />
           <Text style={[styles.errorText, { color: colors.red }]}>{error} — tap to retry</Text>
         </TouchableOpacity>
       )}
 
-      {/* ── Featured Pick ── */}
+      {/* Featured Pick */}
       {isLoading ? (
         <>
           <View style={[styles.sectionHeader, { marginTop: 8 }]}>
@@ -370,7 +306,7 @@ export default function DashboardScreen() {
                 </Text>
                 {featuredPick.sharpMoneySignal && (
                   <View style={[styles.sharpRow, { backgroundColor: "rgba(0,229,255,0.06)" }]}>
-                    <Feather name="trending-up" size={12} color={colors.cyan} />
+                    <TrendingUp size={12} color={colors.cyan} />
                     <Text style={[styles.sharpText, { color: colors.cyan }]} numberOfLines={1}>
                       {featuredPick.sharpMoneySignal}
                     </Text>
@@ -390,29 +326,25 @@ export default function DashboardScreen() {
         </>
       ) : null}
 
-      {/* ── Market Movers ── */}
+      {/* Market Movers */}
       {!isLoading && marketMovers.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
-            <Feather name="trending-up" size={15} color={colors.textSecondary} />
+            <TrendingUp size={15} color={colors.textSecondary} />
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Sharp Money Moves</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }}>
-            {marketMovers.map((m, i) => (
-              <MarketMoverCard key={i} mover={m} />
-            ))}
+            {marketMovers.map((m, i) => <MarketMoverCard key={i} mover={m} />)}
           </ScrollView>
         </>
       )}
 
-      {/* ── Avoid Warning ── */}
+      {/* Avoid Warning */}
       {!isLoading && avoidPicks.length > 0 && (
         <>
           <View style={[styles.sectionHeader, { marginTop: 8 }]}>
-            <Ionicons name="warning" size={16} color={colors.red} />
-            <Text style={[styles.sectionTitle, { color: colors.red }]}>
-              Don't Bet Today ({avoidPicks.length})
-            </Text>
+            <AlertTriangle size={16} color={colors.red} />
+            <Text style={[styles.sectionTitle, { color: colors.red }]}>Don't Bet Today ({avoidPicks.length})</Text>
           </View>
           <View style={[styles.avoidBanner, { backgroundColor: "rgba(255,77,77,0.04)", borderColor: "rgba(255,77,77,0.15)" }]}>
             <Text style={[styles.avoidBannerText, { color: colors.textMuted }]}>
@@ -420,10 +352,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
           {avoidPicks.map((p) => (
-            <View
-              key={p.id}
-              style={[styles.avoidCard, { backgroundColor: "rgba(255,77,77,0.06)", borderColor: "rgba(255,77,77,0.25)" }]}
-            >
+            <View key={p.id} style={[styles.avoidCard, { backgroundColor: "rgba(255,77,77,0.06)", borderColor: "rgba(255,77,77,0.25)" }]}>
               <View style={styles.avoidCardHeader}>
                 <SportBadge sport={p.sport} size="sm" />
                 <Text style={[styles.avoidTeams, { color: colors.text }]}>{p.homeTeam} vs {p.awayTeam}</Text>
@@ -434,7 +363,7 @@ export default function DashboardScreen() {
         </>
       )}
 
-      {/* ── Today's Picks preview ── */}
+      {/* Today's Picks preview */}
       {!isLoading && todayPicks.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
@@ -443,13 +372,10 @@ export default function DashboardScreen() {
               <Text style={[styles.seeAll, { color: colors.cyan }]}>See all →</Text>
             </TouchableOpacity>
           </View>
-          {todayPicks.slice(0, 3).map((p) => (
-            <PredictionCard key={p.id} prediction={p} />
-          ))}
+          {todayPicks.slice(0, 3).map((p) => <PredictionCard key={p.id} prediction={p} />)}
         </>
       )}
 
-      {/* Responsible gambling */}
       <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
         PrediQs AI is for informational purposes only. Gamble responsibly. 18+. Call 1-800-522-4700 if you need help.
       </Text>
@@ -461,57 +387,43 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16, gap: 0 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
-  greeting: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  appName: { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  greeting: { fontSize: 13 },
+  appName: { fontSize: 26, letterSpacing: -0.5 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   tierBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  tierText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1 },
+  tierText: { fontSize: 11, letterSpacing: 1 },
   statsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   setupBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
-  setupBannerText: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
-
-  slipBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginBottom: 20,
-  },
-  slipBtnTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  slipBtnSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
-
+  setupBannerText: { fontSize: 13, flex: 1 },
+  slipBtn: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 20 },
+  slipBtnTitle: { fontSize: 14 },
+  slipBtnSub: { fontSize: 12, marginTop: 1 },
   errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 16 },
-  errorText: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
-
+  errorText: { fontSize: 13, flex: 1 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12, marginTop: 4 },
-  sectionTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  liveText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
-  seeAll: { fontSize: 13, fontFamily: "Inter_500Medium", marginLeft: "auto" },
-
+  sectionTitle: { fontSize: 16 },
+  liveText: { fontSize: 11, letterSpacing: 0.5 },
+  seeAll: { fontSize: 13, marginLeft: "auto" },
   featuredCard: { borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 20, gap: 14 },
   featuredHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  featuredLeague: { fontSize: 11, fontFamily: "Inter_400Regular", flex: 1 },
+  featuredLeague: { fontSize: 11, flex: 1 },
   valueBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, backgroundColor: "rgba(255,215,0,0.08)" },
-  valueText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
+  valueText: { fontSize: 10, letterSpacing: 0.5 },
   featuredMatchup: { alignItems: "center", gap: 2 },
-  featuredTeam: { fontSize: 17, fontFamily: "Inter_600SemiBold", textAlign: "center" },
-  featuredVs: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  featuredTeam: { fontSize: 17, textAlign: "center" },
+  featuredVs: { fontSize: 12 },
   featuredStats: { flexDirection: "row", alignItems: "center", gap: 16 },
   featuredInfo: { flex: 1, gap: 8 },
-  featuredReasoning: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  featuredReasoning: { fontSize: 13, lineHeight: 19 },
   sharpRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  sharpText: { fontSize: 11, fontFamily: "Inter_500Medium", flex: 1 },
+  sharpText: { fontSize: 11, flex: 1 },
   viewAnalysisBtn: { borderTopWidth: 1, paddingTop: 12, alignItems: "center" },
-  viewAnalysisText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-
+  viewAnalysisText: { fontSize: 13 },
   avoidBanner: { borderRadius: 10, borderWidth: 1, padding: 12, marginBottom: 8 },
-  avoidBannerText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  avoidBannerText: { fontSize: 12 },
   avoidCard: { borderRadius: 12, padding: 14, borderWidth: 1, marginBottom: 10, gap: 6 },
   avoidCardHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  avoidTeams: { fontSize: 14, fontFamily: "Inter_600SemiBold", flex: 1 },
-  avoidReason: { fontSize: 12, fontFamily: "Inter_400Regular" },
-
-  disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 16, paddingTop: 12, paddingBottom: 4 },
+  avoidTeams: { fontSize: 14, flex: 1 },
+  avoidReason: { fontSize: 12 },
+  disclaimer: { fontSize: 11, textAlign: "center", lineHeight: 16, paddingTop: 12, paddingBottom: 4 },
 });

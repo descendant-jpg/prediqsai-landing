@@ -1,0 +1,478 @@
+Do a complete deep audit and rebuild of 
+PrediQs AI. Go through every single 
+instruction that was given and make sure 
+everything is properly implemented.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: REMOVE ALL MOCK DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search the entire codebase for:
+- Any hardcoded team names
+- Any hardcoded match data
+- Any array named mockPredictions
+- Any array named mockGames
+- Any array named mockData
+- Any hardcoded odds numbers
+- Any hardcoded confidence numbers
+- Any placeholder text saying 
+  "Lorem ipsum" or "Test data"
+- Any TODO comments left unfinished
+- Any console.log("mock") statements
+
+Delete ALL of it and replace with 
+real API calls.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: WIRE UP ALL REAL APIs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Confirm every API is connected and 
+working with real data:
+
+API-SPORTS (API_SPORTS_KEY):
+- Fetch real NFL games today
+  GET https://v1.american-football.api-sports.io/games?date={TODAY}
+  
+- Fetch real NBA games today
+  GET https://v2.nba.api-sports.io/games?date={TODAY}
+  
+- Fetch real MLB games today
+  GET https://v1.baseball.api-sports.io/games?date={TODAY}
+
+- Fetch real Soccer games today
+  across ALL these league IDs:
+  2, 3, 39, 40, 45, 48, 61, 66, 
+  71, 78, 88, 94, 103, 106, 113,
+  119, 128, 135, 137, 140, 143,
+  144, 169, 179, 197, 203, 233,
+  235, 239, 253, 288, 292, 299,
+  301, 307, 323, 848
+  
+- Fetch team statistics and form
+- Fetch injury reports
+- Fetch head to head records
+- Fetch live scores for ongoing games
+
+THE ODDS API (ODDS_API_KEY):
+- Fetch real odds for NFL:
+  GET https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds
+  ?apiKey={ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals
+
+- Fetch real odds for NBA:
+  GET https://api.the-odds-api.com/v4/sports/basketball_nba/odds
+  ?apiKey={ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals
+
+- Fetch real odds for MLB:
+  GET https://api.the-odds-api.com/v4/sports/baseball_mlb/odds
+  ?apiKey={ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals
+
+- Fetch real odds for Soccer:
+  GET https://api.the-odds-api.com/v4/sports/soccer_epl/odds
+  ?apiKey={ODDS_API_KEY}&regions=uk&markets=h2h,totals
+
+ANTHROPIC CLAUDE (ANTHROPIC_API_KEY):
+- Use claude-sonnet-4-20250514
+- For each real game generate:
+  - Prediction (home_win/away_win/draw/over/under)
+  - Confidence 0-100
+  - Risk level (low/medium/high)
+  - Volatility score 0-10
+  - Is trap game (boolean)
+  - Avoid match (boolean)
+  - Avoid reason (string)
+  - Reasoning (2-3 sentences)
+  - Key factors (array of 5)
+  - Weather impact (string)
+  - Sharp money signal (string)
+  - AI probability 0-100
+  - Value detected (boolean)
+  - Return ONLY valid JSON
+
+NEWS API (NEWS_API_KEY):
+- Fetch latest sports news:
+  GET https://newsapi.org/v2/everything
+  ?q=NFL+injury+OR+NBA+injury+OR+
+  soccer+injury+OR+lineup&
+  sortBy=publishedAt&
+  pageSize=20&
+  apiKey={NEWS_API_KEY}
+- Parse injury mentions
+- Factor into predictions
+
+WEATHER API (WEATHER_API_KEY):
+- For every outdoor stadium game
+  fetch weather:
+  GET https://api.weatherapi.com/v1/forecast.json
+  ?key={WEATHER_API_KEY}
+  &q={STADIUM_CITY}
+  &days=1
+- NFL outdoor stadiums list:
+  Arrowhead Stadium - Kansas City
+  Soldier Field - Chicago
+  Lambeau Field - Green Bay
+  MetLife Stadium - East Rutherford
+  Gillette Stadium - Foxborough
+  Highmark Stadium - Buffalo
+  Paycor Stadium - Cincinnati
+  FirstEnergy Stadium - Cleveland
+  M&T Bank Stadium - Baltimore
+  FedExField - Landover
+  Lincoln Financial Field - Philadelphia
+  Giants Stadium - East Rutherford
+  AT&T Stadium - Arlington (dome)
+  Hard Rock Stadium - Miami Gardens
+  Nissan Stadium - Nashville
+  Lumen Field - Seattle
+  Empower Field - Denver
+- Check wind speed, rain, temperature
+- If wind > 20mph flag as 
+  "High wind - affects passing game"
+- If rain flag as 
+  "Rain expected - lower scoring game"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: FIX ALL EXPO ERRORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix the current Expo Go error:
+"Unable to download asset - 
+expo vector icons and expo font"
+
+1. Replace @expo/vector-icons with 
+   lucide-react-native everywhere:
+   npm install lucide-react-native
+
+2. Remove all custom font loading:
+   - Remove useFonts() hooks
+   - Remove Font.loadAsync() calls
+   - Use system fonts instead:
+     ios: Georgia / Courier New
+     android: serif / monospace
+
+3. Fix all missing asset imports
+
+4. Run: npx expo install --fix
+
+5. Clear cache: npx expo start --clear
+
+6. Fix any TypeScript errors
+
+7. Fix any missing dependency errors
+
+8. Fix any navigation errors
+
+9. Fix any undefined variable errors
+
+10. Fix any API response parsing errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: CHECK ALL SCREENS WORK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test and fix every single screen:
+
+ONBOARDING:
+- Welcome screen loads ✓
+- Sport selection works ✓
+- Bettor profile selection works ✓
+- Bankroll setup works ✓
+- Navigates to dashboard ✓
+
+DASHBOARD:
+- Stats row shows real data ✓
+- Featured pick loads real game ✓
+- Live now section shows live games ✓
+- Today's picks feed loads ✓
+- Market movers shows real line movement ✓
+- Don't bet section shows flagged games ✓
+
+PICKS PAGE:
+- Filter tabs work (All/NFL/NBA/MLB/Soccer) ✓
+- Real predictions load ✓
+- Confidence arc animates ✓
+- Value badges show correctly ✓
+- Avoid badges show correctly ✓
+- Tapping card opens full analysis modal ✓
+- Analysis modal shows:
+  - AI reasoning text ✓
+  - Key factors list ✓
+  - AI vs bookmaker probability ✓
+  - Weather impact ✓
+  - Add paper bet button ✓
+
+AI ASSISTANT:
+- Chat loads correctly ✓
+- Sending message works ✓
+- Claude responds with real analysis ✓
+- Message history saves ✓
+- Suggested prompts show ✓
+- Typing indicator shows ✓
+
+BET SLIP ANALYZER:
+- Camera upload works ✓
+- Gallery upload works ✓
+- Manual entry works ✓
+- Claude vision reads slip ✓
+- Results screen shows ✓
+- Per leg breakdown shows ✓
+- Verdict shows (Place/Modify/Avoid) ✓
+- Share button works ✓
+- Save to history works ✓
+
+PAPER BET SIMULATOR:
+- Virtual $1,000 bankroll shows ✓
+- Place bet on any prediction ✓
+- Active bets list shows ✓
+- Auto-settlement when results come in ✓
+- Performance stats show ✓
+- Leaderboard shows ✓
+
+BANKROLL MANAGER:
+- Real balance shows ✓
+- Add win/loss/deposit works ✓
+- Chart shows history ✓
+- Kelly calculator works ✓
+- Daily loss limit works ✓
+- Emotional betting warning works ✓
+
+PERFORMANCE PAGE:
+- Win rate by sport chart ✓
+- ROI trend chart ✓
+- Overall stats correct ✓
+- Confidence accuracy table ✓
+
+COMMUNITY:
+- Leaderboard loads ✓
+- Tipster cards show ✓
+- Follow button works ✓
+- Scam detection flags suspicious accounts ✓
+
+SETTINGS:
+- Profile edit works ✓
+- Sport preferences save ✓
+- Notification toggles work ✓
+- Bankroll limits save ✓
+- Dark/light mode toggle works ✓
+- Odds format selection works ✓
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: MULTI-MODEL CONSENSUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make sure all 5 models are properly
+separated by tier:
+
+FREE tier runs:
+- Model 1 (StatIQ) only
+- Max 3 predictions shown per day
+- No reasoning text
+- Basic confidence only
+
+PRO tier runs:
+- Model 1 (StatIQ)
+- Model 2 (PatternAI) 
+- Model 3 (PulseAI)
+- Full reasoning shown
+- Unlimited predictions
+- Value detection on
+- Line movement alerts on
+
+ELITE tier runs:
+- All 5 models
+- Model 4 (SharpIQ) 
+- Model 5 (ContextAI)
+- Full model breakdown shown
+- Individual model scores
+- Sharp money alerts
+- Arbitrage scanner
+- Live momentum AI
+
+Consensus logic:
+5/5 agree = STRONG CONSENSUS + 10% bonus
+4/5 agree = CONSENSUS + 5% bonus
+3/5 agree = MAJORITY (published)
+2/5 agree = NOT published (show AVOID)
+1/5 agree = NOT published (show AVOID)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: ALL SOCCER LEAGUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make sure ALL major soccer leagues 
+are fetched daily:
+
+TIER 1 - Show at top always:
+ID 2   Champions League ⭐
+ID 3   Europa League
+ID 848 Conference League
+ID 39  Premier League
+ID 140 La Liga
+ID 78  Bundesliga
+ID 135 Serie A
+ID 61  Ligue 1
+ID 94  Primeira Liga
+ID 88  Eredivisie
+
+TIER 2 - Major leagues:
+ID 253 MLS
+ID 71  Brasileirao
+ID 128 Liga Profesional Argentina
+ID 144 Belgian Pro League
+ID 179 Scottish Premiership
+ID 169 Super Lig Turkey
+
+TIER 3 - African leagues:
+ID 12  CAF Champions League
+ID 233 Nigerian Professional League
+ID 202 Egyptian Premier League
+ID 288 South African PSL
+
+TIER 4 - Asian leagues:
+ID 292 K League South Korea
+ID 98  J1 League Japan
+ID 307 Saudi Pro League
+
+TIER 5 - Cup competitions:
+ID 45  FA Cup
+ID 48  EFL Cup
+ID 1   World Cup 2026
+ID 4   Euro Championship
+ID 9   Copa America
+ID 6   AFCON
+
+Fetch ALL simultaneously using 
+Promise.all() for speed.
+Only display leagues with games TODAY.
+Sort by tier then by kickoff time.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7: PERFORMANCE & SPEED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Optimize app performance:
+
+1. Cache all API responses:
+   - Cache duration: 30 minutes
+   - Show "Last updated X mins ago"
+   - Pull down to refresh
+
+2. Parallel API calls:
+   Use Promise.all() to fetch 
+   all sports simultaneously
+   not one by one
+
+3. Skeleton loaders:
+   Every screen shows shimmer 
+   loading cards while fetching
+   Never show blank white screens
+
+4. Error boundaries:
+   Every screen has try/catch
+   Show friendly error message
+   with retry button if API fails
+
+5. Progressive loading:
+   Show first 3 results immediately
+   Load remaining in background
+
+6. Image optimization:
+   Cache team logos
+   Lazy load below fold images
+   Use tiny placeholder while loading
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 8: RESPONSIBLE GAMBLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make sure these are implemented:
+
+1. Footer disclaimer on every screen:
+"PrediQs AI is for entertainment 
+and informational purposes only.
+Please gamble responsibly.
+18+ only. If you need help:
+ncpgambling.org | 1-800-522-4700"
+
+2. Age verification on signup:
+Checkbox: "I am 18+ and betting 
+is legal in my country"
+Cannot proceed without checking
+
+3. Emotional betting detection:
+After 3 losses in 2 hours show:
+"You've had 3 losses. Our AI 
+recommends a 24 hour break 🛑"
+
+4. Loss limit enforcement:
+When daily limit reached hide 
+all predictions and show:
+"Daily limit reached. 
+Come back tomorrow 💪"
+
+5. Late night warning:
+Between 12am-5am show banner:
+"Late night betting warning ⚠️
+Best decisions are made rested"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 9: NOTIFICATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Wire up OneSignal properly:
+
+Daily 9am notification:
+"🎯 Today's top picks are ready!
+X games analyzed across NFL, 
+NBA, MLB and Soccer"
+
+Pre-match (1 hour before):
+"⚽ [Match] kicks off in 1 hour
+AI Confidence: X% [Prediction]"
+
+Lineup drop alert:
+"⚠️ Lineup Alert: [Player] not 
+starting. Prediction updated"
+
+Value detected:
+"💰 Value bet found: [Team] 
++X% edge over bookmaker"
+
+Sharp money (Elite):
+"📈 Sharp money detected on [Team]
+Line moved from X to Y"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 10: FINAL CHECKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before showing me the result:
+
+□ Zero mock data remaining
+□ All APIs returning real data
+□ No console errors
+□ No TypeScript errors  
+□ No missing imports
+□ No undefined variables
+□ All screens navigate correctly
+□ All buttons do something
+□ All API keys are being used
+□ Expo Go loads without errors
+□ App works on iOS and Android
+□ Dark theme consistent throughout
+□ All 3 tiers gated correctly
+□ Paper bet simulator works
+□ Bet slip analyzer works
+□ Chat responds with Claude
+□ All soccer leagues fetching
+□ Weather data for outdoor games
+□ Responsible gambling visible
+□ Onboarding flow complete
+
+After fixing everything:
+1. Clear Expo cache: 
+   npx expo start --clear
+2. Show me the QR code
+3. List everything that was fixed
+4. List anything that needs 
+   manual attention

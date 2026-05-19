@@ -1,6 +1,6 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { fetch } from "expo/fetch";
+import { Send, Zap } from "lucide-react-native";
 import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -83,7 +83,6 @@ export default function AssistantScreen() {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
-      // Bug fix: buffer incomplete lines that span across multiple read() chunks
       let lineBuffer = "";
 
       while (true) {
@@ -92,7 +91,6 @@ export default function AssistantScreen() {
 
         lineBuffer += decoder.decode(value, { stream: true });
         const lines = lineBuffer.split("\n");
-        // Keep the last (potentially incomplete) line in the buffer
         lineBuffer = lines.pop() ?? "";
 
         for (const line of lines) {
@@ -130,7 +128,7 @@ export default function AssistantScreen() {
       <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
         {!isUser && (
           <View style={[styles.aiAvatar, { backgroundColor: colors.cyan }]}>
-            <Ionicons name="flash" size={12} color={colors.background} />
+            <Zap size={12} color={colors.background} />
           </View>
         )}
         <View
@@ -165,7 +163,6 @@ export default function AssistantScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
       <View
         style={[
           styles.header,
@@ -173,7 +170,7 @@ export default function AssistantScreen() {
         ]}
       >
         <View style={[styles.aiIcon, { backgroundColor: colors.cyan }]}>
-          <Ionicons name="flash" size={16} color={colors.background} />
+          <Zap size={16} color={colors.background} />
         </View>
         <View>
           <Text style={[styles.headerTitle, { color: colors.text }]}>AI Assistant</Text>
@@ -188,7 +185,6 @@ export default function AssistantScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        {/* Messages */}
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -204,7 +200,7 @@ export default function AssistantScreen() {
             messages.length === 0 ? (
               <View style={styles.emptyState}>
                 <View style={[styles.emptyIcon, { backgroundColor: "rgba(0,229,255,0.1)" }]}>
-                  <Ionicons name="flash" size={32} color={colors.cyan} />
+                  <Zap size={32} color={colors.cyan} />
                 </View>
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>
                   PrediQs AI
@@ -231,7 +227,6 @@ export default function AssistantScreen() {
           }
         />
 
-        {/* Input */}
         <View
           style={[
             styles.inputContainer,
@@ -271,8 +266,7 @@ export default function AssistantScreen() {
               {isStreaming ? (
                 <ActivityIndicator size="small" color={colors.background} />
               ) : (
-                <Feather
-                  name="send"
+                <Send
                   size={16}
                   color={input.trim() ? colors.background : colors.textMuted}
                 />
@@ -306,14 +300,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 17,
-    fontFamily: "Inter_700Bold",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
+  headerTitle: { fontSize: 17 },
+  headerSubtitle: { fontSize: 12 },
   messagesList: {
     padding: 16,
     gap: 12,
@@ -326,12 +314,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 4,
   },
-  userBubble: {
-    flexDirection: "row-reverse",
-  },
-  aiBubble: {
-    flexDirection: "row",
-  },
+  userBubble: { flexDirection: "row-reverse" },
+  aiBubble: { flexDirection: "row" },
   aiAvatar: {
     width: 26,
     height: 26,
@@ -345,20 +329,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
   },
-  bubbleText: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 22,
-  },
-  typingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  typingText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
+  bubbleText: { fontSize: 15, lineHeight: 22 },
+  typingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  typingText: { fontSize: 14 },
   emptyState: {
     alignItems: "center",
     paddingTop: 40,
@@ -372,35 +345,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_700Bold",
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 21,
-  },
-  prompts: {
-    width: "100%",
-    gap: 8,
-    marginTop: 8,
-  },
-  promptBtn: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  promptText: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-  },
-  inputContainer: {
-    padding: 12,
-    borderTopWidth: 1,
-    gap: 6,
-  },
+  emptyTitle: { fontSize: 22 },
+  emptySubtitle: { fontSize: 14, textAlign: "center", lineHeight: 21 },
+  prompts: { width: "100%", gap: 8, marginTop: 8 },
+  promptBtn: { padding: 14, borderRadius: 12, borderWidth: 1 },
+  promptText: { fontSize: 14 },
+  inputContainer: { padding: 12, borderTopWidth: 1, gap: 6 },
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -411,13 +361,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     gap: 8,
   },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    maxHeight: 100,
-    paddingVertical: 6,
-  },
+  input: { flex: 1, fontSize: 15, maxHeight: 100, paddingVertical: 6 },
   sendBtn: {
     width: 36,
     height: 36,
@@ -425,9 +369,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  disclaimer: {
-    fontSize: 10,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-  },
+  disclaimer: { fontSize: 10, textAlign: "center" },
 });

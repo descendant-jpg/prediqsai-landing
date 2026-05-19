@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { RefreshCw, Search, WifiOff, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -449,7 +449,7 @@ export default function SoccerScreen() {
   if (isLoading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Ionicons name="football-outline" size={40} color={colors.cyan} />
+        <Text style={{ fontSize: 40 }}>⚽</Text>
         <Text style={[styles.loadingTitle, { color: colors.text }]}>Football Today</Text>
         <Text style={[styles.loadingSubtitle, { color: colors.textSecondary }]}>
           Fetching matches from worldwide leagues…
@@ -461,7 +461,7 @@ export default function SoccerScreen() {
   if (error) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Feather name="wifi-off" size={32} color={colors.textMuted} />
+        <WifiOff size={32} color={colors.textMuted} />
         <Text style={[styles.errorText, { color: colors.red }]}>{error}</Text>
         <TouchableOpacity style={[styles.retryBtn, { backgroundColor: colors.cyan }]} onPress={() => loadFixtures()}>
           <Text style={[styles.retryBtnText, { color: colors.background }]}>Retry</Text>
@@ -500,7 +500,7 @@ export default function SoccerScreen() {
               </View>
             )}
             <TouchableOpacity onPress={() => { setIsRefreshing(true); loadFixtures(true); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="refresh-cw" size={18} color={colors.textSecondary} />
+              <RefreshCw size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -514,7 +514,7 @@ export default function SoccerScreen() {
       {/* Search */}
       <View style={[styles.searchRow, { borderBottomColor: colors.border }]}>
         <View style={[styles.searchBox, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-          <Feather name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+          <Search size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search teams or leagues…"
@@ -526,7 +526,7 @@ export default function SoccerScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Feather name="x" size={15} color={colors.textMuted} />
+              <X size={15} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -633,10 +633,10 @@ const styles = StyleSheet.create({
   // Header
   header: { paddingHorizontal: 20, paddingBottom: 10, borderBottomWidth: 1 },
   headerRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  headerTitle: { fontSize: 22, letterSpacing: -0.5 },
+  headerSub: { fontSize: 12, marginTop: 2 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
-  lastUpdated: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 6 },
+  lastUpdated: { fontSize: 11, marginTop: 6 },
   liveCountBadge: {
     backgroundColor: "#FF4D4D22",
     borderColor: "#FF4D4D",
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  liveCountText: { color: "#FF4D4D", fontSize: 10, fontFamily: "Inter_700Bold" },
+  liveCountText: { color: "#FF4D4D", fontSize: 10 },
 
   // Search
   searchRow: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
-  searchInput: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", padding: 0 },
+  searchInput: { flex: 1, fontSize: 14, padding: 0 },
 
   // Filters
   filterBar: { borderBottomWidth: 1 },
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
   },
-  filterPillText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  filterPillText: { fontSize: 12 },
 
   // Featured
   featuredWrapper: { padding: 16, paddingBottom: 8 },
@@ -687,8 +687,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  featuredBadgeText: { color: "#FFD700", fontSize: 10, fontFamily: "Inter_700Bold" },
-  featuredLeague: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  featuredBadgeText: { color: "#FFD700", fontSize: 10 },
+  featuredLeague: { fontSize: 12 },
   featuredTeams: {
     flexDirection: "row",
     alignItems: "center",
@@ -696,20 +696,20 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   featuredTeam: { alignItems: "center", gap: 8, flex: 1 },
-  featuredTeamName: { fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  featuredTeamName: { fontSize: 13, textAlign: "center" },
   featuredScore: { alignItems: "center", gap: 4 },
-  featuredScoreText: { fontSize: 28, fontFamily: "Inter_700Bold" },
-  featuredVs: { fontSize: 20, fontFamily: "Inter_400Regular" },
-  featuredTime: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  featuredScoreText: { fontSize: 28 },
+  featuredVs: { fontSize: 20 },
+  featuredTime: { fontSize: 12 },
   featuredAiRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingTop: 14,
     borderTopWidth: 1,
   },
-  featuredPredLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  featuredPred: { fontSize: 16, fontFamily: "Inter_700Bold" },
-  featuredConf: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  featuredPredLabel: { fontSize: 11 },
+  featuredPred: { fontSize: 16 },
+  featuredConf: { fontSize: 12, marginTop: 2 },
 
   // Section header
   sectionHeader: {
@@ -721,37 +721,37 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionFlag: { fontSize: 20 },
-  sectionLeague: { fontSize: 13, fontFamily: "Inter_700Bold" },
-  sectionCountry: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
+  sectionLeague: { fontSize: 13 },
+  sectionCountry: { fontSize: 11, marginTop: 1 },
   sectionCount: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
   },
-  sectionCountText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  sectionCountText: { fontSize: 11 },
 
   // Game Card
   cardWrapper: { paddingHorizontal: 16, paddingVertical: 6 },
   gameCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 10 },
   gameLeagueRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  gameLeagueText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  gameLeagueText: { fontSize: 11 },
 
   teamsRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   teamSide: { flex: 1, alignItems: "center", gap: 6 },
   teamSideRight: { alignItems: "center" },
-  teamName: { fontSize: 12, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  teamName: { fontSize: 12, textAlign: "center" },
 
   scoreCentre: { alignItems: "center", width: 64, gap: 2 },
-  scoreText: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  vsText: { fontSize: 16, fontFamily: "Inter_400Regular" },
-  timeText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  scoreText: { fontSize: 20 },
+  vsText: { fontSize: 16 },
+  timeText: { fontSize: 11 },
 
   aiBar: { flexDirection: "row", alignItems: "center", gap: 12 },
   aiInfo: { flex: 1, gap: 4 },
-  predText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  predText: { fontSize: 13 },
   badgeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   riskPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  riskText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 0.4 },
+  riskText: { fontSize: 10, letterSpacing: 0.4 },
   valuePill: {
     backgroundColor: "rgba(0,229,255,0.12)",
     borderColor: "#00E5FF",
@@ -760,25 +760,25 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 6,
   },
-  valueText: { color: "#00E5FF", fontSize: 10, fontFamily: "Inter_700Bold" },
+  valueText: { color: "#00E5FF", fontSize: 10 },
 
   // Crest
   crest: { alignItems: "center", justifyContent: "center" },
-  crestText: { color: "#FFFFFF", fontFamily: "Inter_700Bold" },
+  crestText: { color: "#FFFFFF" },
 
   // Live badge
   liveBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#FF4D4D22", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#FF4D4D" },
-  liveText: { color: "#FF4D4D", fontSize: 10, fontFamily: "Inter_700Bold" },
+  liveText: { color: "#FF4D4D", fontSize: 10 },
 
   // Loading / error / empty
-  loadingTitle: { fontSize: 20, fontFamily: "Inter_700Bold", marginTop: 8 },
-  loadingSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  errorText: { fontSize: 14, fontFamily: "Inter_500Medium", textAlign: "center" },
+  loadingTitle: { fontSize: 20, marginTop: 8 },
+  loadingSubtitle: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  errorText: { fontSize: 14, textAlign: "center" },
   retryBtn: { borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 4 },
-  retryBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  retryBtnText: { fontSize: 14 },
   emptyContainer: { alignItems: "center", gap: 10, paddingVertical: 60, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
-  emptySubtitle: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
-  footer: { textAlign: "center", fontSize: 12, fontFamily: "Inter_400Regular", paddingVertical: 20 },
+  emptyTitle: { fontSize: 18 },
+  emptySubtitle: { fontSize: 13, textAlign: "center", lineHeight: 20 },
+  footer: { textAlign: "center", fontSize: 12, paddingVertical: 20 },
 });

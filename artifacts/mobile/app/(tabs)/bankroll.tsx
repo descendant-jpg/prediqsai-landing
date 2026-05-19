@@ -1,5 +1,5 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { AlertTriangle, Cpu, Inbox, MinusCircle, PlusCircle, TrendingDown, TrendingUp, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   Alert,
@@ -18,16 +18,18 @@ import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import type { BankrollEntry, EntryType } from "@/types";
 
+type IconComp = React.ComponentType<{ size: number; color: string }>;
+
 const ENTRY_TYPES: {
   type: EntryType;
   label: string;
-  icon: string;
+  Icon: IconComp;
   color: string;
 }[] = [
-  { type: "deposit", label: "Deposit", icon: "plus-circle", color: "#00FF94" },
-  { type: "withdrawal", label: "Withdraw", icon: "minus-circle", color: "#FF6B35" },
-  { type: "win", label: "Win", icon: "trending-up", color: "#00E5FF" },
-  { type: "loss", label: "Loss", icon: "trending-down", color: "#FF4D4D" },
+  { type: "deposit", label: "Deposit", Icon: PlusCircle, color: "#00FF94" },
+  { type: "withdrawal", label: "Withdraw", Icon: MinusCircle, color: "#FF6B35" },
+  { type: "win", label: "Win", Icon: TrendingUp, color: "#00E5FF" },
+  { type: "loss", label: "Loss", Icon: TrendingDown, color: "#FF4D4D" },
 ];
 
 function KellyCalculator() {
@@ -68,7 +70,7 @@ function KellyCalculator() {
   return (
     <View style={[styles.kellyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View style={styles.kellyHeader}>
-        <Feather name="cpu" size={18} color={colors.cyan} />
+        <Cpu size={18} color={colors.cyan} />
         <Text style={[styles.kellyTitle, { color: colors.text }]}>Kelly Calculator</Text>
       </View>
       <Text style={[styles.kellyDesc, { color: colors.textSecondary }]}>
@@ -77,18 +79,9 @@ function KellyCalculator() {
 
       <View style={styles.kellyInputs}>
         <View style={styles.kellyField}>
-          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>
-            American Odds
-          </Text>
+          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>American Odds</Text>
           <TextInput
-            style={[
-              styles.kellyInput,
-              {
-                color: colors.text,
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-              },
-            ]}
+            style={[styles.kellyInput, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
             value={odds}
             onChangeText={setOdds}
             placeholder="e.g. -110"
@@ -97,18 +90,9 @@ function KellyCalculator() {
           />
         </View>
         <View style={styles.kellyField}>
-          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>
-            Win Prob. (%)
-          </Text>
+          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>Win Prob. (%)</Text>
           <TextInput
-            style={[
-              styles.kellyInput,
-              {
-                color: colors.text,
-                backgroundColor: colors.background,
-                borderColor: colors.border,
-              },
-            ]}
+            style={[styles.kellyInput, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
             value={probability}
             onChangeText={setProbability}
             placeholder="e.g. 65"
@@ -127,18 +111,9 @@ function KellyCalculator() {
       </TouchableOpacity>
 
       {result !== null && (
-        <View
-          style={[
-            styles.kellyResult,
-            { backgroundColor: colors.background, borderColor: colors.border },
-          ]}
-        >
-          <Text style={[styles.kellyResultLabel, { color: colors.textSecondary }]}>
-            Recommended Stake
-          </Text>
-          <Text style={[styles.kellyResultValue, { color: colors.cyan }]}>
-            ${result.toFixed(2)}
-          </Text>
+        <View style={[styles.kellyResult, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.kellyResultLabel, { color: colors.textSecondary }]}>Recommended Stake</Text>
+          <Text style={[styles.kellyResultValue, { color: colors.cyan }]}>${result.toFixed(2)}</Text>
           <Text style={[styles.kellyResultPct, { color: colors.textMuted }]}>
             {((result / profile.bankroll) * 100).toFixed(1)}% of bankroll
           </Text>
@@ -156,7 +131,7 @@ function EntryRow({ entry }: { entry: BankrollEntry }) {
   return (
     <View style={[styles.entryRow, { borderBottomColor: colors.border }]}>
       <View style={[styles.entryIcon, { backgroundColor: `${config.color}18` }]}>
-        <Feather name={config.icon as any} size={18} color={config.color} />
+        <config.Icon size={18} color={config.color} />
       </View>
       <View style={styles.entryInfo}>
         <Text style={[styles.entryLabel, { color: colors.text }]}>
@@ -189,16 +164,12 @@ export default function BankrollScreen() {
 
   const todayLoss = bankrollEntries
     .filter((e) => {
-      const isToday =
-        new Date(e.createdAt).toDateString() === new Date().toDateString();
+      const isToday = new Date(e.createdAt).toDateString() === new Date().toDateString();
       return isToday && e.type === "loss";
     })
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const lossPercent = Math.min(
-    100,
-    (todayLoss / (profile.dailyLossLimit || 200)) * 100,
-  );
+  const lossPercent = Math.min(100, (todayLoss / (profile.dailyLossLimit || 200)) * 100);
 
   async function handleAddEntry() {
     const parsed = parseFloat(amount);
@@ -233,35 +204,18 @@ export default function BankrollScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title */}
         <Text style={[styles.title, { color: colors.text }]}>Bankroll</Text>
 
-        {/* Balance */}
-        <View
-          style={[
-            styles.balanceCard,
-            { backgroundColor: colors.card, borderColor: colors.cardBorder },
-          ]}
-        >
-          <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>
-            Current Balance
-          </Text>
+        <View style={[styles.balanceCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Current Balance</Text>
           <Text style={[styles.balance, { color: colors.gold }]}>
             ${profile.bankroll.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </Text>
 
-          {/* Daily loss limit */}
           <View style={styles.limitSection}>
             <View style={styles.limitHeader}>
-              <Text style={[styles.limitLabel, { color: colors.textSecondary }]}>
-                Daily Loss Limit
-              </Text>
-              <Text
-                style={[
-                  styles.limitValue,
-                  { color: lossPercent >= 80 ? colors.red : colors.textSecondary },
-                ]}
-              >
+              <Text style={[styles.limitLabel, { color: colors.textSecondary }]}>Daily Loss Limit</Text>
+              <Text style={[styles.limitValue, { color: lossPercent >= 80 ? colors.red : colors.textSecondary }]}>
                 ${todayLoss.toFixed(0)} / ${profile.dailyLossLimit}
               </Text>
             </View>
@@ -272,26 +226,14 @@ export default function BankrollScreen() {
                   {
                     width: `${lossPercent}%` as any,
                     backgroundColor:
-                      lossPercent >= 80
-                        ? colors.red
-                        : lossPercent >= 50
-                          ? colors.gold
-                          : colors.green,
+                      lossPercent >= 80 ? colors.red : lossPercent >= 50 ? colors.gold : colors.green,
                   },
                 ]}
               />
             </View>
             {lossPercent >= 80 && (
-              <View
-                style={[
-                  styles.warningBanner,
-                  {
-                    backgroundColor: "rgba(255,77,77,0.1)",
-                    borderColor: "rgba(255,77,77,0.3)",
-                  },
-                ]}
-              >
-                <Ionicons name="warning" size={14} color={colors.red} />
+              <View style={[styles.warningBanner, { backgroundColor: "rgba(255,77,77,0.1)", borderColor: "rgba(255,77,77,0.3)" }]}>
+                <AlertTriangle size={14} color={colors.red} />
                 <Text style={[styles.warningText, { color: colors.red }]}>
                   You've had a tough session. Consider taking a break.
                 </Text>
@@ -300,48 +242,30 @@ export default function BankrollScreen() {
           </View>
         </View>
 
-        {/* Quick actions */}
         <View style={styles.actionsRow}>
           {ENTRY_TYPES.map((t) => (
             <TouchableOpacity
               key={t.type}
-              style={[
-                styles.actionBtn,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-              ]}
-              onPress={() => {
-                setSelectedType(t.type);
-                setModalVisible(true);
-              }}
+              style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+              onPress={() => { setSelectedType(t.type); setModalVisible(true); }}
               activeOpacity={0.8}
             >
-              <Feather name={t.icon as any} size={20} color={t.color} />
-              <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>
-                {t.label}
-              </Text>
+              <t.Icon size={20} color={t.color} />
+              <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>{t.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Kelly Calculator */}
         <KellyCalculator />
 
-        {/* History */}
         <Text style={[styles.historyTitle, { color: colors.text }]}>History</Text>
         {bankrollEntries.length === 0 ? (
           <View style={styles.emptyHistory}>
-            <Feather name="inbox" size={28} color={colors.textMuted} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No entries yet
-            </Text>
+            <Inbox size={28} color={colors.textMuted} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No entries yet</Text>
           </View>
         ) : (
-          <View
-            style={[
-              styles.historyList,
-              { backgroundColor: colors.card, borderColor: colors.cardBorder },
-            ]}
-          >
+          <View style={[styles.historyList, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             {bankrollEntries.slice(0, 20).map((entry) => (
               <EntryRow key={entry.id} entry={entry} />
             ))}
@@ -349,7 +273,6 @@ export default function BankrollScreen() {
         )}
       </ScrollView>
 
-      {/* Add Entry Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -360,12 +283,11 @@ export default function BankrollScreen() {
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Add Entry</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Feather name="x" size={24} color={colors.textSecondary} />
+              <X size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalBody}>
-            {/* Type selector */}
             <View style={styles.typeRow}>
               {ENTRY_TYPES.map((t) => (
                 <TouchableOpacity
@@ -373,27 +295,15 @@ export default function BankrollScreen() {
                   style={[
                     styles.typeBtn,
                     {
-                      backgroundColor:
-                        selectedType === t.type ? `${t.color}22` : colors.card,
-                      borderColor:
-                        selectedType === t.type ? t.color : colors.border,
+                      backgroundColor: selectedType === t.type ? `${t.color}22` : colors.card,
+                      borderColor: selectedType === t.type ? t.color : colors.border,
                     },
                   ]}
                   onPress={() => setSelectedType(t.type)}
                   activeOpacity={0.8}
                 >
-                  <Feather name={t.icon as any} size={16} color={t.color} />
-                  <Text
-                    style={[
-                      styles.typeBtnText,
-                      {
-                        color:
-                          selectedType === t.type
-                            ? t.color
-                            : colors.textSecondary,
-                      },
-                    ]}
-                  >
+                  <t.Icon size={16} color={t.color} />
+                  <Text style={[styles.typeBtnText, { color: selectedType === t.type ? t.color : colors.textSecondary }]}>
                     {t.label}
                   </Text>
                 </TouchableOpacity>
@@ -401,18 +311,9 @@ export default function BankrollScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                Amount ($)
-              </Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount ($)</Text>
               <TextInput
-                style={[
-                  styles.fieldInput,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
+                style={[styles.fieldInput, { color: colors.text, backgroundColor: colors.card, borderColor: colors.border }]}
                 value={amount}
                 onChangeText={setAmount}
                 placeholder="0.00"
@@ -423,18 +324,9 @@ export default function BankrollScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                Note (optional)
-              </Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Note (optional)</Text>
               <TextInput
-                style={[
-                  styles.fieldInput,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  },
-                ]}
+                style={[styles.fieldInput, { color: colors.text, backgroundColor: colors.card, borderColor: colors.border }]}
                 value={note}
                 onChangeText={setNote}
                 placeholder="e.g. Chiefs vs Bills"
@@ -443,10 +335,7 @@ export default function BankrollScreen() {
             </View>
 
             <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                { backgroundColor: colors.cyan, opacity: amount && !isSubmitting ? 1 : 0.5 },
-              ]}
+              style={[styles.submitBtn, { backgroundColor: colors.cyan, opacity: amount && !isSubmitting ? 1 : 0.5 }]}
               onPress={handleAddEntry}
               disabled={!amount || isSubmitting}
               activeOpacity={0.85}
@@ -465,58 +354,45 @@ export default function BankrollScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 16 },
-  title: { fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 4 },
+  title: { fontSize: 24, letterSpacing: -0.5, marginBottom: 4 },
   balanceCard: { borderRadius: 16, padding: 20, borderWidth: 1, gap: 16 },
-  balanceLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  balance: { fontSize: 40, fontFamily: "Inter_700Bold", letterSpacing: -1 },
+  balanceLabel: { fontSize: 13 },
+  balance: { fontSize: 40, letterSpacing: -1 },
   limitSection: { gap: 8 },
   limitHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  limitLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  limitValue: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  limitLabel: { fontSize: 12 },
+  limitValue: { fontSize: 12 },
   limitBar: { height: 6, borderRadius: 3, overflow: "hidden" },
   limitFill: { height: "100%", borderRadius: 3 },
-  warningBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  warningText: { fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 },
+  warningBanner: { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 8, borderWidth: 1 },
+  warningText: { fontSize: 12, flex: 1 },
   actionsRow: { flexDirection: "row", gap: 10 },
   actionBtn: { flex: 1, borderRadius: 12, padding: 12, borderWidth: 1, alignItems: "center", gap: 6 },
-  actionLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  actionLabel: { fontSize: 11 },
   kellyCard: { borderRadius: 16, padding: 16, borderWidth: 1, gap: 12 },
   kellyHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  kellyTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  kellyDesc: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  kellyTitle: { fontSize: 16 },
+  kellyDesc: { fontSize: 13 },
   kellyInputs: { flexDirection: "row", gap: 10 },
   kellyField: { flex: 1, gap: 4 },
-  kellyLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
-  kellyInput: { borderRadius: 8, borderWidth: 1, padding: 10, fontSize: 14, fontFamily: "Inter_400Regular" },
+  kellyLabel: { fontSize: 11 },
+  kellyInput: { borderRadius: 8, borderWidth: 1, padding: 10, fontSize: 14 },
   calcBtn: { borderRadius: 10, padding: 12, alignItems: "center" },
-  calcBtnText: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  calcBtnText: { fontSize: 14 },
   kellyResult: { borderRadius: 10, padding: 14, borderWidth: 1, alignItems: "center", gap: 4 },
-  kellyResultLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  kellyResultValue: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  kellyResultPct: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  historyTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  kellyResultLabel: { fontSize: 12 },
+  kellyResultValue: { fontSize: 28, letterSpacing: -0.5 },
+  kellyResultPct: { fontSize: 12 },
+  historyTitle: { fontSize: 16 },
   emptyHistory: { alignItems: "center", paddingVertical: 30, gap: 8 },
-  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  emptyText: { fontSize: 14 },
   historyList: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
-  entryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderBottomWidth: 1,
-  },
+  entryRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderBottomWidth: 1 },
   entryIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   entryInfo: { flex: 1 },
-  entryLabel: { fontSize: 14, fontFamily: "Inter_500Medium" },
-  entryDate: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
-  entryAmount: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  entryLabel: { fontSize: 14 },
+  entryDate: { fontSize: 11, marginTop: 1 },
+  entryAmount: { fontSize: 15 },
   modal: { flex: 1 },
   modalHeader: {
     flexDirection: "row",
@@ -526,7 +402,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     borderBottomWidth: 1,
   },
-  modalTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  modalTitle: { fontSize: 18 },
   modalBody: { padding: 20, gap: 16 },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   typeBtn: {
@@ -538,10 +414,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
   },
-  typeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  typeBtnText: { fontSize: 13 },
   field: { gap: 6 },
-  fieldLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  fieldInput: { borderRadius: 10, borderWidth: 1, padding: 14, fontSize: 16, fontFamily: "Inter_400Regular" },
+  fieldLabel: { fontSize: 13 },
+  fieldInput: { borderRadius: 10, borderWidth: 1, padding: 14, fontSize: 16 },
   submitBtn: { borderRadius: 14, padding: 16, alignItems: "center" },
-  submitText: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  submitText: { fontSize: 16 },
 });

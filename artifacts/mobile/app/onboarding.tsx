@@ -1,5 +1,5 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { AlertTriangle, ArrowRight, Check } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
@@ -21,8 +21,6 @@ import { useColors } from "@/hooks/useColors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Sport = { key: string; label: string; icon: string };
 type BettorType = { key: string; label: string; sub: string };
 
@@ -41,8 +39,6 @@ const BETTOR_TYPES: BettorType[] = [
   { key: "serious", label: "Serious", sub: "Bet daily with a system" },
   { key: "professional", label: "Professional", sub: "Full-time betting" },
 ];
-
-// ─── Step components ──────────────────────────────────────────────────────────
 
 function Step1({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
   return (
@@ -71,15 +67,7 @@ function Step1({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
   );
 }
 
-function Step2({
-  selected,
-  onToggle,
-  colors,
-}: {
-  selected: string[];
-  onToggle: (key: string) => void;
-  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-}) {
+function Step2({ selected, onToggle, colors }: { selected: string[]; onToggle: (key: string) => void; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
   return (
     <View style={styles.stepContainer}>
       <Text style={[styles.stepTitle, { color: colors.text }]}>Choose your sports</Text>
@@ -94,21 +82,16 @@ function Step2({
               key={s.key}
               style={[
                 styles.sportCard,
-                {
-                  backgroundColor: active ? "rgba(0,229,255,0.12)" : colors.card,
-                  borderColor: active ? colors.cyan : colors.border,
-                },
+                { backgroundColor: active ? "rgba(0,229,255,0.12)" : colors.card, borderColor: active ? colors.cyan : colors.border },
               ]}
               onPress={() => { Haptics.selectionAsync(); onToggle(s.key); }}
               activeOpacity={0.75}
             >
               <Text style={styles.sportEmoji}>{s.icon}</Text>
-              <Text style={[styles.sportLabel, { color: active ? colors.cyan : colors.text }]}>
-                {s.label}
-              </Text>
+              <Text style={[styles.sportLabel, { color: active ? colors.cyan : colors.text }]}>{s.label}</Text>
               {active && (
                 <View style={[styles.checkBadge, { backgroundColor: colors.cyan }]}>
-                  <Feather name="check" size={10} color={colors.background} />
+                  <Check size={10} color={colors.background} />
                 </View>
               )}
             </TouchableOpacity>
@@ -119,15 +102,7 @@ function Step2({
   );
 }
 
-function Step3({
-  selected,
-  onSelect,
-  colors,
-}: {
-  selected: string;
-  onSelect: (key: string) => void;
-  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-}) {
+function Step3({ selected, onSelect, colors }: { selected: string; onSelect: (key: string) => void; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
   return (
     <View style={styles.stepContainer}>
       <Text style={[styles.stepTitle, { color: colors.text }]}>What type of bettor are you?</Text>
@@ -142,29 +117,16 @@ function Step3({
               key={b.key}
               style={[
                 styles.bettorCard,
-                {
-                  backgroundColor: active ? "rgba(0,229,255,0.08)" : colors.card,
-                  borderColor: active ? colors.cyan : colors.border,
-                },
+                { backgroundColor: active ? "rgba(0,229,255,0.08)" : colors.card, borderColor: active ? colors.cyan : colors.border },
               ]}
               onPress={() => { Haptics.selectionAsync(); onSelect(b.key); }}
               activeOpacity={0.75}
             >
               <View style={{ flex: 1 }}>
-                <Text style={[styles.bettorLabel, { color: active ? colors.cyan : colors.text }]}>
-                  {b.label}
-                </Text>
+                <Text style={[styles.bettorLabel, { color: active ? colors.cyan : colors.text }]}>{b.label}</Text>
                 <Text style={[styles.bettorSub, { color: colors.textSecondary }]}>{b.sub}</Text>
               </View>
-              <View
-                style={[
-                  styles.radio,
-                  {
-                    borderColor: active ? colors.cyan : colors.border,
-                    backgroundColor: active ? colors.cyan : "transparent",
-                  },
-                ]}
-              >
+              <View style={[styles.radio, { borderColor: active ? colors.cyan : colors.border, backgroundColor: active ? colors.cyan : "transparent" }]}>
                 {active && <View style={[styles.radioDot, { backgroundColor: colors.background }]} />}
               </View>
             </TouchableOpacity>
@@ -175,15 +137,7 @@ function Step3({
   );
 }
 
-function Step4({
-  limit,
-  onChangeLimit,
-  colors,
-}: {
-  limit: number;
-  onChangeLimit: (v: number) => void;
-  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
-}) {
+function Step4({ limit, onChangeLimit, colors }: { limit: number; onChangeLimit: (v: number) => void; colors: ReturnType<typeof import("@/hooks/useColors").useColors> }) {
   const PRESETS = [25, 50, 100, 250, 500, 1000];
   return (
     <View style={styles.stepContainer}>
@@ -201,22 +155,17 @@ function Step4({
             key={p}
             style={[
               styles.presetBtn,
-              {
-                backgroundColor: limit === p ? colors.cyan : colors.card,
-                borderColor: limit === p ? colors.cyan : colors.border,
-              },
+              { backgroundColor: limit === p ? colors.cyan : colors.card, borderColor: limit === p ? colors.cyan : colors.border },
             ]}
             onPress={() => { Haptics.selectionAsync(); onChangeLimit(p); }}
             activeOpacity={0.75}
           >
-            <Text style={[styles.presetText, { color: limit === p ? colors.background : colors.text }]}>
-              ${p}
-            </Text>
+            <Text style={[styles.presetText, { color: limit === p ? colors.background : colors.text }]}>${p}</Text>
           </TouchableOpacity>
         ))}
       </View>
       <View style={[styles.warningBox, { backgroundColor: "rgba(255,107,53,0.08)", borderColor: "rgba(255,107,53,0.3)" }]}>
-        <Ionicons name="warning-outline" size={16} color="#FF6B35" />
+        <AlertTriangle size={16} color="#FF6B35" />
         <Text style={[styles.warningText, { color: "#FF6B35" }]}>
           Gambling can be addictive. Only bet what you can afford to lose. 18+ only.
         </Text>
@@ -229,11 +178,9 @@ function Step5({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
   return (
     <View style={[styles.stepContainer, { alignItems: "center" }]}>
       <View style={[styles.successCircle, { backgroundColor: "rgba(0,255,148,0.12)", borderColor: "#00FF94" }]}>
-        <Feather name="check" size={40} color="#00FF94" />
+        <Check size={40} color="#00FF94" />
       </View>
-      <Text style={[styles.welcomeTitle, { color: colors.text, textAlign: "center" }]}>
-        You're all set! 🎯
-      </Text>
+      <Text style={[styles.welcomeTitle, { color: colors.text, textAlign: "center" }]}>You're all set! 🎯</Text>
       <Text style={[styles.welcomeSub, { color: colors.textSecondary, textAlign: "center" }]}>
         Your personalised dashboard is ready. AI predictions refresh every 6 hours with live data from 50+ leagues worldwide.
       </Text>
@@ -251,8 +198,6 @@ function Step5({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
 export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -266,92 +211,56 @@ export default function OnboardingScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const progress = useRef(new Animated.Value(0)).current;
-
   const TOTAL_STEPS = 5;
 
   function goToStep(next: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStep(next);
     flatListRef.current?.scrollToIndex({ index: next, animated: true });
-    Animated.timing(progress, {
-      toValue: (next + 1) / TOTAL_STEPS,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    Animated.timing(progress, { toValue: (next + 1) / TOTAL_STEPS, duration: 300, useNativeDriver: false }).start();
   }
 
   function toggleSport(key: string) {
-    setSelectedSports((prev) =>
-      prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key],
-    );
+    setSelectedSports((prev) => prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key]);
   }
 
   async function finish() {
-    try {
-      // Save the daily loss limit to the user's bankroll settings
-      await updateBankroll(0);
-    } catch {}
+    try { await updateBankroll(0); } catch {}
     router.replace("/(tabs)");
   }
 
-  const canContinue =
-    step === 0 ||
-    (step === 1 && selectedSports.length > 0) ||
-    (step === 2 && bettorType !== "") ||
-    step === 3 ||
-    step === 4;
-
-  const stepData = [
-    { key: "welcome" },
-    { key: "sports" },
-    { key: "type" },
-    { key: "limit" },
-    { key: "ready" },
-  ];
-
-  const progressWidth = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  });
+  const canContinue = step === 0 || (step === 1 && selectedSports.length > 0) || (step === 2 && bettorType !== "") || step === 3 || step === 4;
+  const stepData = [{ key: "welcome" }, { key: "sports" }, { key: "type" }, { key: "limit" }, { key: "ready" }];
+  const progressWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Progress bar */}
       <View style={[styles.progressBar, { paddingTop: insets.top + 16 }]}>
         <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-          <Animated.View
-            style={[styles.progressFill, { width: progressWidth, backgroundColor: colors.cyan }]}
-          />
+          <Animated.View style={[styles.progressFill, { width: progressWidth, backgroundColor: colors.cyan }]} />
         </View>
         {step > 0 && (
-          <TouchableOpacity
-            style={styles.skipBtn}
-            onPress={() => router.replace("/(tabs)")}
-          >
+          <TouchableOpacity style={styles.skipBtn} onPress={() => router.replace("/(tabs)")}>
             <Text style={[styles.skipText, { color: colors.textMuted }]}>Skip</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Slides */}
       <FlatList
         ref={flatListRef}
         data={stepData}
         keyExtractor={(item) => item.key}
-        renderItem={({ index }) => {
-          const stepColors = colors;
-          return (
-            <View style={{ width: SCREEN_WIDTH }}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {index === 0 && <Step1 colors={stepColors} />}
-                {index === 1 && <Step2 selected={selectedSports} onToggle={toggleSport} colors={stepColors} />}
-                {index === 2 && <Step3 selected={bettorType} onSelect={setBettorType} colors={stepColors} />}
-                {index === 3 && <Step4 limit={dailyLimit} onChangeLimit={setDailyLimit} colors={stepColors} />}
-                {index === 4 && <Step5 colors={stepColors} />}
-              </ScrollView>
-            </View>
-          );
-        }}
+        renderItem={({ index }) => (
+          <View style={{ width: SCREEN_WIDTH }}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {index === 0 && <Step1 colors={colors} />}
+              {index === 1 && <Step2 selected={selectedSports} onToggle={toggleSport} colors={colors} />}
+              {index === 2 && <Step3 selected={bettorType} onSelect={setBettorType} colors={colors} />}
+              {index === 3 && <Step4 limit={dailyLimit} onChangeLimit={setDailyLimit} colors={colors} />}
+              {index === 4 && <Step5 colors={colors} />}
+            </ScrollView>
+          </View>
+        )}
         horizontal
         pagingEnabled
         scrollEnabled={false}
@@ -359,59 +268,27 @@ export default function OnboardingScreen() {
         style={{ flex: 1 }}
       />
 
-      {/* Navigation */}
-      <View
-        style={[
-          styles.navRow,
-          {
-            paddingBottom: insets.bottom + 20,
-            borderTopColor: colors.border,
-            backgroundColor: colors.background,
-          },
-        ]}
-      >
-        {/* Dots */}
+      <View style={[styles.navRow, { paddingBottom: insets.bottom + 20, borderTopColor: colors.border, backgroundColor: colors.background }]}>
         <View style={styles.dots}>
           {stepData.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: i === step ? colors.cyan : colors.border,
-                  width: i === step ? 20 : 7,
-                },
-              ]}
-            />
+            <View key={i} style={[styles.dot, { backgroundColor: i === step ? colors.cyan : colors.border, width: i === step ? 20 : 7 }]} />
           ))}
         </View>
-
         <TouchableOpacity
-          style={[
-            styles.nextBtn,
-            {
-              backgroundColor: canContinue ? colors.cyan : colors.border,
-              opacity: canContinue ? 1 : 0.5,
-            },
-          ]}
-          onPress={() => {
-            if (step < TOTAL_STEPS - 1) goToStep(step + 1);
-            else finish();
-          }}
+          style={[styles.nextBtn, { backgroundColor: canContinue ? colors.cyan : colors.border, opacity: canContinue ? 1 : 0.5 }]}
+          onPress={() => { if (step < TOTAL_STEPS - 1) goToStep(step + 1); else finish(); }}
           disabled={!canContinue}
           activeOpacity={0.85}
         >
           <Text style={[styles.nextBtnText, { color: canContinue ? colors.background : colors.textMuted }]}>
             {step === TOTAL_STEPS - 1 ? "Go to Dashboard" : "Continue"}
           </Text>
-          <Feather name="arrow-right" size={16} color={canContinue ? colors.background : colors.textMuted} />
+          <ArrowRight size={16} color={canContinue ? colors.background : colors.textMuted} />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -419,113 +296,43 @@ const styles = StyleSheet.create({
   progressTrack: { flex: 1, height: 3, borderRadius: 2, overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 2 },
   skipBtn: { paddingHorizontal: 4, paddingVertical: 4 },
-  skipText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-
+  skipText: { fontSize: 13 },
   stepContainer: { width: SCREEN_WIDTH, padding: 24, paddingTop: 20, gap: 0 },
-
-  logoCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    marginBottom: 24,
-    alignSelf: "center",
-  },
+  logoCircle: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 24, alignSelf: "center" },
   logoEmoji: { fontSize: 44 },
-  welcomeTitle: { fontSize: 30, fontFamily: "Inter_700Bold", lineHeight: 38, marginBottom: 12 },
-  welcomeSub: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 23, marginBottom: 28 },
+  welcomeTitle: { fontSize: 30, lineHeight: 38, marginBottom: 12 },
+  welcomeSub: { fontSize: 15, lineHeight: 23, marginBottom: 28 },
   featureList: { gap: 10 },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
   featureEmoji: { fontSize: 20 },
-  featureText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-
-  stepTitle: { fontSize: 24, fontFamily: "Inter_700Bold", marginBottom: 8, letterSpacing: -0.3 },
-  stepSub: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 21, marginBottom: 24 },
-
+  featureText: { fontSize: 14 },
+  stepTitle: { fontSize: 24, marginBottom: 8, letterSpacing: -0.3 },
+  stepSub: { fontSize: 14, lineHeight: 21, marginBottom: 24 },
   sportsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  sportCard: {
-    width: (SCREEN_WIDTH - 60) / 2,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 8,
-    position: "relative",
-  },
+  sportCard: { width: (SCREEN_WIDTH - 60) / 2, padding: 16, borderRadius: 14, borderWidth: 1, alignItems: "center", gap: 8, position: "relative" },
   sportEmoji: { fontSize: 32 },
-  sportLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "center" },
-  checkBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
+  sportLabel: { fontSize: 13, textAlign: "center" },
+  checkBadge: { position: "absolute", top: 8, right: 8, width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   bettorList: { gap: 12 },
-  bettorCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 14,
-  },
-  bettorLabel: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  bettorSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  bettorCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 14, borderWidth: 1, gap: 14 },
+  bettorLabel: { fontSize: 15 },
+  bettorSub: { fontSize: 12, marginTop: 2 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
-
-  limitDisplay: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 24,
-    gap: 6,
-  },
-  limitLabel: { fontSize: 12, fontFamily: "Inter_500Medium", letterSpacing: 0.5 },
-  limitValue: { fontSize: 44, fontFamily: "Inter_700Bold" },
+  limitDisplay: { borderRadius: 16, borderWidth: 1, padding: 24, alignItems: "center", marginBottom: 24, gap: 6 },
+  limitLabel: { fontSize: 12, letterSpacing: 0.5 },
+  limitValue: { fontSize: 44 },
   presetGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
   presetBtn: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 10, borderWidth: 1 },
-  presetText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  presetText: { fontSize: 14 },
   warningBox: { flexDirection: "row", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: "flex-start" },
-  warningText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
-
-  successCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    marginBottom: 24,
-  },
+  warningText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  successCircle: { width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 24 },
   readyList: { gap: 10, marginTop: 20, width: "100%" },
-  readyItem: { fontSize: 14, fontFamily: "Inter_400Regular" },
-
-  navRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    borderTopWidth: 1,
-  },
+  readyItem: { fontSize: 14 },
+  navRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 16, borderTopWidth: 1 },
   dots: { flexDirection: "row", alignItems: "center", gap: 6 },
   dot: { height: 7, borderRadius: 3.5 },
-  nextBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  nextBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14 },
+  nextBtnText: { fontSize: 15 },
 });

@@ -1,8 +1,8 @@
 import { BlurView } from "expo-blur";
+import { BarChart2, CircleDot, Crosshair, DollarSign, LayoutGrid, Zap } from "lucide-react-native";
 import { Tabs } from "expo-router";
-import { Feather, Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { SymbolView } from "expo-symbols";
 
 import { useColors } from "@/hooks/useColors";
@@ -26,16 +26,9 @@ export default function TabLayout() {
         },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView
-              intensity={80}
-              tint="dark"
-              style={StyleSheet.absoluteFill}
-            />
+            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
           ) : null,
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontFamily: "Inter_500Medium",
-        },
+        tabBarLabelStyle: { fontSize: 10 },
       }}
     >
       <Tabs.Screen
@@ -46,7 +39,7 @@ export default function TabLayout() {
             isIOS ? (
               <SymbolView name="chart.bar.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="grid" size={20} color={color} />
+              <LayoutGrid size={20} color={color} />
             ),
         }}
       />
@@ -58,7 +51,7 @@ export default function TabLayout() {
             isIOS ? (
               <SymbolView name="target" tintColor={color} size={22} />
             ) : (
-              <Feather name="crosshair" size={20} color={color} />
+              <Crosshair size={20} color={color} />
             ),
         }}
       />
@@ -70,7 +63,7 @@ export default function TabLayout() {
             isIOS ? (
               <SymbolView name="soccerball" tintColor={color} size={22} />
             ) : (
-              <Ionicons name="football-outline" size={22} color={color} />
+              <CircleDot size={22} color={color} />
             ),
         }}
       />
@@ -82,7 +75,7 @@ export default function TabLayout() {
             isIOS ? (
               <SymbolView name="bolt.circle.fill" tintColor={color} size={22} />
             ) : (
-              <Ionicons name="flash" size={20} color={color} />
+              <Zap size={20} color={color} />
             ),
         }}
       />
@@ -94,7 +87,7 @@ export default function TabLayout() {
             isIOS ? (
               <SymbolView name="dollarsign.circle.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="dollar-sign" size={20} color={color} />
+              <DollarSign size={20} color={color} />
             ),
         }}
       />
@@ -106,7 +99,7 @@ export default function TabLayout() {
             isIOS ? (
               <SymbolView name="trophy.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="bar-chart-2" size={20} color={color} />
+              <BarChart2 size={20} color={color} />
             ),
         }}
       />

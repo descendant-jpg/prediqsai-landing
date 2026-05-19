@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -60,7 +60,6 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Logo */}
         <View style={styles.logoSection}>
           <View style={[styles.logoCircle, { borderColor: colors.cyan }]}>
             <Text style={[styles.logoText, { color: colors.cyan }]}>PQ</Text>
@@ -71,13 +70,12 @@ export default function RegisterScreen() {
           </Text>
         </View>
 
-        {/* Card */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Create account</Text>
 
           {error ? (
             <View style={[styles.errorBanner, { backgroundColor: "rgba(255,77,77,0.1)", borderColor: "rgba(255,77,77,0.3)" }]}>
-              <Feather name="alert-circle" size={14} color={colors.red} />
+              <AlertCircle size={14} color={colors.red} />
               <Text style={[styles.errorText, { color: colors.red }]}>{error}</Text>
             </View>
           ) : null}
@@ -133,11 +131,11 @@ export default function RegisterScreen() {
                 style={styles.eyeBtn}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={18}
-                  color={colors.textMuted}
-                />
+                {showPassword ? (
+                  <EyeOff size={18} color={colors.textMuted} />
+                ) : (
+                  <Eye size={18} color={colors.textMuted} />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -155,7 +153,6 @@ export default function RegisterScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Perks */}
           <View style={styles.perks}>
             {[
               "Free AI predictions every day",
@@ -163,7 +160,7 @@ export default function RegisterScreen() {
               "Kelly Criterion calculator",
             ].map((perk) => (
               <View key={perk} style={styles.perkRow}>
-                <Feather name="check-circle" size={14} color={colors.green} />
+                <CheckCircle size={14} color={colors.green} />
                 <Text style={[styles.perkText, { color: colors.textSecondary }]}>{perk}</Text>
               </View>
             ))}
@@ -200,55 +197,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,229,255,0.08)",
   },
-  logoText: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  appName: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  tagline: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  logoText: { fontSize: 22, letterSpacing: -0.5 },
+  appName: { fontSize: 28, letterSpacing: -0.5 },
+  tagline: { fontSize: 14 },
   card: { borderRadius: 20, padding: 24, borderWidth: 1, gap: 16 },
-  cardTitle: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  errorText: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
+  cardTitle: { fontSize: 20, letterSpacing: -0.3 },
+  errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
+  errorText: { fontSize: 13, flex: 1 },
   field: { gap: 6 },
-  label: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-  },
-  passwordRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingLeft: 14,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-  },
+  label: { fontSize: 13 },
+  input: { borderRadius: 12, borderWidth: 1, padding: 14, fontSize: 15 },
+  passwordRow: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, paddingLeft: 14 },
+  passwordInput: { flex: 1, paddingVertical: 14, fontSize: 15 },
   eyeBtn: { paddingHorizontal: 14, paddingVertical: 14 },
-  submitBtn: {
-    borderRadius: 14,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  submitText: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  submitBtn: { borderRadius: 14, padding: 16, alignItems: "center", marginTop: 4 },
+  submitText: { fontSize: 16 },
   perks: { gap: 8 },
   perkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  perkText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  perkText: { fontSize: 13 },
   footer: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
-  footerText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  footerLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center" },
+  footerText: { fontSize: 14 },
+  footerLink: { fontSize: 14 },
+  disclaimer: { fontSize: 11, textAlign: "center" },
 });

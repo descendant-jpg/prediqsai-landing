@@ -1,14 +1,7 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { ChevronRight, Settings } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
@@ -46,43 +39,26 @@ export default function PerformanceScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: topPadding + 16, paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 20 },
-      ]}
+      contentContainerStyle={[styles.content, { paddingTop: topPadding + 16, paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 20 }]}
       showsVerticalScrollIndicator={false}
     >
       <Text style={[styles.title, { color: colors.text }]}>Performance</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Last 30 days · All sports
-      </Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Last 30 days · All sports</Text>
 
-      {/* Overall Stats */}
       <View style={styles.statsGrid}>
         {OVERALL_STATS.map((stat, i) => (
-          <View
-            key={i}
-            style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-          >
+          <View key={i} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{stat.label}</Text>
-            <Text
-              style={[
-                styles.statValue,
-                { color: stat.positive === true ? colors.green : stat.positive === false ? colors.red : colors.text },
-              ]}
-            >
+            <Text style={[styles.statValue, { color: stat.positive === true ? colors.green : stat.positive === false ? colors.red : colors.text }]}>
               {stat.value}
             </Text>
             {stat.change && (
-              <Text style={[styles.statChange, { color: stat.positive ? colors.green : colors.red }]}>
-                {stat.change}
-              </Text>
+              <Text style={[styles.statChange, { color: stat.positive ? colors.green : colors.red }]}>{stat.change}</Text>
             )}
           </View>
         ))}
       </View>
 
-      {/* Sport breakdown */}
       <Text style={[styles.sectionTitle, { color: colors.text }]}>By Sport</Text>
       <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         {SPORT_STATS.map((s, i) => (
@@ -102,7 +78,6 @@ export default function PerformanceScreen() {
         ))}
       </View>
 
-      {/* Confidence accuracy */}
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Confidence Accuracy</Text>
       <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
@@ -112,18 +87,10 @@ export default function PerformanceScreen() {
           <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>ROI</Text>
         </View>
         {CONFIDENCE_ACCURACY.map((row, i) => (
-          <View
-            key={i}
-            style={[
-              styles.tableRow,
-              i < CONFIDENCE_ACCURACY.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 },
-            ]}
-          >
+          <View key={i} style={[styles.tableRow, i < CONFIDENCE_ACCURACY.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
             <Text style={[styles.tableCell, { color: colors.text, flex: 2 }]}>{row.tier}</Text>
             <Text style={[styles.tableCell, { color: colors.textSecondary }]}>{row.picks}</Text>
-            <Text style={[styles.tableCell, { color: row.accuracy >= 70 ? colors.green : colors.text }]}>
-              {row.accuracy}%
-            </Text>
+            <Text style={[styles.tableCell, { color: row.accuracy >= 70 ? colors.green : colors.text }]}>{row.accuracy}%</Text>
             <Text style={[styles.tableCell, { color: row.roi > 0 ? colors.green : colors.red }]}>
               {row.roi > 0 ? "+" : ""}{row.roi}%
             </Text>
@@ -131,7 +98,6 @@ export default function PerformanceScreen() {
         ))}
       </View>
 
-      {/* ROI trend (simplified bar chart) */}
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Monthly ROI Trend</Text>
       <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <View style={styles.chart}>
@@ -145,16 +111,7 @@ export default function PerformanceScreen() {
                   {isPositive ? "+" : ""}{val}%
                 </Text>
                 <View style={styles.chartBarWrap}>
-                  <View
-                    style={[
-                      styles.chartBarFill,
-                      {
-                        height,
-                        backgroundColor: isPositive ? colors.cyan : colors.red,
-                        borderRadius: 4,
-                      },
-                    ]}
-                  />
+                  <View style={[styles.chartBarFill, { height, backgroundColor: isPositive ? colors.cyan : colors.red, borderRadius: 4 }]} />
                 </View>
                 <Text style={[styles.chartMonth, { color: colors.textMuted }]}>{months[i]}</Text>
               </View>
@@ -167,18 +124,15 @@ export default function PerformanceScreen() {
         Performance stats are based on AI model predictions. Past performance does not guarantee future results.
       </Text>
 
-      {/* Admin: setup guide link */}
       {user?.id === 1 && (
         <TouchableOpacity
           style={[styles.adminLink, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
           onPress={() => router.push("/setup")}
           activeOpacity={0.8}
         >
-          <Feather name="settings" size={16} color={colors.textMuted} />
-          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>
-            API Keys Setup Guide
-          </Text>
-          <Feather name="chevron-right" size={14} color={colors.textMuted} />
+          <Settings size={16} color={colors.textMuted} />
+          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>API Keys Setup Guide</Text>
+          <ChevronRight size={14} color={colors.textMuted} />
         </TouchableOpacity>
       )}
     </ScrollView>
@@ -188,48 +142,34 @@ export default function PerformanceScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, gap: 16 },
-  title: { fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: -8 },
+  title: { fontSize: 24, letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, marginTop: -8 },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  statCard: {
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    width: "47.5%",
-    gap: 4,
-  },
-  statLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  statValue: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
-  statChange: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  sectionTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginTop: 4 },
+  statCard: { borderRadius: 14, padding: 14, borderWidth: 1, width: "47.5%", gap: 4 },
+  statLabel: { fontSize: 12 },
+  statValue: { fontSize: 22, letterSpacing: -0.5 },
+  statChange: { fontSize: 12 },
+  sectionTitle: { fontSize: 16, marginTop: 4 },
   sectionCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
   sportRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 10 },
   sportDot: { width: 10, height: 10, borderRadius: 5 },
-  sportName: { fontSize: 14, fontFamily: "Inter_600SemiBold", width: 56 },
+  sportName: { fontSize: 14, width: 56 },
   sportBarWrap: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
   sportBarBg: { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
   sportBarFill: { height: "100%", borderRadius: 3 },
-  sportWinRate: { fontSize: 12, fontFamily: "Inter_700Bold", width: 34, textAlign: "right" },
-  sportRoi: { fontSize: 12, fontFamily: "Inter_700Bold", width: 44, textAlign: "right" },
+  sportWinRate: { fontSize: 12, width: 34, textAlign: "right" },
+  sportRoi: { fontSize: 12, width: 44, textAlign: "right" },
   tableHeader: { flexDirection: "row", padding: 12, borderBottomWidth: 1, gap: 8 },
-  tableHeaderText: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5, flex: 1, textTransform: "uppercase" },
+  tableHeaderText: { fontSize: 11, letterSpacing: 0.5, flex: 1, textTransform: "uppercase" },
   tableRow: { flexDirection: "row", padding: 14, alignItems: "center", gap: 8 },
-  tableCell: { fontSize: 13, fontFamily: "Inter_500Medium", flex: 1 },
+  tableCell: { fontSize: 13, flex: 1 },
   chart: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-around", paddingHorizontal: 10, paddingVertical: 14, gap: 6 },
   chartBar: { alignItems: "center", gap: 4, flex: 1 },
-  chartVal: { fontSize: 9, fontFamily: "Inter_700Bold", textAlign: "center" },
+  chartVal: { fontSize: 9, textAlign: "center" },
   chartBarWrap: { height: 80, justifyContent: "flex-end" },
   chartBarFill: { width: "100%", minWidth: 20 },
-  chartMonth: { fontSize: 10, fontFamily: "Inter_500Medium" },
-  disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 16 },
-  adminLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  adminLinkText: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
+  chartMonth: { fontSize: 10 },
+  disclaimer: { fontSize: 11, textAlign: "center", lineHeight: 16 },
+  adminLink: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, marginTop: 4 },
+  adminLinkText: { flex: 1, fontSize: 14 },
 });

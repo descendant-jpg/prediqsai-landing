@@ -1,4 +1,4 @@
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { ArrowLeft, ArrowRight, Check, ChevronRight, FileText, Lightbulb, Star, Upload, X, Zap } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -78,7 +78,7 @@ function StarRating({ value, max = 10 }: { value: number; max?: number }) {
   return (
     <View style={{ flexDirection: "row", gap: 3 }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Ionicons key={i} name={i < stars ? "star" : "star-outline"} size={16} color="#FFD700" />
+        <Star key={i} size={16} color="#FFD700" fill={i < stars ? "#FFD700" : "transparent"} />
       ))}
     </View>
   );
@@ -111,7 +111,7 @@ function ScanningScreen({ colors }: { colors: ReturnType<typeof import("@/hooks/
     <View style={[styles.centeredFull, { backgroundColor: colors.background }]}>
       <View style={[styles.scanBox, { borderColor: colors.cyan, backgroundColor: colors.card }]}>
         <View style={[styles.scanContent, { borderColor: colors.border }]}>
-          <Ionicons name="document-text-outline" size={60} color={colors.textMuted} />
+          <FileText size={60} color={colors.textMuted} />
           <Animated.View
             style={[
               styles.scanLine,
@@ -206,7 +206,7 @@ export default function SlipAnalysisScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.navHeader, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="x" size={22} color={colors.textSecondary} />
+            <X size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.navTitle, { color: colors.text }]}>Analyze My Slip</Text>
           <View style={{ width: 22 }} />
@@ -249,7 +249,7 @@ export default function SlipAnalysisScreen() {
                   <Text style={[styles.optionTitle, { color: colors.text }]}>Take Photo</Text>
                   <Text style={[styles.optionSub, { color: colors.textSecondary }]}>Photograph your slip with the camera</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={colors.textMuted} />
+                <ChevronRight size={18} color={colors.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -264,7 +264,7 @@ export default function SlipAnalysisScreen() {
                   <Text style={[styles.optionTitle, { color: colors.text }]}>Upload from Gallery</Text>
                   <Text style={[styles.optionSub, { color: colors.textSecondary }]}>Choose a screenshot or saved image</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={colors.textMuted} />
+                <ChevronRight size={18} color={colors.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -279,7 +279,7 @@ export default function SlipAnalysisScreen() {
                   <Text style={[styles.optionTitle, { color: colors.text }]}>Enter Manually</Text>
                   <Text style={[styles.optionSub, { color: colors.textSecondary }]}>Type your selections in free text</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={colors.textMuted} />
+                <ChevronRight size={18} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
           )}
@@ -298,7 +298,7 @@ export default function SlipAnalysisScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.navHeader, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => setScreen("upload")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="arrow-left" size={22} color={colors.textSecondary} />
+            <ArrowLeft size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.navTitle, { color: colors.text }]}>Enter Slip Manually</Text>
           <View style={{ width: 22 }} />
@@ -351,11 +351,11 @@ export default function SlipAnalysisScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.navHeader, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => setScreen("upload")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="arrow-left" size={22} color={colors.textSecondary} />
+            <ArrowLeft size={22} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.navTitle, { color: colors.text }]}>Slip Analysis</Text>
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Feather name="x" size={22} color={colors.textSecondary} />
+            <X size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -464,7 +464,7 @@ export default function SlipAnalysisScreen() {
                 <Text style={[styles.legReasoning, { color: colors.textSecondary }]}>"{sel.reasoning}"</Text>
                 {sel.alternative && (
                   <View style={[styles.altRow, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: colors.border }]}>
-                    <Feather name="arrow-right" size={12} color={colors.cyan} />
+                    <ArrowRight size={12} color={colors.cyan} />
                     <Text style={[styles.altText, { color: colors.cyan }]}>Better: {sel.alternative}</Text>
                   </View>
                 )}
@@ -491,7 +491,7 @@ export default function SlipAnalysisScreen() {
               <View style={[styles.recsCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
                 {analysis.recommendations.map((rec, i) => (
                   <View key={i} style={styles.recRow}>
-                    <Ionicons name="bulb-outline" size={14} color={colors.cyan} />
+                    <Lightbulb size={14} color={colors.cyan} />
                     <Text style={[styles.recText, { color: colors.textSecondary }]}>{rec}</Text>
                   </View>
                 ))}
@@ -521,14 +521,14 @@ export default function SlipAnalysisScreen() {
               style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.border, flex: 1 }]}
               onPress={() => setScreen("upload")}
             >
-              <Feather name="upload" size={16} color={colors.textSecondary} />
+              <Upload size={16} color={colors.textSecondary} />
               <Text style={[styles.actionBtnText, { color: colors.textSecondary }]}>New Slip</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionBtn, { backgroundColor: colors.cyan, flex: 1 }]}
               onPress={() => router.back()}
             >
-              <Feather name="check" size={16} color={colors.background} />
+              <Check size={16} color={colors.background} />
               <Text style={[styles.actionBtnText, { color: colors.background }]}>Done</Text>
             </TouchableOpacity>
           </View>
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: 1,
   },
-  navTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
+  navTitle: { fontSize: 17 },
 
   heroBox: {
     borderRadius: 16,
@@ -564,8 +564,8 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 20,
   },
-  heroTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  heroSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 21 },
+  heroTitle: { fontSize: 20 },
+  heroSub: { fontSize: 14, textAlign: "center", lineHeight: 21 },
 
   lockedBox: {
     borderRadius: 16,
@@ -574,10 +574,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  lockedTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  lockedSub: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
+  lockedTitle: { fontSize: 20 },
+  lockedSub: { fontSize: 14, textAlign: "center" },
   upgradeBtn: { paddingHorizontal: 28, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
-  upgradeBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  upgradeBtnText: { fontSize: 15 },
 
   optionsList: { gap: 12 },
   optionCard: {
@@ -595,16 +595,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  optionTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  optionSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  optionTitle: { fontSize: 15 },
+  optionSub: { fontSize: 12, marginTop: 2 },
 
-  errorText: { fontSize: 13, fontFamily: "Inter_500Medium", textAlign: "center", marginTop: 8 },
+  errorText: { fontSize: 13, textAlign: "center", marginTop: 8 },
 
-  manualInstructions: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  manualInstructions: { fontSize: 13, lineHeight: 20 },
   manualInputBox: { borderRadius: 12, borderWidth: 1, padding: 14 },
-  manualInput: { fontSize: 14, fontFamily: "Inter_400Regular", minHeight: 140 },
+  manualInput: { fontSize: 14, minHeight: 140 },
   analyzeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 16, borderRadius: 14 },
-  analyzeBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  analyzeBtnText: { fontSize: 16 },
 
   scanBox: { width: 200, height: 260, borderRadius: 16, borderWidth: 2, padding: 12, overflow: "hidden" },
   scanContent: {
@@ -617,8 +617,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   scanLine: { position: "absolute", left: 0, right: 0, height: 2, opacity: 0.8 },
-  scanningTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
-  scanningSubtitle: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
+  scanningTitle: { fontSize: 18 },
+  scanningSubtitle: { fontSize: 14, textAlign: "center" },
 
   verdictCard: {
     flexDirection: "row",
@@ -629,55 +629,55 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   verdictIcon: { fontSize: 28 },
-  verdictLabel: { fontSize: 11, fontFamily: "Inter_500Medium", letterSpacing: 0.5 },
-  verdictText: { fontSize: 22, fontFamily: "Inter_700Bold" },
-  verdictReason: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 4, lineHeight: 19 },
+  verdictLabel: { fontSize: 11, letterSpacing: 0.5 },
+  verdictText: { fontSize: 22 },
+  verdictReason: { fontSize: 13, marginTop: 4, lineHeight: 19 },
 
   overviewCard: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 12 },
   overviewRow: { flexDirection: "row", justifyContent: "space-between" },
   overviewItem: { flex: 1, alignItems: "center", gap: 4 },
-  overviewLabel: { fontSize: 10, fontFamily: "Inter_500Medium", letterSpacing: 0.5 },
-  overviewValue: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  overviewLabel: { fontSize: 10, letterSpacing: 0.5 },
+  overviewValue: { fontSize: 15 },
   divider: { height: 1 },
 
-  sectionTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  sectionTitle: { fontSize: 16 },
 
   legCard: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 8 },
   legHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  legNumber: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
+  legNumber: { fontSize: 11, letterSpacing: 0.5 },
   legStatusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  legStatusText: { fontSize: 10, fontFamily: "Inter_700Bold" },
-  legMatch: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  legStatusText: { fontSize: 10 },
+  legMatch: { fontSize: 14 },
   legDetailRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  legMarket: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  legSelection: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  legOdds: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  legMarket: { fontSize: 12 },
+  legSelection: { fontSize: 12 },
+  legOdds: { fontSize: 13 },
   legConfRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   legConfBar: { flex: 1, height: 4, borderRadius: 2, overflow: "hidden" },
   legConfFill: { height: "100%", borderRadius: 2 },
-  legConfText: { fontSize: 11, fontFamily: "Inter_500Medium", width: 60 },
-  legReasoning: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic", lineHeight: 18 },
+  legConfText: { fontSize: 11, width: 60 },
+  legReasoning: { fontSize: 12, fontStyle: "italic", lineHeight: 18 },
   altRow: { flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: 8, borderWidth: 1 },
-  altText: { fontSize: 12, fontFamily: "Inter_500Medium", flex: 1 },
+  altText: { fontSize: 12, flex: 1 },
 
   hiLoRow: { flexDirection: "row", gap: 12 },
   hiLoCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 14, gap: 4 },
-  hiLoLabel: { fontSize: 11, fontFamily: "Inter_700Bold" },
-  hiLoValue: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  hiLoLabel: { fontSize: 11 },
+  hiLoValue: { fontSize: 12 },
 
   recsCard: { borderRadius: 14, borderWidth: 1, padding: 14, gap: 10 },
   recRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  recText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  recText: { flex: 1, fontSize: 13, lineHeight: 19 },
 
   saferCard: { borderRadius: 14, borderWidth: 1, padding: 16, gap: 6 },
-  saferTitle: { fontSize: 13, fontFamily: "Inter_700Bold" },
-  saferText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19 },
+  saferTitle: { fontSize: 13 },
+  saferText: { fontSize: 13, lineHeight: 19 },
 
   kellyCard: { borderRadius: 14, borderWidth: 1, padding: 16, alignItems: "center", gap: 4 },
-  kellyLabel: { fontSize: 11, fontFamily: "Inter_500Medium", letterSpacing: 0.5 },
-  kellyValue: { fontSize: 28, fontFamily: "Inter_700Bold" },
+  kellyLabel: { fontSize: 11, letterSpacing: 0.5 },
+  kellyValue: { fontSize: 28 },
 
   actionsRow: { flexDirection: "row", gap: 12 },
   actionBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 14, borderWidth: 1 },
-  actionBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  actionBtnText: { fontSize: 14 },
 });
