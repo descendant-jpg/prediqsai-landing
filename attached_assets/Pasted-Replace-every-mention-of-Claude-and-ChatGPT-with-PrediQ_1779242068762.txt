@@ -1,0 +1,100 @@
+Replace every mention of "Claude" 
+and "ChatGPT" with "PrediQs AI"
+throughout the entire app.
+
+Search and replace these exactly:
+
+"Claude" → "PrediQs AI"
+"claude" → "PrediQs AI"
+"ChatGPT" → "PrediQs AI"
+"chatgpt" → "PrediQs AI"
+"GPT-4" → "PrediQs AI"
+"Anthropic" → "PrediQs AI"
+"AI Assistant" → "PrediQs AI"
+"AI Chat" → "PrediQs AI"
+"Ask AI" → "Ask PrediQs AI"
+
+UPDATE THESE SPECIFIC PLACES:
+
+1. Chat screen header:
+   "PrediQs AI"
+   Subtitle: "Sports Intelligence Engine"
+
+2. Chat input placeholder:
+   "Ask PrediQs AI anything..."
+
+3. Empty chat state:
+   "Ask PrediQs AI about today's 
+   picks, match analysis, arbitrage 
+   or betting strategy"
+
+4. AI response label:
+   "PrediQs AI"
+
+5. Loading messages:
+   "PrediQs AI is analyzing..."
+   "PrediQs AI is scanning odds..."
+   "PrediQs AI is reading your slip..."
+
+6. Bet slip analyzer:
+   "PrediQs AI is reading your slip..."
+   "PrediQs AI Analysis Complete"
+
+7. Prediction cards:
+   "PrediQs AI: Arsenal Win"
+   "PrediQs AI confidence: 74%"
+
+8. Notifications:
+   "PrediQs AI Alert: Value detected"
+   "PrediQs AI: Avoid this match"
+
+9. Welcome message in chat:
+"⚡ PrediQs AI Sports Intelligence
+
+I analyze real-time data from:
+📊 Odds across 40+ bookmakers
+⚡ Live match statistics
+📰 Latest injury & team news
+🌤️ Stadium weather conditions
+💰 Sharp money movements
+🧠 5 AI prediction models
+
+Ask me anything:
+* Today's best picks
+* Full match analysis
+* Arbitrage opportunities
+* Bankroll strategy
+* Smart accumulator building
+* Bet slip deep analysis"
+
+10. Bottom nav tab:
+    "PrediQs AI"
+
+11. Dashboard button:
+    "Ask PrediQs AI"
+
+12. Onboarding:
+    "Meet PrediQs AI"
+    "Your personal sports 
+    intelligence engine"
+
+13. Error message:
+    "PrediQs AI is temporarily 
+    unavailable. Try again shortly."
+
+14. Settings:
+    "PrediQs AI Settings"
+    "PrediQs AI messages per day: 50"
+
+IMPORTANT - KEEP IN BACKEND CODE:
+Keep these unchanged in code only:
+- ANTHROPIC_API_KEY
+- claude-sonnet-4-20250514
+- All Anthropic API calls
+
+Only change what USERS SEE.
+Never show "Claude" or 
+"Anthropic" to users anywhere.
+
+Make all changes now and show
+me the updated chat screen.

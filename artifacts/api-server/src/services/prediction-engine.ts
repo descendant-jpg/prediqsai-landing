@@ -73,6 +73,16 @@ interface GameInfo {
   awayApiSportsId?: number;
   apiLeagueId?: number;
   apiSeason?: number;
+  // MLB
+  homePitcher?: string;
+  awayPitcher?: string;
+  homePitcherERA?: string;
+  awayPitcherERA?: string;
+  homePitcherHand?: string;
+  awayPitcherHand?: string;
+  // Game context
+  gameTimeLocal?: string;
+  isDayGame?: boolean;
 }
 
 interface TeamFormData {
@@ -276,6 +286,14 @@ interface ESPNEvent {
       team: { id?: string; displayName: string };
       records?: Array<{ name: string; summary: string }>;
     }>;
+    probables?: Array<{
+      homeAway: "home" | "away";
+      athlete?: {
+        displayName?: string;
+        throws?: { abbreviation?: string };
+        statistics?: Array<{ name: string; displayValue: string }>;
+      };
+    }>;
     odds?: Array<{ details: string; overUnder?: number }>;
     status?: { type: { completed: boolean } };
     venue?: { fullName: string; address?: { city: string } };
@@ -299,6 +317,18 @@ async function fetchESPNGames(espnSport: string, espnLeague: string): Promise<Ga
         ?? home?.records?.[0]?.summary;
       const awayRecord = away?.records?.find((r) => r.name === "overall")?.summary
         ?? away?.records?.[0]?.summary;
+
+      // MLB probable pitchers
+      const probables = comp?.probables ?? [];
+      const homeProbable = probables.find((p) => p.homeAway === "home");
+      const awayProbable = probables.find((p) => p.homeAway === "away");
+      const getStat = (p: typeof homeProbable, name: string) =>
+        p?.athlete?.statistics?.find((s) => s.name === name)?.displayValue;
+
+      // Day/night detection from UTC date (rough: before 19:00 UTC = day game)
+      const gameHour = new Date(e.date).getUTCHours();
+      const isDayGame = gameHour < 19;
+
       return {
         homeTeam: home?.team.displayName ?? "Home",
         awayTeam: away?.team.displayName ?? "Away",
@@ -309,6 +339,13 @@ async function fetchESPNGames(espnSport: string, espnLeague: string): Promise<Ga
         awayTeamId: away?.team.id,
         homeTeamRecord: homeRecord,
         awayTeamRecord: awayRecord,
+        homePitcher: homeProbable?.athlete?.displayName,
+        awayPitcher: awayProbable?.athlete?.displayName,
+        homePitcherERA: getStat(homeProbable, "ERA") ?? getStat(homeProbable, "era"),
+        awayPitcherERA: getStat(awayProbable, "ERA") ?? getStat(awayProbable, "era"),
+        homePitcherHand: homeProbable?.athlete?.throws?.abbreviation,
+        awayPitcherHand: awayProbable?.athlete?.throws?.abbreviation,
+        isDayGame,
       };
     });
   } catch {
@@ -1002,6 +1039,22 @@ function formatEnrichedGameBlock(
     lines.push(g.fixturePrediction);
   }
 
+  // ── MLB Pitching Matchup ──────────────────────────────────────────────────
+  if (g.homePitcher || g.awayPitcher) {
+    lines.push(`\n── PITCHING MATCHUP ──`);
+    if (g.homePitcher) {
+      const hand = g.homePitcherHand ? ` (${g.homePitcherHand}HP)` : "";
+      const era = g.homePitcherERA ? ` ERA ${g.homePitcherERA}` : "";
+      lines.push(`${g.homeTeam} SP: ${g.homePitcher}${hand}${era}`);
+    }
+    if (g.awayPitcher) {
+      const hand = g.awayPitcherHand ? ` (${g.awayPitcherHand}HP)` : "";
+      const era = g.awayPitcherERA ? ` ERA ${g.awayPitcherERA}` : "";
+      lines.push(`${g.awayTeam} SP: ${g.awayPitcher}${hand}${era}`);
+    }
+    if (g.isDayGame !== undefined) lines.push(`Game time: ${g.isDayGame ? "Day game" : "Night game"}`);
+  }
+
   // ── Match Official ────────────────────────────────────────────────────────
   if (g.referee) lines.push(`\nReferee: ${g.referee}`);
 
@@ -1020,6 +1073,185 @@ function formatEnrichedGameBlock(
   }
 
   return lines.join("\n");
+}
+
+// ─── Sport-specific analysis frameworks for Claude ────────────────────────────
+
+function getSportAnalysisPrompt(sport: string): string {
+  switch (sport) {
+    case "nfl":
+      return `NFL SPECIFIC ANALYSIS FRAMEWORK — apply every factor below:
+
+1. QUARTERBACK EFFICIENCY
+   - Evaluate passer rating, completion %, sacks taken, pressure rate
+   - Backup QB starting = adjust win probability −15 to −25%
+   - Mobile QB in cold/wind conditions retains more value than pocket passer
+
+2. OFFENSIVE LINE & RUN GAME
+   - Strong O-line vs weak pass rush = QB protection and run game control
+   - Teams that win the line of scrimmage cover ATS at 62%+ rate
+   - Sack rate differential is a key predictor
+
+3. WEATHER IMPACT (CRITICAL for outdoor games)
+   - Wind >15mph: reduces passing efficiency, lean under on totals
+   - Wind >25mph: heavily favours run-heavy teams, totals drop 4-6 pts
+   - Rain/snow: increases fumbles and turnovers, unpredictable outcomes
+   - Temperature <20°F: reduces field goal %, run-heavy script
+
+4. HOME FIELD VALUE
+   - Apply standard 3-point home field advantage in spread analysis
+   - Divisional games: reduce to ~2 pts (familiarity reduces home edge)
+   - Indoor stadiums (domes): eliminate weather factor entirely
+
+5. DIVISIONAL GAME VARIANCE
+   - Division opponents play 2x/year, know each other's tendencies
+   - Historical ATS margins in divisional games are ~2pts tighter
+   - Reduce confidence by 5% vs non-division predictions
+
+6. SCHEDULE FATIGUE
+   - Thursday game = only 72h rest if played Sunday → flag back-to-back
+   - Monday Night = team's 17th hour from normal rhythm (travel disruption)
+   - Teams on short week cover ATS only 43% of the time
+
+7. VEGAS SHARP MOVEMENT
+   - Line moved 2+ points OPPOSITE to public betting % → sharp money signal
+   - Weight this signal heavily — sharps win long term at 54%+ rate
+   - Reverse line movement = one of strongest value indicators
+
+8. OFFICIAL INJURY REPORT
+   - OUT: treat as full replacement value lost
+   - DOUBTFUL (75% out): adjust probability proportionally
+   - QUESTIONABLE (50/50): note uncertainty, flag risk
+   - Skill positions ranked by impact: QB > LT > WR1 > RB1 > TE`;
+
+    case "nba":
+      return `NBA SPECIFIC ANALYSIS FRAMEWORK — apply every factor below:
+
+1. REST ADVANTAGE (highest predictive value)
+   - Back-to-back (0-1 days rest): team covers ATS only 42% — flag this every time
+   - 3+ days rest advantage vs B2B opponent: covers at 58%+ — lean strongly
+   - "Second night of B2B" on the road = among worst NBA bets statistically
+
+2. HOME/AWAY PACE MATCHUP
+   - Fast-paced team (top-10 pace) vs opponent on B2B = massive scoring edge
+   - Slow teams (bottom-10 pace) neutralise pace advantage — lean under
+   - Pace differential >5 possessions/game is significant
+
+3. STAR PLAYER EFFICIENCY
+   - Top-3 player out or doubtful = −12 to −20% win probability shift
+   - Note recent PER trend (rising = hot hand, falling = regression warning)
+   - Single-player teams (one star) are more volatile — higher riskLevel
+
+4. ATS TREND & MOTIVATION
+   - Teams covering ATS in 7+ of last 10 often regress — fade them
+   - Teams NOT covering in 7+ of last 10 often bounce back — lean their side
+   - Meaningless games (playoff-locked or eliminated) = motivation flag
+
+5. REFEREE FOUL TENDENCY
+   - High-foul referees: benefit foul-prone stars (more FT trips)
+   - Stars averaging 8+ FTA per game in high-foul games = over value
+   - Note if referee data is available in lineup section
+
+6. ROSTER DISRUPTION
+   - First 5 games after trade deadline acquisition = chemistry adjustment
+   - Coach fired in last 30 days = team motivation spike (honeymoon effect, +5%)
+   - Closing out season with playoff positioning locked = rest risk
+
+7. TOTAL PREDICTION FORMULA
+   - Sum team pace scores, apply B2B penalty (−6 pts per B2B team), adjust for defence rank
+   - High total (225+) with two fast teams = lean over
+   - Low total (<215) with two slow/defensive teams = lean under`;
+
+    case "mlb":
+      return `MLB SPECIFIC ANALYSIS FRAMEWORK — apply every factor below:
+
+1. STARTING PITCHER (60% of prediction weight — most critical factor)
+   - ERA ≤3.50 = ace level. ERA ≤2.80 = elite. ERA >5.00 = vulnerability
+   - WHIP ≤1.10 = elite control. WHIP >1.40 = command issues
+   - Pitcher's hand (L/R) vs opposing lineup handedness creates platoon edge
+   - Short rest (<4 days) = performance drop of ~0.5 ERA equivalent
+   - Pitcher vs THIS specific team's batting average if available
+
+2. BULLPEN HEALTH
+   - 4+ game series = cumulative bullpen fatigue, especially for closers
+   - If team used 3+ relievers yesterday, bullpen is compromised
+   - Bullpen ERA differential often separates close games in late innings
+
+3. BATTING SPLITS (Handedness Matchup)
+   - LHP vs predominantly RHH lineup = traditional L/R advantage
+   - RHP vs heavy LHH lineup = platoon disadvantage for batting team
+   - Note lineup construction against pitcher's hand
+
+4. PARK FACTORS (adjust totals accordingly)
+   - Coors Field (Colorado): add 1.5-2 runs to totals, lean over, reduce pitcher value
+   - Petco Park (San Diego), Oracle Park (SF): pitcher-friendly, lean under
+   - Wrigley Field (Chicago), Great American (Cincinnati): hitter-friendly, lean over
+   - Tropicana Field, Rogers Centre (dome): neutralises wind/weather
+
+5. DAY vs NIGHT SPLITS
+   - Afternoon sun at certain parks (especially Wrigley) affects batter visibility
+   - Day games on getaway day = fatigue factor for overnight travellers
+   - Teams with day-game record significantly different from night = note it
+
+6. TEMPERATURE IMPACT ON BALL TRAVEL
+   - <50°F: ball travels ~3-5 feet shorter per degree drop → lean under, -0.5 runs
+   - >80°F: ball carries, hitter-friendly → lean over
+   - Humidity also affects carry (low humidity at altitude = ball carries)
+
+7. UMPIRE HOME PLATE TENDENCIES
+   - Tight zone umpires: benefit strikeout pitchers, lean under
+   - Wide zone umpires: hitters see better pitches, lean over, more action
+   - If umpire name available in game data, weight accordingly`;
+
+    case "soccer":
+      return `SOCCER SPECIFIC ANALYSIS FRAMEWORK — apply every factor below:
+
+1. EXPECTED GOALS (xG) — PRIMARY METRIC
+   - Use fixture prediction model xG data (home/away expected goals)
+   - xG >2.0 for team = strong attacking threat
+   - xG differential >0.8 = meaningful advantage, weight prediction accordingly
+   - Season xG (from team stats) predicts future performance better than actual goals
+
+2. BTTS (BOTH TEAMS TO SCORE) FREQUENCY
+   - Use BTTS rate from season statistics section
+   - If both teams have BTTS in 55%+ of games → BTTS is a value market
+   - Clean sheet rate × failed-to-score rate determines BTTS probability
+
+3. SET PIECE THREAT
+   - Teams with tall target men + high corner frequency win 15-20% of goals from set pieces
+   - Aerial duels won in defence are important for clean sheet probability
+   - Note if lineup shows traditional set-piece threats (central defenders in attack)
+
+4. HOME/AWAY GOAL DIFFERENCE SPLIT
+   - Check if team's GD is heavily skewed home vs away
+   - Some clubs are "fortress at home" but weak away — split matters enormously
+   - Away team with positive away GD is undervalued by public
+
+5. EUROPEAN COMPETITION FATIGUE
+   - Champions League / Europa League midweek + weekend = 3 games in 7 days
+   - Flag rotation risk: managers often rest key players in less critical fixtures
+   - Teams in UCL knockouts may prioritise European legs → underperform league
+
+6. TACTICAL MATCHUP
+   - Use formation data from lineups section
+   - High press (4-3-3, 4-2-3-1 aggressive) vs low block = transition danger
+   - Possession teams struggle vs compact defensive blocks
+   - Note if manager is known for tactical flexibility vs rigid system
+
+7. VAR / REFEREE CARD TENDENCY
+   - High card rate referees disrupt tactical fouling teams
+   - VAR involvement increases in high-profile matches — late goal reversals
+   - Yellow card accumulation suspensions create squad depth issues`;
+
+    default:
+      return `GENERAL ANALYSIS FRAMEWORK:
+1. FORM: Recent results, momentum, scoring trend
+2. H2H: Historical matchup record and patterns
+3. SQUAD: Key injuries, suspensions, fatigue
+4. CONTEXT: Motivation, schedule position, rivalry
+5. MARKET: Odds movement, sharp money signals
+6. EXTERNAL: Weather, travel, home advantage`;
+  }
 }
 
 function ordinal(n: number): string {
@@ -1277,33 +1509,12 @@ ${hasGames ? `TODAY'S GAMES WITH FULL CONTEXT:\n\n${gameBlocks.join("\n\n---\n\n
 
 ${newsLines.length > 0 ? `LATEST INJURIES & NEWS:\n${newsLines.join("\n")}` : ""}
 
-ANALYSIS FRAMEWORK — apply ALL of these for each game:
+${getSportAnalysisPrompt(sport)}
 
-1. FORM ANALYSIS
-   - Last 5 home games for home team / last 5 away games for away team
-   - Current winning/losing streak; goals scored & conceded trend; clean sheet frequency
-
-2. HEAD TO HEAD
-   - Last 5 meetings; who wins this fixture historically; average goals; home advantage in H2H
-
-3. SQUAD STATUS
-   - Key player injuries (attackers most critical); suspensions; fatigue; rotation risk
-
-4. MOTIVATION & CONTEXT
-   - What does each team need? Relegation pressure, title race, cup final rotation risk,
-     derby/rivalry factor, revenge factor
-
-5. TACTICAL ANALYSIS
-   - Playing styles; does matchup favour attack or defence; set piece threat; pace of play
-
-6. EXTERNAL FACTORS
-   - Weather impact; travel fatigue; altitude; crowd factor; referee tendencies
-
-7. MARKET INTELLIGENCE
-   - Opening vs current odds; sharp money movement; public % on each side; value calculation
-
-8. STATISTICAL MODELS
-   - xG trend; shots on target; possession impact; BTTS frequency; corner stats
+UNIVERSAL CROSS-SPORT FACTORS (also apply):
+- HEAD-TO-HEAD: Historical matchup record, who wins this fixture, average scoring
+- MOTIVATION: What does each team need from this game? Season position, rivalry, must-win
+- SHARP MONEY: Reverse line movement and bookmaker disagreement (from market intelligence section)
 
 CONFIDENCE CALIBRATION:
 90-100%: ALL factors align perfectly + strong historical evidence + market confirms (VERY rare, 1-2% of picks)
