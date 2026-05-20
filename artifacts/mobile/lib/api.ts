@@ -144,12 +144,22 @@ export interface ApiPrediction {
   avoidReason: string | null;
   reasoning: string;
   keyFactors: string[];
+  againstFactors: string[];
   weatherImpact: string | null;
   sharpMoneySignal: string | null;
   aiProbability: number;
   bookmakerProbability: number;
   valueDetected: boolean;
   tierRequired: string;
+}
+
+export interface AccuracyStats {
+  accuracy: number | null;
+  wins: number;
+  losses: number;
+  total: number;
+  bySport: Record<string, { accuracy: number; wins: number; total: number }>;
+  month: string;
 }
 
 export interface ApiBankrollEntry {
@@ -363,6 +373,7 @@ export const api = {
         method: "POST",
         token,
       }),
+    accuracy: (token: string) => apiFetch<AccuracyStats>("/predictions/accuracy", { token }),
   },
   soccer: {
     fixtures: (token: string) =>

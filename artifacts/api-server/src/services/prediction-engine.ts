@@ -1729,6 +1729,17 @@ UNIVERSAL CROSS-SPORT FACTORS (also apply):
 - MOTIVATION: What does each team need from this game? Season position, rivalry, must-win
 - SHARP MONEY: Reverse line movement and bookmaker disagreement (from market intelligence section)
 
+MODEL AGREEMENT RULE (mandatory — apply before setting any confidence):
+High confidence (≥75%) requires ALL THREE signal types to agree on the same outcome:
+  1. STATISTICAL: form (last 5+ games), H2H record, standings position, xG differential
+  2. MARKET: odds direction, sharp money signal, line movement vs. public
+  3. CONTEXTUAL: injuries, motivation, weather, schedule/fatigue, tactics
+
+  All 3 agree → max confidence 90% (with other strong evidence)
+  Only 2 agree → max confidence 74% (60-74% tier)
+  Only 1 agrees → max confidence 64%, or set avoidMatch=true
+  0 agree (conflicting signals) → avoidMatch=true, confidence stays in record only
+
 ${calibrationSection ? calibrationSection + "\n\n" : ""}CONFIDENCE CALIBRATION (apply AFTER any historical adjustments above):
 90-100%: ALL factors align perfectly + strong historical evidence + market confirms (VERY rare, 1-2% of picks)
 75-89%: Most factors clearly align + historical pattern + some bookmaker value (strongest daily picks)

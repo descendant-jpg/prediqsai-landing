@@ -20,6 +20,7 @@ export interface Prediction {
   avoidReason: string | null;
   reasoning: string;
   keyFactors: string[];
+  againstFactors: string[];
   weatherImpact: string | null;
   sharpMoneySignal: string | null;
   aiProbability: number;

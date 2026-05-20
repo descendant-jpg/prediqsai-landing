@@ -141,6 +141,20 @@ export function PredictionCard({ prediction }: Props) {
               </View>
             </TierGate>
 
+            {prediction.againstFactors?.length > 0 && (
+              <TierGate requiredTier={prediction.tierRequired === "free" ? "free" : "pro"}>
+                <View style={[styles.section, { backgroundColor: "rgba(255,165,0,0.05)", borderColor: "rgba(255,165,0,0.3)" }]}>
+                  <Text style={[styles.sectionTitle, { color: "#FFA500" }]}>Risks &amp; Against Factors</Text>
+                  {prediction.againstFactors.map((f, i) => (
+                    <View key={i} style={styles.factorRow}>
+                      <Feather name="alert-triangle" size={14} color="#FFA500" />
+                      <Text style={[styles.factorText, { color: colors.text }]}>{f}</Text>
+                    </View>
+                  ))}
+                </View>
+              </TierGate>
+            )}
+
             <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <Text style={[styles.sectionTitle, { color: colors.cyan }]}>Probability Comparison</Text>
               <View style={styles.probRow}>

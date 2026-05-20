@@ -17,7 +17,7 @@ import { PredictionCard } from "@/components/PredictionCard";
 import { SPORT_FILTERS } from "@/constants/mockData";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { api, type ApiPrediction } from "@/lib/api";
+import { api, type AccuracyStats, type ApiPrediction } from "@/lib/api";
 import type { Prediction } from "@/types";
 
 type FilterKey = (typeof SPORT_FILTERS)[number]["key"];
@@ -39,6 +39,7 @@ function mapPrediction(p: ApiPrediction): Prediction {
     avoidReason: p.avoidReason,
     reasoning: p.reasoning,
     keyFactors: p.keyFactors,
+    againstFactors: p.againstFactors ?? [],
     weatherImpact: p.weatherImpact,
     sharpMoneySignal: p.sharpMoneySignal,
     aiProbability: p.aiProbability,
@@ -69,14 +70,19 @@ export default function PicksScreen() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [accuracy, setAccuracy] = useState<AccuracyStats | null>(null);
 
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
     setError("");
     try {
-      const data = await api.predictions.list(token);
+      const [data, acc] = await Promise.all([
+        api.predictions.list(token),
+        api.predictions.accuracy(token).catch(() => null),
+      ]);
       setPredictions(data.map(mapPrediction));
+      setAccuracy(acc);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load picks");
     } finally {
@@ -90,6 +96,10 @@ export default function PicksScreen() {
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding = insets.top + topPaddingWeb;
 
+  const monthLabel = accuracy?.month
+    ? new Date(accuracy.month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "";
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPadding + 16, borderBottomColor: colors.border }]}>
@@ -102,6 +112,27 @@ export default function PicksScreen() {
         <Text style={[styles.count, { color: colors.textSecondary }]}>
           {isLoading ? "Loading…" : `${filtered.length} picks`}
         </Text>
+        {accuracy?.accuracy != null && (
+          <View style={[styles.accuracyBanner, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: colors.cyan }]}>
+            <View style={styles.accuracyLeft}>
+              <Text style={[styles.accuracyLabel, { color: colors.textSecondary }]}>
+                AI Accuracy · {monthLabel}
+              </Text>
+              <Text style={[styles.accuracyValue, { color: colors.cyan }]}>
+                {accuracy.accuracy}%
+              </Text>
+            </View>
+            <View style={styles.accuracyRight}>
+              <Text style={[styles.accuracyRecord, { color: colors.green }]}>
+                {accuracy.wins}W
+              </Text>
+              <Text style={[styles.accuracyDash, { color: colors.textMuted }]}> – </Text>
+              <Text style={[styles.accuracyRecord, { color: colors.red }]}>
+                {accuracy.losses}L
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={[styles.filterContainer, { borderBottomColor: colors.border }]}>
@@ -165,6 +196,22 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title: { fontSize: 24, letterSpacing: -0.5 },
   count: { fontSize: 13, marginTop: 2 },
+  accuracyBanner: {
+    marginTop: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  accuracyLeft: { gap: 1 },
+  accuracyLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  accuracyValue: { fontSize: 22, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  accuracyRight: { flexDirection: "row", alignItems: "center" },
+  accuracyRecord: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  accuracyDash: { fontSize: 14 },
   filterContainer: { borderBottomWidth: 1 },
   filters: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },

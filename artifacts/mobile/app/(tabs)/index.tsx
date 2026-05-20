@@ -43,6 +43,7 @@ function mapPrediction(p: ApiPrediction): Prediction {
     avoidReason: p.avoidReason,
     reasoning: p.reasoning,
     keyFactors: p.keyFactors,
+    againstFactors: p.againstFactors ?? [],
     weatherImpact: p.weatherImpact,
     sharpMoneySignal: p.sharpMoneySignal,
     aiProbability: p.aiProbability,
