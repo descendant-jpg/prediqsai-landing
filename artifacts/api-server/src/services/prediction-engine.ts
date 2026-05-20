@@ -1519,9 +1519,8 @@ UNIVERSAL CROSS-SPORT FACTORS (also apply):
 CONFIDENCE CALIBRATION:
 90-100%: ALL factors align perfectly + strong historical evidence + market confirms (VERY rare, 1-2% of picks)
 75-89%: Most factors clearly align + historical pattern + some bookmaker value (strongest daily picks)
-60-74%: More factors favour this outcome, some uncertainty — flag concerns
-50-59%: Slight edge only — recommend smaller stake (marginal picks)
-Below 50%: Do NOT publish — mark avoidMatch = true
+60-74%: Enough factors favour this outcome to publish — flag any concerns in againstFactors
+Below 60%: Mark avoidMatch = true, avoidReason = "Insufficient confidence — too much uncertainty across key factors", tierRequired = "elite". Do NOT set this as a normal pick. Still include the prediction field for record-keeping but the pick must NOT be shown to users.
 
 TRAP GAME DETECTION — flag isTrapGame = true when:
 - Heavy favourite playing minor away game before major cup match
@@ -1597,37 +1596,47 @@ tierRequired rules:
     "Generated predictions",
   );
 
-  return parsed.map((p) => ({
-    sport,
-    league,
-    homeTeam: p.homeTeam,
-    awayTeam: p.awayTeam,
-    matchDate: p.matchDate ? new Date(p.matchDate) : new Date(Date.now() + 3 * 60 * 60 * 1000),
-    prediction: p.prediction,
-    confidence: p.confidence,
-    riskLevel: p.riskLevel,
-    volatilityScore: p.volatilityScore ?? 5.0,
-    isTrapGame: p.isTrapGame ?? false,
-    avoidMatch: p.avoidMatch ?? false,
-    avoidReason: p.avoidReason ?? p.trapGameReason ?? null,
-    reasoning: p.reasoning,
-    keyFactors: [
-      ...(p.keyFactors ?? []),
-      ...(p.againstFactors?.map((f) => `⚠️ ${f}`) ?? []),
-    ],
-    weatherImpact: p.weatherImpact ?? null,
-    sharpMoneySignal: [
-      p.sharpMoneySignal,
-      p.injuryImpact ? `Injury: ${p.injuryImpact}` : null,
-      p.bestMarket ? `Best market: ${p.bestMarket}` : null,
-      p.recommendedStake ? `Stake: ${p.recommendedStake}` : null,
-    ].filter(Boolean).join(" | ") || null,
-    aiProbability: p.aiProbability,
-    bookmakerProbability: p.bookmakerProbability ?? 50,
-    valueDetected: p.valueDetected ?? false,
-    tierRequired: p.tierRequired ?? "free",
-    expiresAt,
-  }));
+  return parsed.map((p) => {
+    // Hard server-side confidence filter — below 60% always becomes an avoid pick
+    const lowConfidence = p.confidence < 60;
+    const avoidMatch = p.avoidMatch ?? lowConfidence;
+    const avoidReason = avoidMatch
+      ? (p.avoidReason ?? p.trapGameReason ?? (lowConfidence ? "Insufficient confidence — too much uncertainty across key factors" : null))
+      : null;
+    const tierRequired = avoidMatch ? "elite" : (p.tierRequired ?? "free");
+
+    return {
+      sport,
+      league,
+      homeTeam: p.homeTeam,
+      awayTeam: p.awayTeam,
+      matchDate: p.matchDate ? new Date(p.matchDate) : new Date(Date.now() + 3 * 60 * 60 * 1000),
+      prediction: p.prediction,
+      confidence: p.confidence,
+      riskLevel: p.riskLevel,
+      volatilityScore: p.volatilityScore ?? 5.0,
+      isTrapGame: p.isTrapGame ?? false,
+      avoidMatch,
+      avoidReason,
+      reasoning: p.reasoning,
+      keyFactors: [
+        ...(p.keyFactors ?? []),
+        ...(p.againstFactors?.map((f) => `⚠️ ${f}`) ?? []),
+      ],
+      weatherImpact: p.weatherImpact ?? null,
+      sharpMoneySignal: [
+        p.sharpMoneySignal,
+        p.injuryImpact ? `Injury: ${p.injuryImpact}` : null,
+        p.bestMarket ? `Best market: ${p.bestMarket}` : null,
+        p.recommendedStake ? `Stake: ${p.recommendedStake}` : null,
+      ].filter(Boolean).join(" | ") || null,
+      aiProbability: p.aiProbability,
+      bookmakerProbability: p.bookmakerProbability ?? 50,
+      valueDetected: p.valueDetected ?? false,
+      tierRequired,
+      expiresAt,
+    };
+  });
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
