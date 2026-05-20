@@ -71,6 +71,8 @@ interface GameInfo {
   fixtureId?: string;
   homeApiSportsId?: number;
   awayApiSportsId?: number;
+  apiLeagueId?: number;
+  apiSeason?: number;
 }
 
 interface TeamFormData {
@@ -96,6 +98,18 @@ interface TeamStandingData {
   goalsAgainst: number;
 }
 
+interface TeamStatsData {
+  formation: string;
+  avgGoalsScoredHome: string;
+  avgGoalsScoredAway: string;
+  avgGoalsConcededHome: string;
+  avgGoalsConcededAway: string;
+  cleanSheets: number;
+  failedToScore: number;
+  bttsRate: string;
+  winRate: string;
+}
+
 interface EnrichedGame extends GameInfo {
   homeForm: TeamFormData | null;
   awayForm: TeamFormData | null;
@@ -103,10 +117,18 @@ interface EnrichedGame extends GameInfo {
   awayStanding: TeamStandingData | null;
   homeInjuries: string[];
   awayInjuries: string[];
+  homeSuspensions: string[];
+  awaySuspensions: string[];
+  homeTeamStats: TeamStatsData | null;
+  awayTeamStats: TeamStatsData | null;
+  fixturePrediction: string | null;
+  homeNews: string[];
+  awayNews: string[];
   h2hSummary: string | null;
   homeLineup: string | null;
   awayLineup: string | null;
   referee: string | null;
+  weatherForecast: string | null;
 }
 
 interface GameOdds {
@@ -117,6 +139,12 @@ interface GameOdds {
   drawOdds?: number;
   spread?: string;
   total?: number;
+  homeOddsRange?: string;
+  awayOddsRange?: string;
+  drawOddsRange?: string;
+  lineMovementSignal?: string;
+  bookmakerCount?: number;
+  bookmakerBreakdown?: string;
 }
 
 interface RawPrediction {
@@ -185,17 +213,27 @@ async function fetchApiSportsGames(
     const data = (await resp.json()) as { response?: unknown[] };
     const items = data.response ?? [];
 
+    const now2 = new Date();
+    const season = now2.getMonth() >= 6 ? now2.getFullYear() : now2.getFullYear() - 1;
+
     if (sport === "soccer") {
       return (items as Record<string, unknown>[]).slice(0, 6).map((g) => {
         const fixture = g.fixture as Record<string, unknown> | undefined;
         const teams = g.teams as Record<string, unknown> | undefined;
         const venue = (fixture?.venue as Record<string, unknown> | undefined) ?? {};
+        const homeT = teams?.home as Record<string, unknown> | undefined;
+        const awayT = teams?.away as Record<string, unknown> | undefined;
         return {
-          homeTeam: ((teams?.home as Record<string, unknown> | undefined)?.name as string) ?? "Home",
-          awayTeam: ((teams?.away as Record<string, unknown> | undefined)?.name as string) ?? "Away",
+          homeTeam: (homeT?.name as string) ?? "Home",
+          awayTeam: (awayT?.name as string) ?? "Away",
           date: (fixture?.date as string) ?? today,
           venue: venue.name as string | undefined,
           city: venue.city as string | undefined,
+          fixtureId: fixture?.id != null ? String(fixture.id) : undefined,
+          homeApiSportsId: homeT?.id as number | undefined,
+          awayApiSportsId: awayT?.id as number | undefined,
+          apiLeagueId: leagueId,
+          apiSeason: season,
         };
       });
     }
@@ -203,20 +241,22 @@ async function fetchApiSportsGames(
     return (items as Record<string, unknown>[]).slice(0, 6).map((g) => {
       const teams = g.teams as Record<string, unknown> | undefined;
       const game = g.game as Record<string, unknown> | undefined;
-      const home =
-        ((teams?.home as Record<string, unknown> | undefined)?.name as string) ??
-        "Home";
-      const away =
-        ((teams?.away as Record<string, unknown> | undefined)?.name as string) ??
-        "Away";
+      const homeT = teams?.home as Record<string, unknown> | undefined;
+      const awayT = teams?.away as Record<string, unknown> | undefined;
       const venue = (g.venue ?? (game?.venue)) as Record<string, unknown> | undefined;
       const arena = g.arena as Record<string, unknown> | undefined;
+      const fixtureId = g.id != null ? String(g.id) : undefined;
       return {
-        homeTeam: home,
-        awayTeam: away,
+        homeTeam: (homeT?.name as string) ?? "Home",
+        awayTeam: (awayT?.name as string) ?? "Away",
         date: (g.date as string) ?? today,
         venue: (arena?.name ?? venue?.name) as string | undefined,
         city: (arena?.city ?? venue?.city) as string | undefined,
+        fixtureId,
+        homeApiSportsId: homeT?.id as number | undefined,
+        awayApiSportsId: awayT?.id as number | undefined,
+        apiLeagueId: leagueId,
+        apiSeason: season,
       };
     });
   } catch (err) {
@@ -547,6 +587,188 @@ async function fetchApiSportsFixtureDetails(
   }
 }
 
+// ─── API-Sports: season team statistics (xG proxy, possession, clean sheets) ──
+
+async function fetchApiSportsTeamStats(
+  base: string,
+  teamId: number,
+  leagueId: number,
+  season: number,
+): Promise<TeamStatsData | null> {
+  if (!API_SPORTS_KEY) return null;
+  try {
+    const url = `${base}/teams/statistics?team=${teamId}&league=${leagueId}&season=${season}`;
+    const resp = await fetch(url, {
+      headers: { "x-apisports-key": API_SPORTS_KEY },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { response?: Record<string, unknown> };
+    const r = data.response;
+    if (!r) return null;
+
+    const goals = r.goals as Record<string, unknown> | undefined;
+    const forG = goals?.for as Record<string, unknown> | undefined;
+    const againstG = goals?.against as Record<string, unknown> | undefined;
+    const forAvg = forG?.average as Record<string, unknown> | undefined;
+    const againstAvg = againstG?.average as Record<string, unknown> | undefined;
+    const cleanSheet = r.clean_sheet as Record<string, unknown> | undefined;
+    const failedToScore = r.failed_to_score as Record<string, unknown> | undefined;
+    const fixtures = r.fixtures as Record<string, unknown> | undefined;
+    const played = fixtures?.played as Record<string, unknown> | undefined;
+    const wins = fixtures?.wins as Record<string, unknown> | undefined;
+    const lineups = (r.lineups as Record<string, unknown>[]) ?? [];
+    const topFormation = [...lineups].sort(
+      (a, b) => ((b.played as number) ?? 0) - ((a.played as number) ?? 0),
+    )[0];
+
+    const totalPlayed = ((played?.home as number) ?? 0) + ((played?.away as number) ?? 0);
+    const totalWins = ((wins?.home as number) ?? 0) + ((wins?.away as number) ?? 0);
+    const totalClean = ((cleanSheet?.home as number) ?? 0) + ((cleanSheet?.away as number) ?? 0);
+    const totalFailed = ((failedToScore?.home as number) ?? 0) + ((failedToScore?.away as number) ?? 0);
+    const btts = totalPlayed > 0
+      ? `${Math.round(((totalPlayed - totalClean) / totalPlayed) * 100)}%`
+      : "N/A";
+    const winRate = totalPlayed > 0
+      ? `${Math.round((totalWins / totalPlayed) * 100)}%`
+      : "N/A";
+
+    return {
+      formation: (topFormation?.formation as string) ?? "Unknown",
+      avgGoalsScoredHome: (forAvg?.home as string) ?? "N/A",
+      avgGoalsScoredAway: (forAvg?.away as string) ?? "N/A",
+      avgGoalsConcededHome: (againstAvg?.home as string) ?? "N/A",
+      avgGoalsConcededAway: (againstAvg?.away as string) ?? "N/A",
+      cleanSheets: totalClean,
+      failedToScore: totalFailed,
+      bttsRate: btts,
+      winRate,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── API-Sports: fixture predictions (expected goals, model comparison) ────────
+
+async function fetchApiSportsFixturePredictions(
+  base: string,
+  fixtureId: string,
+): Promise<string | null> {
+  if (!API_SPORTS_KEY || !fixtureId) return null;
+  try {
+    const url = `${base}/predictions?fixture=${fixtureId}`;
+    const resp = await fetch(url, {
+      headers: { "x-apisports-key": API_SPORTS_KEY },
+      signal: AbortSignal.timeout(7000),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { response?: Record<string, unknown>[] };
+    const r = data.response?.[0];
+    if (!r) return null;
+
+    const preds = r.predictions as Record<string, unknown> | undefined;
+    const comparison = r.comparison as Record<string, unknown> | undefined;
+    const winner = preds?.winner as Record<string, unknown> | undefined;
+    const goals = preds?.goals as Record<string, unknown> | undefined;
+    const advice = preds?.advice as string | undefined;
+
+    const parts: string[] = [];
+    if (winner?.name) parts.push(`Predicted winner: ${winner.name as string}`);
+    if (goals?.home !== undefined || goals?.away !== undefined) {
+      parts.push(`Expected goals: Home ${goals?.home ?? "?"} / Away ${goals?.away ?? "?"}`);
+    }
+    if (advice) parts.push(`Model advice: ${advice}`);
+
+    if (comparison) {
+      const cp = (k: string) => {
+        const v = comparison[k] as Record<string, unknown> | undefined;
+        return v ? `${v.home ?? "?"}/${v.away ?? "?"}` : null;
+      };
+      const cParts = [
+        cp("form") ? `Form ${cp("form")}` : null,
+        cp("att") ? `Attack ${cp("att")}` : null,
+        cp("def") ? `Defense ${cp("def")}` : null,
+        cp("poisson_distribution") ? `Poisson ${cp("poisson_distribution")}` : null,
+        cp("h2h") ? `H2H ${cp("h2h")}` : null,
+      ].filter(Boolean);
+      if (cParts.length > 0) parts.push(`Comparison (Home%/Away%): ${cParts.join(" | ")}`);
+    }
+
+    return parts.length > 0 ? parts.join("\n") : null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── API-Sports: fixture injuries + suspensions ────────────────────────────────
+
+async function fetchApiSportsFixtureInjuries(
+  base: string,
+  fixtureId: string,
+  homeId?: number,
+  awayId?: number,
+): Promise<{ homeInj: string[]; awayInj: string[]; homeSusp: string[]; awaySusp: string[] }> {
+  const empty = { homeInj: [], awayInj: [], homeSusp: [], awaySusp: [] };
+  if (!API_SPORTS_KEY || !fixtureId) return empty;
+  try {
+    const resp = await fetch(`${base}/injuries?fixture=${fixtureId}`, {
+      headers: { "x-apisports-key": API_SPORTS_KEY },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return empty;
+    const data = (await resp.json()) as { response?: Record<string, unknown>[] };
+    const items = data.response ?? [];
+
+    const homeInj: string[] = [];
+    const awayInj: string[] = [];
+    const homeSusp: string[] = [];
+    const awaySusp: string[] = [];
+
+    for (const item of items) {
+      const player = item.player as Record<string, unknown> | undefined;
+      const team = item.team as Record<string, unknown> | undefined;
+      const name = (player?.name as string) ?? "";
+      const type = ((player?.type as string) ?? "").toLowerCase();
+      const teamId = team?.id as number | undefined;
+      const isSusp = type.includes("suspend") || type.includes("yellow card");
+      const isHome = homeId !== undefined ? teamId === homeId : true;
+      const isAway = awayId !== undefined ? teamId === awayId : !isHome;
+
+      if (isSusp) {
+        if (isHome) homeSusp.push(name);
+        else if (isAway) awaySusp.push(name);
+      } else if (type.includes("injur") || type.includes("absent") || type.includes("missing")) {
+        if (isHome) homeInj.push(name);
+        else if (isAway) awayInj.push(name);
+      }
+    }
+
+    return { homeInj, awayInj, homeSusp, awaySusp };
+  } catch {
+    return empty;
+  }
+}
+
+// ─── NewsAPI: targeted 48h team news ─────────────────────────────────────────
+
+async function fetchNewsApiTeamTargeted(teamName: string): Promise<string[]> {
+  if (!NEWS_API_KEY) return [];
+  try {
+    const from = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const q = `"${teamName}" (injury OR injured OR suspended OR lineup OR "press conference" OR "manager" OR "coach")`;
+    const url =
+      `https://newsapi.org/v2/everything` +
+      `?q=${encodeURIComponent(q)}&language=en&sortBy=publishedAt&from=${encodeURIComponent(from)}&pageSize=5&apiKey=${NEWS_API_KEY}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as { articles?: Array<{ title: string }> };
+    return (data.articles ?? []).slice(0, 4).map((a) => a.title);
+  } catch {
+    return [];
+  }
+}
+
 // ─── Enrich games with all additional context ─────────────────────────────────
 
 async function enrichGames(
@@ -555,7 +777,7 @@ async function enrichGames(
   espnLeague: string,
   apiSportsBase: string,
 ): Promise<EnrichedGame[]> {
-  const [standings, injuries] = await Promise.all([
+  const [standings, espnInjuries] = await Promise.all([
     fetchESPNStandings(espnSport, espnLeague),
     fetchESPNInjuries(espnSport, espnLeague),
   ]);
@@ -563,35 +785,90 @@ async function enrichGames(
   const normalized = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   const findStanding = (teamName: string): TeamStandingData | null =>
-    standings.find((s) => normalized(s.teamName).includes(normalized(teamName)) ||
-      normalized(teamName).includes(normalized(s.teamName))) ?? null;
+    standings.find(
+      (s) =>
+        normalized(s.teamName).includes(normalized(teamName)) ||
+        normalized(teamName).includes(normalized(s.teamName)),
+    ) ?? null;
 
-  const findInjuries = (teamName: string): string[] => {
-    for (const [key, val] of injuries.entries()) {
-      if (normalized(key).includes(normalized(teamName)) ||
-          normalized(teamName).includes(normalized(key))) return val;
+  const findEspnInjuries = (teamName: string): string[] => {
+    for (const [key, val] of espnInjuries.entries()) {
+      if (
+        normalized(key).includes(normalized(teamName)) ||
+        normalized(teamName).includes(normalized(key))
+      )
+        return val;
     }
     return [];
   };
 
   const enriched = await Promise.all(
     games.slice(0, 6).map(async (game): Promise<EnrichedGame> => {
-      const [homeForm, awayForm, fixtureDetails] = await Promise.all([
+      const hasApiSports = !!API_SPORTS_KEY;
+      const hasFixture = !!game.fixtureId;
+      const hasTeamIds = !!(game.homeApiSportsId && game.awayApiSportsId);
+      const hasSeasonData = !!(game.apiLeagueId && game.apiSeason);
+
+      const [
+        homeForm,
+        awayForm,
+        fixtureDetails,
+        fixtureInjuries,
+        homeTeamStats,
+        awayTeamStats,
+        fixturePrediction,
+        h2h,
+        homeNews,
+        awayNews,
+      ] = await Promise.all([
         game.homeTeamId
           ? fetchESPNTeamForm(espnSport, espnLeague, game.homeTeamId)
           : Promise.resolve(null),
         game.awayTeamId
           ? fetchESPNTeamForm(espnSport, espnLeague, game.awayTeamId)
           : Promise.resolve(null),
-        game.fixtureId && API_SPORTS_KEY
-          ? fetchApiSportsFixtureDetails(apiSportsBase, game.fixtureId)
+        hasFixture && hasApiSports
+          ? fetchApiSportsFixtureDetails(apiSportsBase, game.fixtureId!)
           : Promise.resolve({ homeLineup: null, awayLineup: null, referee: null }),
+        hasFixture && hasApiSports
+          ? fetchApiSportsFixtureInjuries(
+              apiSportsBase,
+              game.fixtureId!,
+              game.homeApiSportsId,
+              game.awayApiSportsId,
+            )
+          : Promise.resolve({ homeInj: [], awayInj: [], homeSusp: [], awaySusp: [] }),
+        hasTeamIds && hasSeasonData
+          ? fetchApiSportsTeamStats(
+              apiSportsBase,
+              game.homeApiSportsId!,
+              game.apiLeagueId!,
+              game.apiSeason!,
+            )
+          : Promise.resolve(null),
+        hasTeamIds && hasSeasonData
+          ? fetchApiSportsTeamStats(
+              apiSportsBase,
+              game.awayApiSportsId!,
+              game.apiLeagueId!,
+              game.apiSeason!,
+            )
+          : Promise.resolve(null),
+        hasFixture && hasApiSports
+          ? fetchApiSportsFixturePredictions(apiSportsBase, game.fixtureId!)
+          : Promise.resolve(null),
+        hasTeamIds
+          ? fetchApiSportsH2H(apiSportsBase, game.homeApiSportsId!, game.awayApiSportsId!)
+          : Promise.resolve(null),
+        fetchNewsApiTeamTargeted(game.homeTeam),
+        fetchNewsApiTeamTargeted(game.awayTeam),
       ]);
 
-      const h2h =
-        game.homeApiSportsId && game.awayApiSportsId
-          ? await fetchApiSportsH2H(apiSportsBase, game.homeApiSportsId, game.awayApiSportsId)
-          : null;
+      // Merge ESPN + API-Sports injuries (deduplicate)
+      const espnHomeInj = findEspnInjuries(game.homeTeam);
+      const espnAwayInj = findEspnInjuries(game.awayTeam);
+      const mergeUnique = (a: string[], b: string[]) =>
+        [...new Set([...a, ...b.filter((n) => !a.some((x) => x.includes(n.split(" ")[1] ?? n)))])];
 
       return {
         ...game,
@@ -599,12 +876,20 @@ async function enrichGames(
         awayForm,
         homeStanding: findStanding(game.homeTeam),
         awayStanding: findStanding(game.awayTeam),
-        homeInjuries: findInjuries(game.homeTeam),
-        awayInjuries: findInjuries(game.awayTeam),
+        homeInjuries: mergeUnique(espnHomeInj, fixtureInjuries.homeInj),
+        awayInjuries: mergeUnique(espnAwayInj, fixtureInjuries.awayInj),
+        homeSuspensions: fixtureInjuries.homeSusp,
+        awaySuspensions: fixtureInjuries.awaySusp,
+        homeTeamStats,
+        awayTeamStats,
+        fixturePrediction,
+        homeNews,
+        awayNews,
         h2hSummary: h2h,
         homeLineup: fixtureDetails.homeLineup,
         awayLineup: fixtureDetails.awayLineup,
         referee: fixtureDetails.referee,
+        weatherForecast: null, // filled by caller
       };
     }),
   );
@@ -612,7 +897,7 @@ async function enrichGames(
   return enriched;
 }
 
-// ─── Format enriched game into prompt block ────────────────────────────────────
+// ─── Format enriched game into comprehensive match brief ──────────────────────
 
 function formatEnrichedGameBlock(
   g: EnrichedGame,
@@ -620,60 +905,119 @@ function formatEnrichedGameBlock(
   weather: string | null,
 ): string {
   const o = findMatchingOdds(odds, g);
-  const oddsStr = o
-    ? [
-        `ML: Home ${o.homeOdds ?? "N/A"} / Away ${o.awayOdds ?? "N/A"}${o.drawOdds ? ` / Draw ${o.drawOdds}` : ""}`,
-        o.spread ? `Spread: ${o.spread}` : "",
-        o.total ? `O/U: ${o.total}` : "",
-      ].filter(Boolean).join(" | ")
-    : "Odds: Not available";
-
   const matchDate = new Date(g.date).toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+    weekday: "short", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 
   const lines: string[] = [
-    `GAME: ${g.homeTeam} vs ${g.awayTeam}`,
-    `Date: ${matchDate}${g.venue ? ` | Venue: ${g.venue}` : ""}${g.city ? `, ${g.city}` : ""}`,
-    `Odds: ${oddsStr}`,
-  ];
+    `════ MATCH BRIEF ════`,
+    `${g.homeTeam} vs ${g.awayTeam}`,
+    `Date: ${matchDate}`,
+    g.venue ? `Venue: ${g.venue}${g.city ? `, ${g.city}` : ""}` : "",
+  ].filter(Boolean);
 
+  // ── Market Intelligence ────────────────────────────────────────────────────
+  lines.push(`\n── MARKET INTELLIGENCE ──`);
+  if (o) {
+    lines.push(
+      `Consensus ML: Home ${o.homeOdds ?? "N/A"} / Away ${o.awayOdds ?? "N/A"}${o.drawOdds ? ` / Draw ${o.drawOdds}` : ""}`,
+    );
+    if (o.homeOddsRange) lines.push(`Home odds range: ${o.homeOddsRange}`);
+    if (o.awayOddsRange) lines.push(`Away odds range: ${o.awayOddsRange}`);
+    if (o.drawOddsRange) lines.push(`Draw odds range: ${o.drawOddsRange}`);
+    if (o.spread) lines.push(`Spread: ${o.spread}`);
+    if (o.total !== undefined) lines.push(`Over/Under: ${o.total}`);
+    if (o.bookmakerBreakdown) lines.push(`Sources: ${o.bookmakerBreakdown}`);
+    if (o.lineMovementSignal) lines.push(o.lineMovementSignal);
+  } else {
+    lines.push(`Odds: Not available`);
+  }
+
+  // ── Form Analysis ─────────────────────────────────────────────────────────
+  lines.push(`\n── FORM ANALYSIS ──`);
   if (g.homeTeamRecord || g.awayTeamRecord) {
-    lines.push(`Season Record: ${g.homeTeam} ${g.homeTeamRecord ?? "N/A"} | ${g.awayTeam} ${g.awayTeamRecord ?? "N/A"}`);
+    lines.push(`Season record: ${g.homeTeam} ${g.homeTeamRecord ?? "N/A"} | ${g.awayTeam} ${g.awayTeamRecord ?? "N/A"}`);
   }
 
-  if (g.homeForm) {
-    lines.push(`${g.homeTeam} Form (last ${g.homeForm.gamesPlayed}): ${g.homeForm.formString} (${g.homeForm.formCompact})`);
-    lines.push(`  Goals avg: ${(g.homeForm.goalsScored / Math.max(1, g.homeForm.gamesPlayed)).toFixed(1)} scored / ${(g.homeForm.goalsConceded / Math.max(1, g.homeForm.gamesPlayed)).toFixed(1)} conceded per game`);
-    lines.push(`  Home record: ${g.homeForm.homeRecord} | Away record: ${g.homeForm.awayRecord}`);
-    if (g.homeForm.daysRest !== null) lines.push(`  Days rest: ${g.homeForm.daysRest} days`);
+  for (const [label, form] of [[g.homeTeam, g.homeForm], [g.awayTeam, g.awayForm]] as [string, TeamFormData | null][]) {
+    if (!form) continue;
+    const gpg = (n: number) => (n / Math.max(1, form.gamesPlayed)).toFixed(1);
+    lines.push(`${label} (last ${form.gamesPlayed}): ${form.formString} → ${form.formCompact}`);
+    lines.push(`  Avg goals: ${gpg(form.goalsScored)} scored / ${gpg(form.goalsConceded)} conceded`);
+    lines.push(`  Home: ${form.homeRecord} | Away: ${form.awayRecord}`);
+    if (form.daysRest !== null) lines.push(`  Rest: ${form.daysRest} days since last match`);
   }
 
-  if (g.awayForm) {
-    lines.push(`${g.awayTeam} Form (last ${g.awayForm.gamesPlayed}): ${g.awayForm.formString} (${g.awayForm.formCompact})`);
-    lines.push(`  Goals avg: ${(g.awayForm.goalsScored / Math.max(1, g.awayForm.gamesPlayed)).toFixed(1)} scored / ${(g.awayForm.goalsConceded / Math.max(1, g.awayForm.gamesPlayed)).toFixed(1)} conceded per game`);
-    lines.push(`  Home record: ${g.awayForm.homeRecord} | Away record: ${g.awayForm.awayRecord}`);
-    if (g.awayForm.daysRest !== null) lines.push(`  Days rest: ${g.awayForm.daysRest} days`);
-  }
-
+  // ── League Standings ──────────────────────────────────────────────────────
   if (g.homeStanding || g.awayStanding) {
-    const hs = g.homeStanding;
-    const as_ = g.awayStanding;
-    const homePos = hs ? `${g.homeTeam}: ${hs.position}${ordinal(hs.position)} (${hs.points} pts, ${hs.wins}W ${hs.draws}D ${hs.losses}L)` : "";
-    const awayPos = as_ ? `${g.awayTeam}: ${as_.position}${ordinal(as_.position)} (${as_.points} pts, ${as_.wins}W ${as_.draws}D ${as_.losses}L)` : "";
-    if (homePos || awayPos) lines.push(`League Standings: ${[homePos, awayPos].filter(Boolean).join(" | ")}`);
+    lines.push(`\n── LEAGUE STANDINGS ──`);
+    for (const [label, st] of [[g.homeTeam, g.homeStanding], [g.awayTeam, g.awayStanding]] as [string, TeamStandingData | null][]) {
+      if (!st) continue;
+      const gd = st.goalsFor - st.goalsAgainst;
+      lines.push(
+        `${label}: ${st.position}${ordinal(st.position)} | ${st.points} pts | ${st.wins}W ${st.draws}D ${st.losses}L | GD ${gd > 0 ? "+" : ""}${gd}`,
+      );
+    }
   }
 
-  if (g.h2hSummary) lines.push(`Head-to-Head: ${g.h2hSummary}`);
+  // ── Season Team Statistics ────────────────────────────────────────────────
+  if (g.homeTeamStats || g.awayTeamStats) {
+    lines.push(`\n── SEASON STATISTICS ──`);
+    for (const [label, ts] of [[g.homeTeam, g.homeTeamStats], [g.awayTeam, g.awayTeamStats]] as [string, TeamStatsData | null][]) {
+      if (!ts) continue;
+      lines.push(`${label} [${ts.formation}]:`);
+      lines.push(`  Goals scored avg — Home: ${ts.avgGoalsScoredHome} / Away: ${ts.avgGoalsScoredAway}`);
+      lines.push(`  Goals conceded avg — Home: ${ts.avgGoalsConcededHome} / Away: ${ts.avgGoalsConcededAway}`);
+      lines.push(`  Clean sheets: ${ts.cleanSheets} | Failed to score: ${ts.failedToScore}`);
+      lines.push(`  BTTS rate: ${ts.bttsRate} | Win rate: ${ts.winRate}`);
+    }
+  }
 
-  if (g.homeInjuries.length > 0) lines.push(`${g.homeTeam} Injuries: ${g.homeInjuries.join(", ")}`);
-  if (g.awayInjuries.length > 0) lines.push(`${g.awayTeam} Injuries: ${g.awayInjuries.join(", ")}`);
+  // ── Head to Head ──────────────────────────────────────────────────────────
+  if (g.h2hSummary) {
+    lines.push(`\n── HEAD-TO-HEAD ──`);
+    lines.push(g.h2hSummary);
+  }
 
-  if (g.homeLineup) lines.push(`${g.homeTeam} Starting XI: ${g.homeLineup}`);
-  if (g.awayLineup) lines.push(`${g.awayTeam} Starting XI: ${g.awayLineup}`);
+  // ── Squad Status ──────────────────────────────────────────────────────────
+  const hasSquadInfo =
+    g.homeInjuries.length > 0 || g.awayInjuries.length > 0 ||
+    g.homeSuspensions.length > 0 || g.awaySuspensions.length > 0 ||
+    g.homeLineup || g.awayLineup;
 
-  if (g.referee) lines.push(`Referee: ${g.referee}`);
-  if (weather) lines.push(`Weather: ${weather}`);
+  if (hasSquadInfo) {
+    lines.push(`\n── SQUAD STATUS ──`);
+    if (g.homeInjuries.length > 0) lines.push(`${g.homeTeam} injured: ${g.homeInjuries.join(", ")}`);
+    if (g.homeSuspensions.length > 0) lines.push(`${g.homeTeam} suspended: ${g.homeSuspensions.join(", ")}`);
+    if (g.awayInjuries.length > 0) lines.push(`${g.awayTeam} injured: ${g.awayInjuries.join(", ")}`);
+    if (g.awaySuspensions.length > 0) lines.push(`${g.awayTeam} suspended: ${g.awaySuspensions.join(", ")}`);
+    if (g.homeLineup) lines.push(`${g.homeTeam} XI: ${g.homeLineup}`);
+    if (g.awayLineup) lines.push(`${g.awayTeam} XI: ${g.awayLineup}`);
+  }
+
+  // ── Model Comparison (API-Sports predictions) ─────────────────────────────
+  if (g.fixturePrediction) {
+    lines.push(`\n── STATISTICAL MODEL COMPARISON ──`);
+    lines.push(g.fixturePrediction);
+  }
+
+  // ── Match Official ────────────────────────────────────────────────────────
+  if (g.referee) lines.push(`\nReferee: ${g.referee}`);
+
+  // ── Weather Forecast ──────────────────────────────────────────────────────
+  const wx = weather ?? g.weatherForecast;
+  if (wx) {
+    lines.push(`\n── WEATHER FORECAST ──`);
+    lines.push(wx);
+  }
+
+  // ── Latest News (48h) ─────────────────────────────────────────────────────
+  const allNews = [...g.homeNews.map((n) => `[${g.homeTeam}] ${n}`), ...g.awayNews.map((n) => `[${g.awayTeam}] ${n}`)];
+  if (allNews.length > 0) {
+    lines.push(`\n── LATEST NEWS (48h) ──`);
+    for (const n of allNews) lines.push(`• ${n}`);
+  }
 
   return lines.join("\n");
 }
@@ -684,47 +1028,92 @@ function ordinal(n: number): string {
   return s[(v - 20) % 10] ?? s[v] ?? s[0] ?? "th";
 }
 
-// ─── The Odds API ─────────────────────────────────────────────────────────────
+// ─── The Odds API (multi-bookmaker with line analysis) ───────────────────────
 
 async function fetchOdds(oddsKey: string): Promise<GameOdds[]> {
   if (!ODDS_API_KEY) return [];
   try {
     const url =
       `https://api.the-odds-api.com/v4/sports/${oddsKey}/odds` +
-      `?apiKey=${ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american`;
+      `?apiKey=${ODDS_API_KEY}&regions=us,uk,eu&markets=h2h,spreads,totals&oddsFormat=american`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) {
       logger.warn({ oddsKey, status: resp.status }, "Odds API non-OK");
       return [];
     }
     const data = (await resp.json()) as Record<string, unknown>[];
+
     return data.slice(0, 10).map((game) => {
-      const bookmakers = game.bookmakers as Record<string, unknown>[] | undefined;
-      const bk = bookmakers?.[0];
-      const markets = bk?.markets as Record<string, unknown>[] | undefined;
-      const h2h = markets?.find((m) => m.key === "h2h");
-      const spreads = markets?.find((m) => m.key === "spreads");
-      const totals = markets?.find((m) => m.key === "totals");
-      const outcomes = (h2h?.outcomes as Record<string, unknown>[] | undefined) ?? [];
-      const spreadOutcomes = (spreads?.outcomes as Record<string, unknown>[] | undefined) ?? [];
-      const totalOutcomes = (totals?.outcomes as Record<string, unknown>[] | undefined) ?? [];
+      const bookmakers = (game.bookmakers as Record<string, unknown>[] | undefined) ?? [];
       const homeName = game.home_team as string;
       const awayName = game.away_team as string;
-      const homeH2h = outcomes.find((o) => o.name === homeName);
-      const awayH2h = outcomes.find((o) => o.name === awayName);
-      const drawH2h = outcomes.find((o) => o.name === "Draw");
-      const homeSpread = spreadOutcomes.find((o) => o.name === homeName);
-      const totalO = totalOutcomes[0];
+
+      const homeOddsAll: number[] = [];
+      const awayOddsAll: number[] = [];
+      const drawOddsAll: number[] = [];
+      const bookmakerNames: string[] = [];
+      let spread: string | undefined;
+      let total: number | undefined;
+
+      for (const bk of bookmakers) {
+        const title = (bk.title ?? bk.key) as string;
+        bookmakerNames.push(title);
+        const markets = (bk.markets as Record<string, unknown>[] | undefined) ?? [];
+        const h2h = markets.find((m) => m.key === "h2h");
+        const spreads = markets.find((m) => m.key === "spreads");
+        const totals = markets.find((m) => m.key === "totals");
+
+        const outcomes = (h2h?.outcomes as Record<string, unknown>[] | undefined) ?? [];
+        const homeO = outcomes.find((o) => o.name === homeName);
+        const awayO = outcomes.find((o) => o.name === awayName);
+        const drawO = outcomes.find((o) => o.name === "Draw");
+        if (typeof homeO?.price === "number") homeOddsAll.push(homeO.price);
+        if (typeof awayO?.price === "number") awayOddsAll.push(awayO.price);
+        if (typeof drawO?.price === "number") drawOddsAll.push(drawO.price);
+
+        if (!spread && spreads) {
+          const sOut = (spreads.outcomes as Record<string, unknown>[] | undefined) ?? [];
+          const hs = sOut.find((o) => o.name === homeName);
+          if (hs && typeof hs.point === "number") {
+            spread = `${homeName} ${hs.point > 0 ? "+" : ""}${hs.point}`;
+          }
+        }
+        if (!total && totals) {
+          const tOut = (totals.outcomes as Record<string, unknown>[] | undefined) ?? [];
+          if (tOut[0] && typeof tOut[0].point === "number") total = tOut[0].point;
+        }
+      }
+
+      const avg = (arr: number[]) =>
+        arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : undefined;
+      const range = (arr: number[]) =>
+        arr.length > 1 ? `${Math.min(...arr)} to ${Math.max(...arr)}` : undefined;
+
+      // Detect line disagreement — big spread across books signals sharp action
+      let lineMovementSignal: string | undefined;
+      if (homeOddsAll.length > 2) {
+        const spread2 = Math.max(...homeOddsAll) - Math.min(...homeOddsAll);
+        if (spread2 >= 20) {
+          lineMovementSignal = `⚡ ${spread2}-pt home line spread across ${homeOddsAll.length} books — possible sharp money`;
+        }
+      }
+
       return {
         homeTeam: homeName,
         awayTeam: awayName,
-        homeOdds: homeH2h?.price as number | undefined,
-        awayOdds: awayH2h?.price as number | undefined,
-        drawOdds: drawH2h?.price as number | undefined,
-        spread: homeSpread
-          ? `${homeName} ${(homeSpread.point as number) > 0 ? "+" : ""}${homeSpread.point}`
+        homeOdds: avg(homeOddsAll),
+        awayOdds: avg(awayOddsAll),
+        drawOdds: avg(drawOddsAll),
+        spread,
+        total,
+        homeOddsRange: range(homeOddsAll),
+        awayOddsRange: range(awayOddsAll),
+        drawOddsRange: range(drawOddsAll),
+        lineMovementSignal,
+        bookmakerCount: bookmakers.length,
+        bookmakerBreakdown: bookmakerNames.length > 0
+          ? `${bookmakerNames.length} books: ${bookmakerNames.slice(0, 5).join(", ")}${bookmakerNames.length > 5 ? "…" : ""}`
           : undefined,
-        total: totalO?.point as number | undefined,
       };
     });
   } catch (err) {
@@ -750,23 +1139,47 @@ async function fetchNewsApi(query: string): Promise<string[]> {
   }
 }
 
-// ─── WeatherAPI ───────────────────────────────────────────────────────────────
+// ─── WeatherAPI (match-day forecast) ──────────────────────────────────────────
 
-async function fetchWeather(city: string): Promise<string | null> {
+async function fetchWeather(city: string, matchDate?: string): Promise<string | null> {
   if (!WEATHER_API_KEY || !city) return null;
   try {
     const url =
-      `https://api.weatherapi.com/v1/current.json` +
-      `?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}&aqi=no`;
+      `https://api.weatherapi.com/v1/forecast.json` +
+      `?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}&days=2&aqi=no&alerts=no`;
     const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!resp.ok) return null;
     const data = (await resp.json()) as Record<string, unknown>;
+
+    const forecast = data.forecast as Record<string, unknown> | undefined;
+    const days = (forecast?.forecastday as Record<string, unknown>[]) ?? [];
+    const matchDay = matchDate ? new Date(matchDate).toISOString().split("T")[0] : null;
+    const dayForecast = (matchDay ? days.find((d) => d.date === matchDay) : null) ?? days[0];
+
+    if (dayForecast) {
+      const day = dayForecast.day as Record<string, unknown> | undefined;
+      const cond = ((day?.condition as Record<string, unknown> | undefined)?.text as string) ?? "";
+      const maxTempF = day?.maxtemp_f ?? "";
+      const minTempF = day?.mintemp_f ?? "";
+      const maxWindMph = day?.maxwind_mph ?? "";
+      const rainChance = (day?.daily_chance_of_rain as number) ?? 0;
+      const snowChance = (day?.daily_chance_of_snow as number) ?? 0;
+      const humidity = day?.avghumidity ?? "";
+      return [
+        `${cond}, ${minTempF}–${maxTempF}°F`,
+        `Wind max: ${maxWindMph}mph`,
+        `Rain: ${rainChance}%${snowChance > 0 ? `, Snow: ${snowChance}%` : ""}`,
+        humidity ? `Humidity: ${humidity}%` : null,
+      ].filter(Boolean).join(", ");
+    }
+
+    // Fallback to current conditions
     const current = data.current as Record<string, unknown> | undefined;
-    const cond = (current?.condition as Record<string, unknown> | undefined)?.text ?? "";
+    const cond = ((current?.condition as Record<string, unknown> | undefined)?.text as string) ?? "";
     const tempF = current?.temp_f ?? "";
     const windMph = current?.wind_mph ?? "";
     const precipIn = (current?.precip_in as number) ?? 0;
-    return `${cond}, ${tempF}°F, Wind ${windMph}mph${precipIn > 0 ? `, Precip ${precipIn}"` : ""}`;
+    return `${cond}, ${tempF}°F, Wind ${windMph}mph${precipIn > 0 ? `, Rain likely` : ""}`;
   } catch {
     return null;
   }
@@ -835,7 +1248,7 @@ async function generateForSport(
     await Promise.all(
       enrichedGames.slice(0, 4).map(async (g) => {
         if (!g.city) return;
-        const w = await fetchWeather(g.city);
+        const w = await fetchWeather(g.city, g.date);
         weatherByGame.set(`${g.homeTeam}|${g.awayTeam}`, w);
       }),
     );
