@@ -1,4 +1,4 @@
-import { gte, desc } from "drizzle-orm";
+import { gte, desc, isNotNull, and, ne, eq } from "drizzle-orm";
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { db, predictions as predictionsTable } from "@workspace/db";
@@ -1417,6 +1417,176 @@ async function fetchWeather(city: string, matchDate?: string): Promise<string | 
   }
 }
 
+// ─── Accuracy matrix + calibration feedback loop ──────────────────────────────
+
+interface CalibrationAdjustment {
+  bucket: string;
+  label: string;
+  actualRate: number;
+  predictedRate: number;
+  adjustment: number;
+  sampleSize: number;
+}
+
+interface CalibrationCache {
+  bySport: Map<string, CalibrationAdjustment[]>;
+  total: number;
+  computedAt: number;
+}
+
+let calibrationCache: CalibrationCache | null = null;
+const CALIBRATION_TTL_MS = 60 * 60 * 1000; // recompute every hour
+
+function confTier(c: number): string {
+  if (c >= 90) return "90-100%";
+  if (c >= 75) return "75-89%";
+  if (c >= 60) return "60-74%";
+  return "<60%";
+}
+
+function humanLabel(key: string): string {
+  return key
+    .replace(/^[^:]+:/, "")        // strip sport prefix
+    .replace("type:", "")
+    .replace("tier:", "conf ")
+    .replace("risk:", "risk=")
+    .replace("dow:", "day=")
+    .replace(/_/g, " ");
+}
+
+async function computeAccuracyCalibration(): Promise<CalibrationCache> {
+  if (calibrationCache && Date.now() - calibrationCache.computedAt < CALIBRATION_TTL_MS) {
+    return calibrationCache;
+  }
+
+  try {
+    const settled = await db
+      .select({
+        sport: predictionsTable.sport,
+        prediction: predictionsTable.prediction,
+        confidence: predictionsTable.confidence,
+        riskLevel: predictionsTable.riskLevel,
+        result: predictionsTable.result,
+        matchDate: predictionsTable.matchDate,
+        avoidMatch: predictionsTable.avoidMatch,
+      })
+      .from(predictionsTable)
+      .where(
+        and(
+          isNotNull(predictionsTable.result),
+          ne(predictionsTable.result, "push"),
+          eq(predictionsTable.avoidMatch, false),
+        ),
+      )
+      .orderBy(desc(predictionsTable.createdAt))
+      .limit(500);
+
+    const total = settled.length;
+
+    // Need at least 20 settled predictions before calibration is meaningful
+    if (total < 20) {
+      calibrationCache = { bySport: new Map(), total, computedAt: Date.now() };
+      return calibrationCache;
+    }
+
+    type Bucket = { wins: number; losses: number; totalConf: number; count: number };
+    const buckets = new Map<string, Bucket>();
+
+    const add = (key: string, win: boolean, conf: number) => {
+      const b = buckets.get(key) ?? { wins: 0, losses: 0, totalConf: 0, count: 0 };
+      b.count++;
+      b.totalConf += conf;
+      if (win) b.wins++; else b.losses++;
+      buckets.set(key, b);
+    };
+
+    for (const p of settled) {
+      const win = p.result === "win";
+      const conf = p.confidence;
+      const tier = confTier(conf);
+      const dow = new Date(p.matchDate).toLocaleDateString("en-US", { weekday: "long" });
+
+      // Buckets: sport:tier, sport:type, sport:type:tier, sport:risk, cross-sport:dow
+      add(`${p.sport}:tier:${tier}`, win, conf);
+      add(`${p.sport}:type:${p.prediction}`, win, conf);
+      add(`${p.sport}:type:${p.prediction}:tier:${tier}`, win, conf);
+      add(`${p.sport}:risk:${p.riskLevel}`, win, conf);
+      add(`all:dow:${dow}`, win, conf);
+    }
+
+    const MIN_SAMPLES = 5;
+    const SIGNAL_THRESHOLD = 8; // only flag gaps >= 8 percentage points
+
+    const bySport = new Map<string, CalibrationAdjustment[]>();
+
+    for (const [key, b] of buckets.entries()) {
+      if (b.count < MIN_SAMPLES) continue;
+      const actualRate = Math.round((b.wins / (b.wins + b.losses)) * 100);
+      const predictedRate = Math.round(b.totalConf / b.count);
+      const adjustment = actualRate - predictedRate;
+      if (Math.abs(adjustment) < SIGNAL_THRESHOLD) continue;
+
+      const sport = key.startsWith("all:") ? "all" : key.split(":")[0];
+      const adj: CalibrationAdjustment = {
+        bucket: key,
+        label: humanLabel(key),
+        actualRate,
+        predictedRate,
+        adjustment,
+        sampleSize: b.count,
+      };
+      const list = bySport.get(sport) ?? [];
+      list.push(adj);
+      bySport.set(sport, list);
+    }
+
+    // Sort each sport's adjustments by largest absolute gap first
+    for (const [sport, list] of bySport.entries()) {
+      bySport.set(sport, list.sort((a, b) => Math.abs(b.adjustment) - Math.abs(a.adjustment)));
+    }
+
+    calibrationCache = { bySport, total, computedAt: Date.now() };
+    logger.info({ total, sportCount: bySport.size }, "Accuracy calibration computed");
+    return calibrationCache;
+  } catch (err) {
+    logger.warn({ err }, "Accuracy calibration failed — skipping");
+    calibrationCache = { bySport: new Map(), total: 0, computedAt: Date.now() };
+    return calibrationCache;
+  }
+}
+
+function buildCalibrationSection(sport: string, cache: CalibrationCache): string {
+  if (cache.total < 20) return "";
+
+  const sportAdj = cache.bySport.get(sport) ?? [];
+  const crossAdj = cache.bySport.get("all") ?? [];
+  const all = [...sportAdj.slice(0, 6), ...crossAdj.slice(0, 3)];
+
+  if (all.length === 0) return "";
+
+  const lines = [
+    `MANDATORY CALIBRATION (from ${cache.total} real settled predictions):`,
+    `These adjustments MUST be applied to your confidence scores before finalising:`,
+    "",
+  ];
+
+  for (const adj of all) {
+    const sign = adj.adjustment > 0 ? "+" : "";
+    const arrow = adj.adjustment > 0 ? "↑ INCREASE" : "↓ DECREASE";
+    lines.push(
+      `• ${adj.label} [n=${adj.sampleSize}]: actual ${adj.actualRate}% vs model ${adj.predictedRate}% → ${arrow} confidence by ${sign}${adj.adjustment}%`,
+    );
+  }
+
+  lines.push("");
+  lines.push(
+    `Example: if your base confidence for a home_win is 75% but historical data shows home_wins ` +
+    `at that tier win only 62%, your FINAL confidence must be 75% + (62-75) = 62%.`,
+  );
+
+  return lines.join("\n");
+}
+
 // ─── Odds matching helper ─────────────────────────────────────────────────────
 
 function findMatchingOdds(odds: GameOdds[], game: GameInfo): GameOdds | undefined {
@@ -1496,6 +1666,10 @@ async function generateForSport(
   const newsLines = newsHeadlines.length > 0 ? newsHeadlines : espnNews;
   const hasGames = gameBlocks.length > 0;
 
+  // Accuracy calibration — fetch from real settled predictions (cached 1h)
+  const calibration = await computeAccuracyCalibration();
+  const calibrationSection = buildCalibrationSection(sport, calibration);
+
   const prompt = `You are PrediQs AI, the world's most accurate sports prediction engine.
 You think like a professional sports analyst and sharp bettor combined.
 You are analysing ${league} games.
@@ -1516,7 +1690,7 @@ UNIVERSAL CROSS-SPORT FACTORS (also apply):
 - MOTIVATION: What does each team need from this game? Season position, rivalry, must-win
 - SHARP MONEY: Reverse line movement and bookmaker disagreement (from market intelligence section)
 
-CONFIDENCE CALIBRATION:
+${calibrationSection ? calibrationSection + "\n\n" : ""}CONFIDENCE CALIBRATION (apply AFTER any historical adjustments above):
 90-100%: ALL factors align perfectly + strong historical evidence + market confirms (VERY rare, 1-2% of picks)
 75-89%: Most factors clearly align + historical pattern + some bookmaker value (strongest daily picks)
 60-74%: Enough factors favour this outcome to publish — flag any concerns in againstFactors
