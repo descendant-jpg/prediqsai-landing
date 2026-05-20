@@ -155,6 +155,9 @@ interface GameOdds {
   lineMovementSignal?: string;
   bookmakerCount?: number;
   bookmakerBreakdown?: string;
+  bestHomeDecimal?: number;
+  bestAwayDecimal?: number;
+  bestDrawDecimal?: number;
 }
 
 interface RawPrediction {
@@ -967,6 +970,20 @@ function formatEnrichedGameBlock(
     if (o.total !== undefined) lines.push(`Over/Under: ${o.total}`);
     if (o.bookmakerBreakdown) lines.push(`Sources: ${o.bookmakerBreakdown}`);
     if (o.lineMovementSignal) lines.push(o.lineMovementSignal);
+
+    // EV pre-computation — show break-even probability so Claude can compare to its aiProbability
+    const evLines: string[] = [];
+    const fmt = (d: number) => {
+      const be = Math.round((1 / d) * 1000) / 10; // break-even %
+      return `${d.toFixed(2)} decimal | break-even: ${be}%`;
+    };
+    if (o.bestHomeDecimal) evLines.push(`  Home win: best ${fmt(o.bestHomeDecimal)}`);
+    if (o.bestAwayDecimal) evLines.push(`  Away win: best ${fmt(o.bestAwayDecimal)}`);
+    if (o.bestDrawDecimal) evLines.push(`  Draw: best ${fmt(o.bestDrawDecimal)}`);
+    if (evLines.length > 0) {
+      lines.push(`EV ANALYSIS (compare your aiProbability to break-even to find +EV bets):`);
+      lines.push(...evLines);
+    }
   } else {
     lines.push(`Odds: Not available`);
   }
@@ -1287,6 +1304,13 @@ async function fetchOdds(oddsKey: string): Promise<GameOdds[]> {
       let spread: string | undefined;
       let total: number | undefined;
 
+      const americanToDecimal = (a: number) =>
+        a > 0 ? a / 100 + 1 : 100 / Math.abs(a) + 1;
+
+      let bestHomeDecimal = 0;
+      let bestAwayDecimal = 0;
+      let bestDrawDecimal = 0;
+
       for (const bk of bookmakers) {
         const title = (bk.title ?? bk.key) as string;
         bookmakerNames.push(title);
@@ -1299,9 +1323,21 @@ async function fetchOdds(oddsKey: string): Promise<GameOdds[]> {
         const homeO = outcomes.find((o) => o.name === homeName);
         const awayO = outcomes.find((o) => o.name === awayName);
         const drawO = outcomes.find((o) => o.name === "Draw");
-        if (typeof homeO?.price === "number") homeOddsAll.push(homeO.price);
-        if (typeof awayO?.price === "number") awayOddsAll.push(awayO.price);
-        if (typeof drawO?.price === "number") drawOddsAll.push(drawO.price);
+        if (typeof homeO?.price === "number") {
+          homeOddsAll.push(homeO.price);
+          const d = americanToDecimal(homeO.price);
+          if (d > bestHomeDecimal) bestHomeDecimal = d;
+        }
+        if (typeof awayO?.price === "number") {
+          awayOddsAll.push(awayO.price);
+          const d = americanToDecimal(awayO.price);
+          if (d > bestAwayDecimal) bestAwayDecimal = d;
+        }
+        if (typeof drawO?.price === "number") {
+          drawOddsAll.push(drawO.price);
+          const d = americanToDecimal(drawO.price);
+          if (d > bestDrawDecimal) bestDrawDecimal = d;
+        }
 
         if (!spread && spreads) {
           const sOut = (spreads.outcomes as Record<string, unknown>[] | undefined) ?? [];
@@ -1346,6 +1382,9 @@ async function fetchOdds(oddsKey: string): Promise<GameOdds[]> {
         bookmakerBreakdown: bookmakerNames.length > 0
           ? `${bookmakerNames.length} books: ${bookmakerNames.slice(0, 5).join(", ")}${bookmakerNames.length > 5 ? "…" : ""}`
           : undefined,
+        bestHomeDecimal: bestHomeDecimal > 0 ? Math.round(bestHomeDecimal * 100) / 100 : undefined,
+        bestAwayDecimal: bestAwayDecimal > 0 ? Math.round(bestAwayDecimal * 100) / 100 : undefined,
+        bestDrawDecimal: bestDrawDecimal > 0 ? Math.round(bestDrawDecimal * 100) / 100 : undefined,
       };
     });
   } catch (err) {
@@ -1703,10 +1742,32 @@ TRAP GAME DETECTION — flag isTrapGame = true when:
 - Historically upset-prone fixture
 - Suspicious line movement opposite to public expectation
 
-VALUE DETECTION:
-implied_prob = 1/decimal_odds × 100
-If aiProbability > implied_prob + 5% → valueDetected = true
-valuePercentage = aiProbability − bookmakerProbability
+EXPECTED VALUE (EV) BETTING FRAMEWORK — apply to every prediction:
+
+Professional bettors profit through positive EV, not just win rate. Even at 55% win rate,
+consistent +EV betting is mathematically profitable over 100+ bets.
+
+FORMULA (mandatory):
+  EV = (aiProbability/100 × bestDecimalOdds) - 1
+
+  Example: AI says Arsenal 72% | Best odds 2.40 decimal
+  EV = (0.72 × 2.40) - 1 = 0.728  →  +72.8% EV  →  STRONG value bet
+
+CLASSIFICATION:
+  EV > 0.10  (+10%): Strong value → valueDetected=true, recommendedStake="high"
+  EV 0.05–0.10: Moderate value → valueDetected=true, recommendedStake="medium"
+  EV 0.02–0.05: Marginal value → valueDetected=true, recommendedStake="low"
+  EV < 0.02: No edge — bookmaker has the advantage → valueDetected=false
+
+HOW TO USE THE BREAK-EVEN % in the EV ANALYSIS section above:
+  If your aiProbability EXCEEDS the break-even% for that outcome → POSITIVE EV → value bet
+  If your aiProbability is BELOW break-even% → NEGATIVE EV → no value
+
+OUTPUT FIELDS:
+  bookmakerProbability = break-even probability of best available odds (1/bestDecimal × 100)
+  valuePercentage = EV × 100  (e.g. 0.15 EV → valuePercentage = 15)
+  valueDetected = true only if EV ≥ 0.02
+  bestMarket = describe which outcome has highest +EV (e.g. "home win at 2.40 (+28% EV)")
 
 ${
   hasGames
