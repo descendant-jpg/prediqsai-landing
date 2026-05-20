@@ -85,15 +85,28 @@ interface RawPrediction {
   riskLevel: string;
   volatilityScore?: number;
   isTrapGame?: boolean;
+  trapGameReason?: string | null;
   avoidMatch?: boolean;
   avoidReason?: string | null;
   reasoning: string;
   keyFactors?: string[];
+  againstFactors?: string[];
   weatherImpact?: string | null;
+  injuryImpact?: string | null;
   sharpMoneySignal?: string | null;
   aiProbability: number;
   bookmakerProbability?: number;
   valueDetected?: boolean;
+  valuePercentage?: number;
+  recommendedStake?: string;
+  bestMarket?: string;
+  alternativeMarkets?: string[];
+  modelAgreement?: {
+    statistical?: string;
+    form?: string;
+    market?: string;
+    overallAgreement?: boolean;
+  };
   tierRequired?: string;
 }
 
@@ -397,7 +410,9 @@ async function generateForSport(
   const newsLines = newsHeadlines.length > 0 ? newsHeadlines : espnNews;
   const hasGames = gameLines.length > 0;
 
-  const prompt = `You are a world-class sports betting analyst specialising in ${league}.
+  const prompt = `You are PrediQs AI, the world's most accurate sports prediction engine.
+You think like a professional sports analyst and sharp bettor combined.
+You are analysing ${league} games.
 
 DATA SOURCE: ${dataSource}
 ODDS SOURCE: ${odds.length > 0 ? "The Odds API (live)" : "Not available"}
@@ -409,42 +424,102 @@ ${newsLines.length > 0 ? `LATEST INJURIES & NEWS:\n${newsLines.join("\n")}` : ""
 
 ${weatherLines.length > 0 ? `WEATHER CONDITIONS (outdoor venues):\n${weatherLines.join("\n")}` : ""}
 
+ANALYSIS FRAMEWORK — apply ALL of these for each game:
+
+1. FORM ANALYSIS
+   - Last 5 home games for home team / last 5 away games for away team
+   - Current winning/losing streak; goals scored & conceded trend; clean sheet frequency
+
+2. HEAD TO HEAD
+   - Last 5 meetings; who wins this fixture historically; average goals; home advantage in H2H
+
+3. SQUAD STATUS
+   - Key player injuries (attackers most critical); suspensions; fatigue; rotation risk
+
+4. MOTIVATION & CONTEXT
+   - What does each team need? Relegation pressure, title race, cup final rotation risk,
+     derby/rivalry factor, revenge factor
+
+5. TACTICAL ANALYSIS
+   - Playing styles; does matchup favour attack or defence; set piece threat; pace of play
+
+6. EXTERNAL FACTORS
+   - Weather impact; travel fatigue; altitude; crowd factor; referee tendencies
+
+7. MARKET INTELLIGENCE
+   - Opening vs current odds; sharp money movement; public % on each side; value calculation
+
+8. STATISTICAL MODELS
+   - xG trend; shots on target; possession impact; BTTS frequency; corner stats
+
+CONFIDENCE CALIBRATION:
+90-100%: ALL factors align perfectly + strong historical evidence + market confirms (VERY rare, 1-2% of picks)
+75-89%: Most factors clearly align + historical pattern + some bookmaker value (strongest daily picks)
+60-74%: More factors favour this outcome, some uncertainty — flag concerns
+50-59%: Slight edge only — recommend smaller stake (marginal picks)
+Below 50%: Do NOT publish — mark avoidMatch = true
+
+TRAP GAME DETECTION — flag isTrapGame = true when:
+- Heavy favourite playing minor away game before major cup match
+- Team just won/lost a big emotional game
+- Key player returning from injury (rust factor)
+- Historically upset-prone fixture
+- Suspicious line movement opposite to public expectation
+
+VALUE DETECTION:
+implied_prob = 1/decimal_odds × 100
+If aiProbability > implied_prob + 5% → valueDetected = true
+valuePercentage = aiProbability − bookmakerProbability
+
 ${
   hasGames
-    ? `Analyse each real game using the live odds, injury news, and weather data. Generate predictions for every listed game.`
-    : `Generate 2 realistic fictional ${league} predictions for demonstration (label them as simulated).`
+    ? "Analyse each real game using the live odds, injury news, and weather data. Generate a prediction for every listed game."
+    : `Generate 2 realistic fictional ${league} predictions for demonstration purposes (note them as simulated in reasoning).`
 }
 
-Return a JSON array ONLY — no markdown, no prose. Each element must be:
+Return a JSON array ONLY — no markdown, no prose, no commentary. Each element:
 {
   "homeTeam": string,
   "awayTeam": string,
-  "matchDate": ISO-8601 date string,
+  "matchDate": ISO-8601 datetime string,
   "prediction": "home_win"|"away_win"|"draw"|"over"|"under",
-  "confidence": integer 40-95,
+  "confidence": integer 0-100,
   "riskLevel": "low"|"medium"|"high",
   "volatilityScore": number 1-10,
   "isTrapGame": boolean,
+  "trapGameReason": string|null,
   "avoidMatch": boolean,
   "avoidReason": string|null,
-  "reasoning": "2-3 sentences referencing the real odds and news",
-  "keyFactors": [string, string, string],
+  "reasoning": "3-4 detailed sentences referencing real odds, news, and key factors",
+  "keyFactors": ["Factor 1 with specific data", "Factor 2", "Factor 3", "Factor 4", "Factor 5"],
+  "againstFactors": ["Risk 1 that could cause upset", "Risk 2"],
   "weatherImpact": string|null,
+  "injuryImpact": string|null,
   "sharpMoneySignal": string|null,
-  "aiProbability": integer 40-95,
-  "bookmakerProbability": integer 30-70,
+  "aiProbability": integer 0-100,
+  "bookmakerProbability": integer 0-100,
   "valueDetected": boolean,
+  "valuePercentage": number 0-50,
+  "recommendedStake": "low"|"medium"|"high",
+  "bestMarket": "string describing the best bet type for this game",
+  "alternativeMarkets": ["other good bet types for this game"],
+  "modelAgreement": {
+    "statistical": "home_win"|"away_win"|"draw",
+    "form": "home_win"|"away_win"|"draw",
+    "market": "home_win"|"away_win"|"draw",
+    "overallAgreement": boolean
+  },
   "tierRequired": "free"|"pro"|"elite"
 }
 
 tierRequired rules:
-- "free"  → public-knowledge or avoid picks
+- "free"  → public-knowledge picks or avoid picks
 - "pro"   → moderate confidence 55-74 or notable value bets
 - "elite" → high confidence ≥75 or sharp-money value detected`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 3000,
+    max_tokens: 8000,
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -470,11 +545,19 @@ tierRequired rules:
     volatilityScore: p.volatilityScore ?? 5.0,
     isTrapGame: p.isTrapGame ?? false,
     avoidMatch: p.avoidMatch ?? false,
-    avoidReason: p.avoidReason ?? null,
+    avoidReason: p.avoidReason ?? p.trapGameReason ?? null,
     reasoning: p.reasoning,
-    keyFactors: p.keyFactors ?? [],
+    keyFactors: [
+      ...(p.keyFactors ?? []),
+      ...(p.againstFactors?.map((f) => `⚠️ ${f}`) ?? []),
+    ],
     weatherImpact: p.weatherImpact ?? null,
-    sharpMoneySignal: p.sharpMoneySignal ?? null,
+    sharpMoneySignal: [
+      p.sharpMoneySignal,
+      p.injuryImpact ? `Injury: ${p.injuryImpact}` : null,
+      p.bestMarket ? `Best market: ${p.bestMarket}` : null,
+      p.recommendedStake ? `Stake: ${p.recommendedStake}` : null,
+    ].filter(Boolean).join(" | ") || null,
     aiProbability: p.aiProbability,
     bookmakerProbability: p.bookmakerProbability ?? 50,
     valueDetected: p.valueDetected ?? false,
