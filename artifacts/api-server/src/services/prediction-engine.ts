@@ -64,6 +64,49 @@ interface GameInfo {
   date: string;
   venue?: string;
   city?: string;
+  homeTeamId?: string;
+  awayTeamId?: string;
+  homeTeamRecord?: string;
+  awayTeamRecord?: string;
+  fixtureId?: string;
+  homeApiSportsId?: number;
+  awayApiSportsId?: number;
+}
+
+interface TeamFormData {
+  formString: string;
+  formCompact: string;
+  goalsScored: number;
+  goalsConceded: number;
+  gamesPlayed: number;
+  homeRecord: string;
+  awayRecord: string;
+  daysRest: number | null;
+  lastGameDate: string | null;
+}
+
+interface TeamStandingData {
+  teamName: string;
+  position: number;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goalsFor: number;
+  goalsAgainst: number;
+}
+
+interface EnrichedGame extends GameInfo {
+  homeForm: TeamFormData | null;
+  awayForm: TeamFormData | null;
+  homeStanding: TeamStandingData | null;
+  awayStanding: TeamStandingData | null;
+  homeInjuries: string[];
+  awayInjuries: string[];
+  h2hSummary: string | null;
+  homeLineup: string | null;
+  awayLineup: string | null;
+  referee: string | null;
 }
 
 interface GameOdds {
@@ -187,7 +230,12 @@ async function fetchApiSportsGames(
 interface ESPNEvent {
   date: string;
   competitions: Array<{
-    competitors: Array<{ homeAway: "home" | "away"; team: { displayName: string } }>;
+    id?: string;
+    competitors: Array<{
+      homeAway: "home" | "away";
+      team: { id?: string; displayName: string };
+      records?: Array<{ name: string; summary: string }>;
+    }>;
     odds?: Array<{ details: string; overUnder?: number }>;
     status?: { type: { completed: boolean } };
     venue?: { fullName: string; address?: { city: string } };
@@ -205,12 +253,22 @@ async function fetchESPNGames(espnSport: string, espnLeague: string): Promise<Ga
     );
     return events.slice(0, 6).map((e) => {
       const comp = e.competitions?.[0];
+      const home = comp?.competitors?.find((c) => c.homeAway === "home");
+      const away = comp?.competitors?.find((c) => c.homeAway === "away");
+      const homeRecord = home?.records?.find((r) => r.name === "overall")?.summary
+        ?? home?.records?.[0]?.summary;
+      const awayRecord = away?.records?.find((r) => r.name === "overall")?.summary
+        ?? away?.records?.[0]?.summary;
       return {
-        homeTeam: comp?.competitors?.find((c) => c.homeAway === "home")?.team.displayName ?? "Home",
-        awayTeam: comp?.competitors?.find((c) => c.homeAway === "away")?.team.displayName ?? "Away",
+        homeTeam: home?.team.displayName ?? "Home",
+        awayTeam: away?.team.displayName ?? "Away",
         date: e.date,
         venue: comp?.venue?.fullName,
         city: comp?.venue?.address?.city,
+        homeTeamId: home?.team.id,
+        awayTeamId: away?.team.id,
+        homeTeamRecord: homeRecord,
+        awayTeamRecord: awayRecord,
       };
     });
   } catch {
@@ -230,6 +288,400 @@ async function fetchESPNNews(espnSport: string, espnLeague: string): Promise<str
   } catch {
     return [];
   }
+}
+
+// ─── ESPN Team Form (last 10 completed games) ─────────────────────────────────
+
+async function fetchESPNTeamForm(
+  espnSport: string,
+  espnLeague: string,
+  teamId: string,
+): Promise<TeamFormData | null> {
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnLeague}/teams/${teamId}/schedule?limit=15`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as Record<string, unknown>;
+    const events = (data.events as Record<string, unknown>[]) ?? [];
+
+    const completed = events
+      .filter((e) => {
+        const comp = (e.competitions as Record<string, unknown>[])?.[0];
+        return (comp?.status as Record<string, unknown> | undefined)?.type &&
+          ((comp?.status as Record<string, unknown>).type as Record<string, unknown>)?.completed === true;
+      })
+      .slice(-10);
+
+    if (completed.length === 0) return null;
+
+    let wins = 0, draws = 0, losses = 0;
+    let homeWins = 0, homeDraws = 0, homeLosses = 0;
+    let awayWins = 0, awayDraws = 0, awayLosses = 0;
+    let goalsScored = 0, goalsConceded = 0;
+    const formLetters: string[] = [];
+    let lastGameDate: string | null = null;
+
+    for (const event of completed) {
+      const comp = (event.competitions as Record<string, unknown>[])?.[0];
+      const competitors = (comp?.competitors as Record<string, unknown>[]) ?? [];
+      const mine = competitors.find(
+        (c) => ((c.team as Record<string, unknown>)?.id as string) === teamId,
+      );
+      const opp = competitors.find(
+        (c) => ((c.team as Record<string, unknown>)?.id as string) !== teamId,
+      );
+      if (!mine || !opp) continue;
+
+      const myScore = parseFloat((mine.score as string) ?? "0");
+      const oppScore = parseFloat((opp.score as string) ?? "0");
+      const isHome = mine.homeAway === "home";
+      const winner = mine.winner === true;
+      const eventDate = event.date as string;
+
+      goalsScored += isNaN(myScore) ? 0 : myScore;
+      goalsConceded += isNaN(oppScore) ? 0 : oppScore;
+      lastGameDate = eventDate;
+
+      if (winner) {
+        wins++; formLetters.push("W");
+        if (isHome) homeWins++; else awayWins++;
+      } else if (myScore === oppScore) {
+        draws++; formLetters.push("D");
+        if (isHome) homeDraws++; else awayDraws++;
+      } else {
+        losses++; formLetters.push("L");
+        if (isHome) homeLosses++; else awayLosses++;
+      }
+    }
+
+    const gamesPlayed = wins + draws + losses;
+    const daysRest = lastGameDate
+      ? Math.floor((Date.now() - new Date(lastGameDate).getTime()) / 86_400_000)
+      : null;
+
+    return {
+      formString: formLetters.join(" "),
+      formCompact: `${wins}W ${draws}D ${losses}L`,
+      goalsScored,
+      goalsConceded,
+      gamesPlayed,
+      homeRecord: `W${homeWins} D${homeDraws} L${homeLosses}`,
+      awayRecord: `W${awayWins} D${awayDraws} L${awayLosses}`,
+      daysRest,
+      lastGameDate,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── ESPN Standings ────────────────────────────────────────────────────────────
+
+async function fetchESPNStandings(
+  espnSport: string,
+  espnLeague: string,
+): Promise<TeamStandingData[]> {
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnLeague}/standings`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as Record<string, unknown>;
+
+    const extractEntries = (obj: Record<string, unknown>): Record<string, unknown>[] => {
+      if (Array.isArray(obj.entries)) return obj.entries as Record<string, unknown>[];
+      if (Array.isArray(obj.children)) {
+        for (const child of obj.children as Record<string, unknown>[]) {
+          const found = extractEntries(child);
+          if (found.length > 0) return found;
+        }
+      }
+      return [];
+    };
+
+    const entries = extractEntries(data);
+    const getStat = (stats: Record<string, unknown>[], name: string): number => {
+      const s = stats.find((x) => x.name === name || x.abbreviation === name);
+      return parseFloat((s?.value as string | number | undefined)?.toString() ?? "0") || 0;
+    };
+
+    return entries.slice(0, 25).map((entry, i) => {
+      const team = entry.team as Record<string, unknown> | undefined;
+      const stats = (entry.stats as Record<string, unknown>[]) ?? [];
+      return {
+        teamName: (team?.displayName as string) ?? `Team ${i + 1}`,
+        position: i + 1,
+        points: getStat(stats, "points") || getStat(stats, "pts"),
+        wins: getStat(stats, "wins") || getStat(stats, "w"),
+        draws: getStat(stats, "ties") || getStat(stats, "draws") || getStat(stats, "d"),
+        losses: getStat(stats, "losses") || getStat(stats, "l"),
+        goalsFor: getStat(stats, "pointsFor") || getStat(stats, "gf"),
+        goalsAgainst: getStat(stats, "pointsAgainst") || getStat(stats, "ga"),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+// ─── ESPN Injuries ─────────────────────────────────────────────────────────────
+
+async function fetchESPNInjuries(
+  espnSport: string,
+  espnLeague: string,
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  try {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnLeague}/injuries`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if (!resp.ok) return result;
+    const data = (await resp.json()) as Record<string, unknown>;
+    const teams = (data.injuries as Record<string, unknown>[]) ?? [];
+
+    for (const teamEntry of teams) {
+      const teamName = ((teamEntry.team as Record<string, unknown>)?.displayName as string) ?? "";
+      const injured = ((teamEntry.injuries as Record<string, unknown>[]) ?? [])
+        .slice(0, 5)
+        .map((inj) => {
+          const athlete = (inj.athlete as Record<string, unknown>) ?? {};
+          const type = (inj.type as Record<string, unknown>) ?? {};
+          const pos = ((athlete.position as Record<string, unknown>)?.abbreviation as string) ?? "";
+          return `${athlete.displayName as string}${pos ? ` (${pos})` : ""} — ${type.description as string ?? "injured"}`;
+        });
+      if (teamName && injured.length > 0) result.set(teamName, injured);
+    }
+  } catch { /* silent */ }
+  return result;
+}
+
+// ─── API-Sports H2H ───────────────────────────────────────────────────────────
+
+async function fetchApiSportsH2H(
+  base: string,
+  homeId: number,
+  awayId: number,
+): Promise<string | null> {
+  if (!API_SPORTS_KEY) return null;
+  try {
+    const url = `${base}/fixtures/headtohead?h2h=${homeId}-${awayId}&last=5`;
+    const resp = await fetch(url, {
+      headers: { "x-apisports-key": API_SPORTS_KEY },
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as { response?: Record<string, unknown>[] };
+    const fixtures = data.response ?? [];
+    if (fixtures.length === 0) return null;
+
+    let homeWins = 0, awayWins = 0, draws = 0, totalGoals = 0;
+    for (const f of fixtures) {
+      const teams = f.teams as Record<string, unknown> | undefined;
+      const goals = f.goals as Record<string, unknown> | undefined;
+      const homeGoals = (goals?.home as number) ?? 0;
+      const awayGoals = (goals?.away as number) ?? 0;
+      totalGoals += homeGoals + awayGoals;
+      const homeWinner = ((teams?.home as Record<string, unknown>)?.winner as boolean) === true;
+      const awayWinner = ((teams?.away as Record<string, unknown>)?.winner as boolean) === true;
+      if (homeWinner) homeWins++;
+      else if (awayWinner) awayWins++;
+      else draws++;
+    }
+    const avgGoals = fixtures.length > 0 ? (totalGoals / fixtures.length).toFixed(1) : "N/A";
+    return `H2H last ${fixtures.length}: Home ${homeWins}W / ${draws}D / Away ${awayWins}W | Avg goals: ${avgGoals}`;
+  } catch {
+    return null;
+  }
+}
+
+// ─── API-Sports Lineup + Referee ──────────────────────────────────────────────
+
+async function fetchApiSportsFixtureDetails(
+  base: string,
+  fixtureId: string,
+): Promise<{ homeLineup: string | null; awayLineup: string | null; referee: string | null }> {
+  const empty = { homeLineup: null, awayLineup: null, referee: null };
+  if (!API_SPORTS_KEY || !fixtureId) return empty;
+  try {
+    const [lineupResp, fixtureResp] = await Promise.all([
+      fetch(`${base}/fixtures/lineups?fixture=${fixtureId}`, {
+        headers: { "x-apisports-key": API_SPORTS_KEY },
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch(`${base}/fixtures?id=${fixtureId}`, {
+        headers: { "x-apisports-key": API_SPORTS_KEY },
+        signal: AbortSignal.timeout(5000),
+      }),
+    ]);
+
+    let homeLineup: string | null = null;
+    let awayLineup: string | null = null;
+    let referee: string | null = null;
+
+    if (lineupResp.ok) {
+      const lineupData = (await lineupResp.json()) as { response?: Record<string, unknown>[] };
+      const lineups = lineupData.response ?? [];
+      for (const lineup of lineups.slice(0, 2)) {
+        const teamName = ((lineup.team as Record<string, unknown>)?.name as string) ?? "";
+        const formation = (lineup.formation as string) ?? "";
+        const startXI = (lineup.startXI as Record<string, unknown>[]) ?? [];
+        const players = startXI
+          .slice(0, 11)
+          .map((p) => ((p.player as Record<string, unknown>)?.name as string) ?? "")
+          .filter(Boolean)
+          .join(", ");
+        const summary = players ? `${formation}: ${players}` : null;
+        if (lineups.indexOf(lineup) === 0) homeLineup = summary ? `${teamName}: ${summary}` : null;
+        else awayLineup = summary ? `${teamName}: ${summary}` : null;
+      }
+    }
+
+    if (fixtureResp.ok) {
+      const fixData = (await fixtureResp.json()) as { response?: Record<string, unknown>[] };
+      const fix = fixData.response?.[0];
+      const fixture = fix?.fixture as Record<string, unknown> | undefined;
+      referee = (fixture?.referee as string) ?? null;
+    }
+
+    return { homeLineup, awayLineup, referee };
+  } catch {
+    return empty;
+  }
+}
+
+// ─── Enrich games with all additional context ─────────────────────────────────
+
+async function enrichGames(
+  games: GameInfo[],
+  espnSport: string,
+  espnLeague: string,
+  apiSportsBase: string,
+): Promise<EnrichedGame[]> {
+  const [standings, injuries] = await Promise.all([
+    fetchESPNStandings(espnSport, espnLeague),
+    fetchESPNInjuries(espnSport, espnLeague),
+  ]);
+
+  const normalized = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const findStanding = (teamName: string): TeamStandingData | null =>
+    standings.find((s) => normalized(s.teamName).includes(normalized(teamName)) ||
+      normalized(teamName).includes(normalized(s.teamName))) ?? null;
+
+  const findInjuries = (teamName: string): string[] => {
+    for (const [key, val] of injuries.entries()) {
+      if (normalized(key).includes(normalized(teamName)) ||
+          normalized(teamName).includes(normalized(key))) return val;
+    }
+    return [];
+  };
+
+  const enriched = await Promise.all(
+    games.slice(0, 6).map(async (game): Promise<EnrichedGame> => {
+      const [homeForm, awayForm, fixtureDetails] = await Promise.all([
+        game.homeTeamId
+          ? fetchESPNTeamForm(espnSport, espnLeague, game.homeTeamId)
+          : Promise.resolve(null),
+        game.awayTeamId
+          ? fetchESPNTeamForm(espnSport, espnLeague, game.awayTeamId)
+          : Promise.resolve(null),
+        game.fixtureId && API_SPORTS_KEY
+          ? fetchApiSportsFixtureDetails(apiSportsBase, game.fixtureId)
+          : Promise.resolve({ homeLineup: null, awayLineup: null, referee: null }),
+      ]);
+
+      const h2h =
+        game.homeApiSportsId && game.awayApiSportsId
+          ? await fetchApiSportsH2H(apiSportsBase, game.homeApiSportsId, game.awayApiSportsId)
+          : null;
+
+      return {
+        ...game,
+        homeForm,
+        awayForm,
+        homeStanding: findStanding(game.homeTeam),
+        awayStanding: findStanding(game.awayTeam),
+        homeInjuries: findInjuries(game.homeTeam),
+        awayInjuries: findInjuries(game.awayTeam),
+        h2hSummary: h2h,
+        homeLineup: fixtureDetails.homeLineup,
+        awayLineup: fixtureDetails.awayLineup,
+        referee: fixtureDetails.referee,
+      };
+    }),
+  );
+
+  return enriched;
+}
+
+// ─── Format enriched game into prompt block ────────────────────────────────────
+
+function formatEnrichedGameBlock(
+  g: EnrichedGame,
+  odds: GameOdds[],
+  weather: string | null,
+): string {
+  const o = findMatchingOdds(odds, g);
+  const oddsStr = o
+    ? [
+        `ML: Home ${o.homeOdds ?? "N/A"} / Away ${o.awayOdds ?? "N/A"}${o.drawOdds ? ` / Draw ${o.drawOdds}` : ""}`,
+        o.spread ? `Spread: ${o.spread}` : "",
+        o.total ? `O/U: ${o.total}` : "",
+      ].filter(Boolean).join(" | ")
+    : "Odds: Not available";
+
+  const matchDate = new Date(g.date).toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  const lines: string[] = [
+    `GAME: ${g.homeTeam} vs ${g.awayTeam}`,
+    `Date: ${matchDate}${g.venue ? ` | Venue: ${g.venue}` : ""}${g.city ? `, ${g.city}` : ""}`,
+    `Odds: ${oddsStr}`,
+  ];
+
+  if (g.homeTeamRecord || g.awayTeamRecord) {
+    lines.push(`Season Record: ${g.homeTeam} ${g.homeTeamRecord ?? "N/A"} | ${g.awayTeam} ${g.awayTeamRecord ?? "N/A"}`);
+  }
+
+  if (g.homeForm) {
+    lines.push(`${g.homeTeam} Form (last ${g.homeForm.gamesPlayed}): ${g.homeForm.formString} (${g.homeForm.formCompact})`);
+    lines.push(`  Goals avg: ${(g.homeForm.goalsScored / Math.max(1, g.homeForm.gamesPlayed)).toFixed(1)} scored / ${(g.homeForm.goalsConceded / Math.max(1, g.homeForm.gamesPlayed)).toFixed(1)} conceded per game`);
+    lines.push(`  Home record: ${g.homeForm.homeRecord} | Away record: ${g.homeForm.awayRecord}`);
+    if (g.homeForm.daysRest !== null) lines.push(`  Days rest: ${g.homeForm.daysRest} days`);
+  }
+
+  if (g.awayForm) {
+    lines.push(`${g.awayTeam} Form (last ${g.awayForm.gamesPlayed}): ${g.awayForm.formString} (${g.awayForm.formCompact})`);
+    lines.push(`  Goals avg: ${(g.awayForm.goalsScored / Math.max(1, g.awayForm.gamesPlayed)).toFixed(1)} scored / ${(g.awayForm.goalsConceded / Math.max(1, g.awayForm.gamesPlayed)).toFixed(1)} conceded per game`);
+    lines.push(`  Home record: ${g.awayForm.homeRecord} | Away record: ${g.awayForm.awayRecord}`);
+    if (g.awayForm.daysRest !== null) lines.push(`  Days rest: ${g.awayForm.daysRest} days`);
+  }
+
+  if (g.homeStanding || g.awayStanding) {
+    const hs = g.homeStanding;
+    const as_ = g.awayStanding;
+    const homePos = hs ? `${g.homeTeam}: ${hs.position}${ordinal(hs.position)} (${hs.points} pts, ${hs.wins}W ${hs.draws}D ${hs.losses}L)` : "";
+    const awayPos = as_ ? `${g.awayTeam}: ${as_.position}${ordinal(as_.position)} (${as_.points} pts, ${as_.wins}W ${as_.draws}D ${as_.losses}L)` : "";
+    if (homePos || awayPos) lines.push(`League Standings: ${[homePos, awayPos].filter(Boolean).join(" | ")}`);
+  }
+
+  if (g.h2hSummary) lines.push(`Head-to-Head: ${g.h2hSummary}`);
+
+  if (g.homeInjuries.length > 0) lines.push(`${g.homeTeam} Injuries: ${g.homeInjuries.join(", ")}`);
+  if (g.awayInjuries.length > 0) lines.push(`${g.awayTeam} Injuries: ${g.awayInjuries.join(", ")}`);
+
+  if (g.homeLineup) lines.push(`${g.homeTeam} Starting XI: ${g.homeLineup}`);
+  if (g.awayLineup) lines.push(`${g.awayTeam} Starting XI: ${g.awayLineup}`);
+
+  if (g.referee) lines.push(`Referee: ${g.referee}`);
+  if (weather) lines.push(`Weather: ${weather}`);
+
+  return lines.join("\n");
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return s[(v - 20) % 10] ?? s[v] ?? s[0] ?? "th";
 }
 
 // ─── The Odds API ─────────────────────────────────────────────────────────────
@@ -374,41 +826,30 @@ async function generateForSport(
     dataSource = "ESPN scoreboard";
   }
 
-  // Weather for outdoor venues
-  const weatherLines: string[] = [];
-  if (outdoor && WEATHER_API_KEY && games.length > 0) {
-    const results = await Promise.all(
-      games.slice(0, 3).map(async (g) => {
-        if (!g.city) return null;
+  // Enrich games with form, standings, injuries, H2H, lineup, referee — all in parallel
+  const enrichedGames = await enrichGames(games, espnSport, espnLeague, apiSportsBase);
+
+  // Weather per game for outdoor sports
+  const weatherByGame = new Map<string, string | null>();
+  if (outdoor && WEATHER_API_KEY && enrichedGames.length > 0) {
+    await Promise.all(
+      enrichedGames.slice(0, 4).map(async (g) => {
+        if (!g.city) return;
         const w = await fetchWeather(g.city);
-        return w ? `${g.homeTeam} (${g.city}): ${w}` : null;
+        weatherByGame.set(`${g.homeTeam}|${g.awayTeam}`, w);
       }),
     );
-    for (const r of results) {
-      if (r) weatherLines.push(r);
-    }
   }
 
-  // Build enriched game lines with real odds
-  const gameLines = games.slice(0, 6).map((g) => {
-    const o = findMatchingOdds(odds, g);
-    const oddsStr = o
-      ? ` | ML: Home ${o.homeOdds ?? "N/A"} / Away ${o.awayOdds ?? "N/A"}${o.drawOdds ? ` / Draw ${o.drawOdds}` : ""}${o.spread ? ` | Spread: ${o.spread}` : ""}${o.total ? ` | O/U: ${o.total}` : ""}`
-      : "";
-    const dateStr = new Date(g.date).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const venueStr = g.venue ? ` @ ${g.venue}` : "";
-    return `${g.homeTeam} vs ${g.awayTeam}${venueStr} (${dateStr})${oddsStr}`;
+  // Build rich per-game context blocks
+  const gameBlocks = enrichedGames.map((g) => {
+    const weather = weatherByGame.get(`${g.homeTeam}|${g.awayTeam}`) ?? null;
+    return formatEnrichedGameBlock(g, odds, weather);
   });
 
   // News: prefer NewsAPI (richer), fall back to ESPN
   const newsLines = newsHeadlines.length > 0 ? newsHeadlines : espnNews;
-  const hasGames = gameLines.length > 0;
+  const hasGames = gameBlocks.length > 0;
 
   const prompt = `You are PrediQs AI, the world's most accurate sports prediction engine.
 You think like a professional sports analyst and sharp bettor combined.
@@ -417,12 +858,11 @@ You are analysing ${league} games.
 DATA SOURCE: ${dataSource}
 ODDS SOURCE: ${odds.length > 0 ? "The Odds API (live)" : "Not available"}
 NEWS SOURCE: ${newsHeadlines.length > 0 ? "NewsAPI (real-time)" : espnNews.length > 0 ? "ESPN headlines" : "Not available"}
+ENRICHMENT: form, standings, injuries, H2H, lineup, referee fetched from ESPN + API-Sports
 
-${hasGames ? `TODAY'S REAL GAMES:\n${gameLines.join("\n")}` : `No ${league} games scheduled today.`}
+${hasGames ? `TODAY'S GAMES WITH FULL CONTEXT:\n\n${gameBlocks.join("\n\n---\n\n")}` : `No ${league} games scheduled today.`}
 
 ${newsLines.length > 0 ? `LATEST INJURIES & NEWS:\n${newsLines.join("\n")}` : ""}
-
-${weatherLines.length > 0 ? `WEATHER CONDITIONS (outdoor venues):\n${weatherLines.join("\n")}` : ""}
 
 ANALYSIS FRAMEWORK — apply ALL of these for each game:
 
