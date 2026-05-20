@@ -499,7 +499,7 @@ export default function WorldCupScreen() {
             <View style={[styles.fixturesHeader, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
               <Zap size={14} color={colors.cyan} />
               <Text style={[styles.fixturesHeaderText, { color: colors.textSecondary }]}>
-                Tap <Text style={{ color: colors.cyan }}>"Get AI Prediction"</Text> on any match to generate a Claude WC specialist analysis.
+                Tap <Text style={{ color: colors.cyan }}>"Get AI Prediction"</Text> on any match to generate a PrediQs AI specialist analysis.
               </Text>
             </View>
             {(fixtures.length > 0 ? fixtures : DEFAULT_FIXTURES).map((f) => (

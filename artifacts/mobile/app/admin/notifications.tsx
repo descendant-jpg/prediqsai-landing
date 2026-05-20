@@ -18,7 +18,7 @@ const LINKS = [
   { id: "/(tabs)/",     label: "Dashboard" },
   { id: "/(tabs)/picks",label: "Picks" },
   { id: "/(tabs)/bankroll", label: "Bankroll" },
-  { id: "/(tabs)/assistant", label: "AI Chat" },
+  { id: "/(tabs)/assistant", label: "PrediQs AI" },
 ];
 
 type NotifHistoryItem = {

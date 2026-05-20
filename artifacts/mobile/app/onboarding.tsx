@@ -143,7 +143,7 @@ function Step1({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
           { icon: "🎯", text: "AI match analysis across 50+ leagues" },
           { icon: "📊", text: "Sports finance tracking & management" },
           { icon: "⚡", text: "Live scores & momentum tracking" },
-          { icon: "🔍", text: "Slip review education with Claude Vision" },
+          { icon: "🔍", text: "Slip review education with PrediQs AI" },
         ].map((f, i) => (
           <View key={i} style={[styles.featureRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={styles.featureEmoji}>{f.icon}</Text>

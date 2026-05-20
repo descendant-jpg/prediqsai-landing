@@ -15,7 +15,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 };
 
 const KEY_META: { name: string; label: string; category: string }[] = [
-  { name: "ANTHROPIC_API_KEY",    label: "Anthropic Claude AI", category: "AI" },
+  { name: "ANTHROPIC_API_KEY",    label: "PrediQs AI Engine",   category: "AI" },
   { name: "API_SPORTS_KEY",       label: "API-Sports",          category: "Sports" },
   { name: "ODDS_API_KEY",         label: "The Odds API",        category: "Betting" },
   { name: "NEWS_API_KEY",         label: "News API",            category: "Content" },

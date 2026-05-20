@@ -217,7 +217,7 @@ export default function SlipAnalysisScreen() {
             <Text style={{ fontSize: 48 }}>🎟️</Text>
             <Text style={[styles.heroTitle, { color: colors.text }]}>AI Slip Analyser</Text>
             <Text style={[styles.heroSub, { color: colors.textSecondary }]}>
-              Upload or photograph your slip and Claude AI will review every selection, rate the analysis, and identify weak legs for educational review.
+              Upload or photograph your slip and PrediQs AI will review every selection, rate the analysis, and identify weak legs for educational review.
             </Text>
           </View>
 

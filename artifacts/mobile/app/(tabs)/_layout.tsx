@@ -70,7 +70,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="assistant"
         options={{
-          title: "AI",
+          title: "PrediQs AI",
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="bolt.circle.fill" tintColor={color} size={22} />

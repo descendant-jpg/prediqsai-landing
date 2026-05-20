@@ -21,8 +21,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { chatUrl } from "@/lib/api";
 import type { ChatMessage } from "@/types";
 
-const SYSTEM_PROMPT_DISPLAY =
-  "PrediQs AI — your sports analytics education assistant";
+const SYSTEM_PROMPT_DISPLAY = "Sports Intelligence Engine";
 
 function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -115,7 +114,7 @@ export default function AssistantScreen() {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: "Sorry, I'm having trouble connecting. Please try again." }
+            ? { ...m, content: "PrediQs AI is temporarily unavailable. Try again shortly." }
             : m,
         ),
       );
@@ -145,7 +144,7 @@ export default function AssistantScreen() {
             <View style={styles.typingRow}>
               <ActivityIndicator size="small" color={colors.cyan} />
               <Text style={[styles.typingText, { color: colors.textSecondary }]}>
-                Analyzing...
+                PrediQs AI is analyzing...
               </Text>
             </View>
           ) : (
@@ -175,7 +174,7 @@ export default function AssistantScreen() {
           <Zap size={16} color={colors.background} />
         </View>
         <View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>AI Assistant</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>PrediQs AI</Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             {SYSTEM_PROMPT_DISPLAY}
           </Text>
@@ -205,10 +204,10 @@ export default function AssistantScreen() {
                   <Zap size={32} color={colors.cyan} />
                 </View>
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  PrediQs AI
+                  ⚡ PrediQs AI Sports Intelligence
                 </Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                  Ask me anything about sports analytics, match analysis, or finance tracking.
+                  {"I analyze real-time data from:\n📊 Odds across 40+ bookmakers\n⚡ Live match statistics\n📰 Latest injury & team news\n🌤️ Stadium weather conditions\n💰 Sharp money movements\n🧠 5 AI prediction models"}
                 </Text>
                 <View style={styles.prompts}>
                   {SUGGESTED_PROMPTS.slice(0, 4).map((prompt, i) => (
@@ -244,7 +243,7 @@ export default function AssistantScreen() {
               style={[styles.input, { color: colors.text }]}
               value={input}
               onChangeText={setInput}
-              placeholder="Ask about match analysis, odds education..."
+              placeholder="Ask PrediQs AI anything..."
               placeholderTextColor={colors.textMuted}
               multiline
               maxLength={500}

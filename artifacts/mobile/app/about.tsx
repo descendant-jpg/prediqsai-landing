@@ -48,7 +48,7 @@ const FEATURES = [
   {
     icon: "🤖",
     title: "AI Learning Assistant",
-    desc: "Ask any sports analytics question and receive detailed educational responses from Claude AI.",
+    desc: "Ask any sports analytics question and receive detailed educational responses from PrediQs AI.",
   },
 ];
 
