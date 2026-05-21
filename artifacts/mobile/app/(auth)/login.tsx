@@ -379,6 +379,22 @@ export default function LoginScreen() {
                   <Text style={s.submitBtnText}>Sign Up</Text>
                 )}
               </TouchableOpacity>
+              <Text style={s.tosLine}>
+                By signing up you agree to our{" "}
+                <Text
+                  style={s.tosLink}
+                  onPress={() => router.push("/terms-of-service" as any)}
+                >
+                  Terms of Service
+                </Text>
+                {" "}and{" "}
+                <Text
+                  style={s.tosLink}
+                  onPress={() => router.push("/privacy-policy" as any)}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
             </View>
           )}
 
@@ -578,6 +594,10 @@ const s = StyleSheet.create({
   submitBtn: { backgroundColor: GOLD, borderRadius: 13, paddingVertical: 15, alignItems: "center", marginTop: 2 },
   submitBtnDisabled: { opacity: 0.4 },
   submitBtnText: { color: BG, fontSize: 16, fontWeight: "700" },
+
+  // ToS consent line
+  tosLine: { color: MUTED, fontSize: 11, textAlign: "center", lineHeight: 17 },
+  tosLink: { color: GOLD, textDecorationLine: "underline" },
 
   // Divider
   dividerRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18, marginBottom: 14 },

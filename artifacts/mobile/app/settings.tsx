@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, Info, LogOut, Settings, Shield, Star, X, Zap } from "lucide-react-native";
+import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, Info, LogOut, Mail, Settings, Shield, Star, X, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -453,6 +453,45 @@ export default function SettingsScreen() {
           </>
         )}
 
+        {/* Legal */}
+        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>LEGAL</Text>
+        <TouchableOpacity
+          style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push("/terms-of-service" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 16 }}>📄</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>Terms of Service</Text>
+          <ChevronRight size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push("/privacy-policy" as any)}
+          activeOpacity={0.8}
+        >
+          <Shield size={18} color={colors.textSecondary} />
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>Privacy Policy</Text>
+          <ChevronRight size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push("/responsible-gambling" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 16 }}>🛡️</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>Responsible Gambling</Text>
+          <ChevronRight size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => { /* open email */ }}
+          activeOpacity={0.8}
+        >
+          <Mail size={18} color={colors.textSecondary} />
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>Contact Us</Text>
+          <Text style={[styles.rowBtnSub, { color: colors.textMuted }]}>support@prediqsai.com</Text>
+        </TouchableOpacity>
+
         {/* App Info */}
         <Text style={[styles.adminLabel, { color: colors.textMuted }]}>APP INFO</Text>
         <TouchableOpacity
@@ -574,6 +613,7 @@ const styles = StyleSheet.create({
   adminLabel: { fontSize: 11, letterSpacing: 1, marginTop: 4 },
   rowBtn: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 14, borderWidth: 1 },
   rowBtnText: { flex: 1, fontSize: 15 },
+  rowBtnSub: { fontSize: 12 },
   footer: { fontSize: 11, textAlign: "center", marginTop: 8, paddingVertical: 6 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", alignItems: "center", justifyContent: "center", padding: 32 },
   modalCard: { width: "100%", maxWidth: 360, borderRadius: 20, borderWidth: 1, padding: 28, alignItems: "center", gap: 12 },

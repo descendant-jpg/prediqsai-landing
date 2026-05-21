@@ -1,0 +1,506 @@
+Add Privacy Policy, Terms of Service
+and Educational disclaimers throughout
+the entire PrediQs AI app.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. PRIVACY POLICY PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a full Privacy Policy screen
+accessible from Settings/Profile.
+
+Content:
+
+PRIVACY POLICY
+Last updated: May 20, 2026
+
+━━━━━━━━━━━━━
+1. WHO WE ARE
+━━━━━━━━━━━━━
+PrediQs AI is an educational sports
+intelligence platform. We provide
+AI-powered sports analysis for
+informational and educational
+purposes only.
+
+Contact: privacy@prediqsai.com
+Website: prediqsai.com
+
+━━━━━━━━━━━━━━━━━━━
+2. INFORMATION WE COLLECT
+━━━━━━━━━━━━━━━━━━━
+When you create an account:
+* Full name and username
+* Email address
+* Country of residence
+* Betting experience level
+* How you found us
+
+When you use the app:
+* Sports preferences
+* Predictions you view
+* Paper bets you place
+* Slip analyses you run
+* AI chat messages
+* App usage patterns
+* Device type (iOS/Android)
+* App version
+
+We do NOT collect:
+* Real betting account details
+* Bank or payment information
+* Government ID or documents
+* Location/GPS data
+* Contacts or phone book
+
+━━━━━━━━━━━━━━━━━━━
+3. HOW WE USE YOUR DATA
+━━━━━━━━━━━━━━━━━━━
+* Provide AI sports predictions
+* Personalize your experience
+* Send push notifications
+* Improve prediction accuracy
+* Process subscription payments
+* Respond to support requests
+* Prevent fraud and abuse
+* Comply with legal obligations
+
+━━━━━━━━━━━━━━━━━━━
+4. THIRD PARTY SERVICES
+━━━━━━━━━━━━━━━━━━━
+We use these trusted services:
+
+AI Analysis: Anthropic (claude.ai)
+Sports Data: API-Sports
+Odds Data: The Odds API
+News Data: NewsAPI
+Weather Data: WeatherAPI
+Push Notifications: OneSignal
+Email Service: Resend
+Analytics: Google Analytics
+Payments: Apple/Google/Paystack
+
+Each service has their own
+privacy policy governing their
+use of data.
+
+━━━━━━━━━━━━━━━━━━━
+5. DATA STORAGE
+━━━━━━━━━━━━━━━━━━━
+Your data is stored securely on
+encrypted servers. We use
+industry-standard security measures
+to protect your information.
+
+Data is retained while your account
+is active. Upon account deletion
+your data is permanently removed
+within 30 days.
+
+━━━━━━━━━━━━━━━━━━━
+6. YOUR RIGHTS
+━━━━━━━━━━━━━━━━━━━
+You have the right to:
+* Access your personal data
+* Correct inaccurate data
+* Delete your account and data
+* Export your data
+* Opt out of marketing emails
+* Opt out of push notifications
+
+To exercise these rights contact:
+privacy@prediqsai.com
+
+━━━━━━━━━━━━━━━━━━━
+7. CHILDREN'S PRIVACY
+━━━━━━━━━━━━━━━━━━━
+PrediQs AI is not intended for
+anyone under 18 years of age.
+We do not knowingly collect data
+from minors. If you believe a
+minor has registered please
+contact us immediately.
+
+━━━━━━━━━━━━━━━━━━━
+8. GAMBLING DISCLAIMER
+━━━━━━━━━━━━━━━━━━━
+PrediQs AI does not facilitate
+real money gambling. We provide
+educational sports analysis only.
+Any betting decisions made using
+our analysis are entirely the
+user's own responsibility.
+
+━━━━━━━━━━━━━━━━━━━
+9. CHANGES TO THIS POLICY
+━━━━━━━━━━━━━━━━━━━
+We may update this policy
+periodically. We will notify
+you of significant changes
+via email or in-app notification.
+
+━━━━━━━━━━━━━━━━━━━
+10. CONTACT US
+━━━━━━━━━━━━━━━━━━━
+Questions about this policy?
+Email: privacy@prediqsai.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. TERMS OF SERVICE PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a full Terms of Service screen
+accessible from Settings/Profile.
+
+Content:
+
+TERMS OF SERVICE
+Last updated: May 20, 2026
+
+━━━━━━━━━━━━━━━━━━━
+1. ACCEPTANCE OF TERMS
+━━━━━━━━━━━━━━━━━━━
+By using PrediQs AI you agree
+to these Terms of Service.
+If you do not agree please
+do not use the app.
+
+━━━━━━━━━━━━━━━━━━━
+2. DESCRIPTION OF SERVICE
+━━━━━━━━━━━━━━━━━━━
+PrediQs AI is an educational
+sports intelligence platform.
+We provide:
+* AI-powered match analysis
+* Statistical probability scores
+* Odds comparison education
+* Sports betting educational content
+* Bankroll management education
+
+We do NOT provide:
+* Gambling or betting services
+* Financial or investment advice
+* Guaranteed winning predictions
+* Real money wagering
+
+━━━━━━━━━━━━━━━━━━━
+3. ELIGIBILITY
+━━━━━━━━━━━━━━━━━━━
+To use PrediQs AI you must:
+* Be at least 18 years old
+* Have legal capacity to
+  enter into agreements
+* Ensure sports betting is
+  legal in your jurisdiction
+* Not be located in a
+  restricted jurisdiction
+
+━━━━━━━━━━━━━━━━━━━
+4. EDUCATIONAL PURPOSE ONLY
+━━━━━━━━━━━━━━━━━━━
+ALL content on PrediQs AI is
+provided for EDUCATIONAL and
+INFORMATIONAL purposes ONLY.
+
+Nothing on PrediQs AI constitutes:
+* Betting advice
+* Gambling advice
+* Financial advice
+* Investment advice
+* A recommendation to place
+  any bet or wager
+
+Past prediction accuracy does not
+guarantee future results. Sports
+outcomes are inherently uncertain.
+
+━━━━━━━━━━━━━━━━━━━
+5. USER RESPONSIBILITIES
+━━━━━━━━━━━━━━━━━━━
+You are solely responsible for:
+* Your own betting decisions
+* Ensuring betting is legal
+  in your jurisdiction
+* Betting within your means
+* Understanding the risks
+  of sports betting
+* Any losses incurred
+
+━━━━━━━━━━━━━━━━━━━
+6. SUBSCRIPTION TERMS
+━━━━━━━━━━━━━━━━━━━
+Free tier:
+* Available at no cost
+* Limited features
+* No payment required
+
+Premium subscription:
+* $29.99/month or $319/year
+* Auto-renews unless cancelled
+* Cancel anytime in settings
+* Access to all features
+
+Lifetime access:
+* One-time payment $299
+* Permanent access
+* No recurring charges
+
+━━━━━━━━━━━━━━━━━━━
+7. REFUND POLICY
+━━━━━━━━━━━━━━━━━━━
+Digital subscriptions are
+generally non-refundable.
+
+Exceptions may be made for:
+* Technical issues preventing
+  access to the service
+* Duplicate charges
+* Charges after cancellation
+
+Refund requests:
+support@prediqsai.com
+
+━━━━━━━━━━━━━━━━━━━
+8. PROHIBITED USES
+━━━━━━━━━━━━━━━━━━━
+You may not:
+* Resell or redistribute
+  our predictions
+* Use bots or automated
+  tools to scrape data
+* Share your account login
+* Attempt to hack or
+  compromise the platform
+* Use for illegal purposes
+* Violate any applicable laws
+
+━━━━━━━━━━━━━━━━━━━
+9. INTELLECTUAL PROPERTY
+━━━━━━━━━━━━━━━━━━━
+All content, predictions, analysis,
+branding and technology on
+PrediQs AI is owned by PrediQs AI.
+You may not copy, reproduce or
+distribute our content without
+written permission.
+
+━━━━━━━━━━━━━━━━━━━
+10. LIMITATION OF LIABILITY
+━━━━━━━━━━━━━━━━━━━
+PrediQs AI and its operators
+are NOT liable for:
+* Any betting losses
+* Financial losses of any kind
+* Inaccurate predictions
+* Technical downtime
+* Third party actions
+* Any indirect damages
+
+Our maximum liability is limited
+to the amount you paid us in
+the last 30 days.
+
+━━━━━━━━━━━━━━━━━━━
+11. RESPONSIBLE GAMBLING
+━━━━━━━━━━━━━━━━━━━
+We promote responsible gambling.
+If you need help:
+
+USA: ncpgambling.org
+     1-800-522-4700
+
+UK: gamcare.org.uk
+    begambleaware.org
+
+Global: gamblingtherapy.org
+
+Please gamble responsibly.
+Never bet more than you can
+afford to lose.
+
+━━━━━━━━━━━━━━━━━━━
+12. CHANGES TO TERMS
+━━━━━━━━━━━━━━━━━━━
+We reserve the right to modify
+these terms at any time. Continued
+use of the app constitutes
+acceptance of updated terms.
+
+━━━━━━━━━━━━━━━━━━━
+13. GOVERNING LAW
+━━━━━━━━━━━━━━━━━━━
+These terms are governed by
+applicable laws. Disputes will
+be resolved through binding
+arbitration.
+
+━━━━━━━━━━━━━━━━━━━
+14. CONTACT
+━━━━━━━━━━━━━━━━━━━
+Legal: legal@prediqsai.com
+Support: support@prediqsai.com
+Privacy: privacy@prediqsai.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ADD EDUCATIONAL DISCLAIMER
+   EVERYWHERE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this small footer text on
+EVERY main screen:
+
+"PrediQs AI is for educational 
+purposes only. Not betting advice.
+18+ | Gamble responsibly"
+
+Specifically add on:
+- Dashboard footer
+- Picks/Predictions screen
+- Oracle AI chat screen
+- ARB Scanner screen
+- Slip Analyzer screen
+- Bankroll Manager screen
+- Onboarding screens
+- Pricing/Upgrade screen
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. RESPONSIBLE GAMBLING PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a dedicated page in Settings:
+"Responsible Gambling"
+
+Content:
+🛡️ Bet Responsibly
+
+"PrediQs AI cares about your
+wellbeing. Sports betting should
+be enjoyable entertainment,
+never a financial necessity."
+
+Warning signs to watch for:
+⚠️ Betting more than you can afford
+⚠️ Chasing losses
+⚠️ Betting affecting relationships
+⚠️ Hiding betting from family
+⚠️ Borrowing money to bet
+⚠️ Betting to escape problems
+
+Tools to help:
+[Set Daily Loss Limit]
+[Take a 24hr Break]
+[Self Exclude 7 Days]
+[Self Exclude 30 Days]
+
+Get help now:
+🇺🇸 USA: 1-800-522-4700
+        ncpgambling.org
+🇬🇧 UK: 0808 8020 133
+        gamcare.org.uk
+🌍 Global: gamblingtherapy.org
+
+"You are not alone. Help is
+available 24/7. Reaching out
+is a sign of strength."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. WHERE TO ADD LEGAL LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add in Settings/Profile page:
+
+LEGAL section:
+📄 Terms of Service →
+🔒 Privacy Policy →
+🛡️ Responsible Gambling →
+📧 Contact Us →
+
+Add in Signup screen footer:
+"By signing up you agree to our
+Terms of Service and Privacy Policy"
+(both tappable links)
+
+Add in Disclaimer popup:
+Link to full Terms and Privacy Policy
+
+Add in App Store description:
+Privacy Policy URL: prediqsai.com/privacy
+Terms URL: prediqsai.com/terms
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. APP STORE DESCRIPTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Save this exact text for when
+you submit to App Store/Play Store:
+
+Title: PrediQs AI - Sports Analysis
+
+Subtitle: Educational Sports Intelligence
+
+Description:
+"PrediQs AI is an educational sports
+intelligence platform that helps you
+understand sports analytics, statistics
+and probability through AI-powered
+analysis.
+
+⚠️ IMPORTANT: PrediQs AI is for
+educational and informational purposes
+ONLY. We do not accept bets or wagers.
+All analysis is educational in nature.
+
+WHAT YOU CAN LEARN:
+⚡ AI-powered match analysis across
+NFL, NBA, MLB and Soccer
+📊 Statistical probability education
+🔄 Odds comparison across bookmakers
+📋 Bet slip review and education
+💰 Bankroll management concepts
+🏆 World Cup 2026 full coverage
+
+EDUCATIONAL FEATURES:
+🎯 AI Match Predictor
+Learn how AI analyzes matches using
+real statistical data
+
+🔄 ARB Scanner Education
+Understand odds discrepancies across
+different bookmakers
+
+📋 Slip Analysis Tool
+Educational review of betting slips
+with AI-powered insights
+
+🤖 Oracle AI Assistant
+Ask any sports analytics question
+and get instant educational responses
+
+📚 Sports Betting Academy
+Beginner to advanced courses on
+sports betting concepts
+
+RESPONSIBLE GAMBLING:
+We promote responsible gambling.
+This app contains features to
+help manage betting behavior.
+Must be 18+ to use.
+Please gamble responsibly.
+
+If you need help:
+USA: 1-800-522-4700
+UK: gamcare.org.uk
+
+PrediQs AI does not guarantee
+any outcomes or winnings.
+Past performance does not
+guarantee future results."
+
+Category: Sports
+Age Rating: 17+
+Privacy Policy URL: prediqsai.com/privacy
+
+Build all legal pages and add
+educational disclaimers everywhere.
+Show me the Privacy Policy screen
+and Terms of Service screen first.

@@ -47,8 +47,11 @@ function RootLayoutNav() {
       <Stack.Screen name="worldcup"     options={{ headerShown: false }} />
       <Stack.Screen name="admin"        options={{ headerShown: false }} />
       <Stack.Screen name="about"        options={{ headerShown: false }} />
-      <Stack.Screen name="leaderboard"  options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="risk-profile" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="leaderboard"           options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="risk-profile"          options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="privacy-policy"        options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="terms-of-service"      options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="responsible-gambling"  options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }
