@@ -151,6 +151,9 @@ export interface ApiPrediction {
   bookmakerProbability: number;
   valueDetected: boolean;
   tierRequired: string;
+  simulationData: SimulationData | null;
+  agentScores: AgentScores | null;
+  publicBacking: PublicBacking | null;
 }
 
 export interface AccuracyStats {
@@ -160,6 +163,83 @@ export interface AccuracyStats {
   total: number;
   bySport: Record<string, { accuracy: number; wins: number; total: number }>;
   month: string;
+}
+
+export interface SimulationScoreline {
+  home: number;
+  away: number;
+  probability: number;
+}
+
+export interface SimulationData {
+  iterations: number;
+  scorelineProbabilities: SimulationScoreline[];
+  homeMean: number;
+  awayMean: number;
+  bttsProb: number;
+  over25Prob: number;
+}
+
+export interface AgentScores {
+  injury: number;
+  tactical: number;
+  odds: number;
+  sentiment: number;
+  referee: number;
+  weather: number;
+  form: number;
+  h2h: number;
+}
+
+export interface PublicBacking {
+  homePercent: number;
+  awayPercent: number;
+  drawPercent: number;
+  contrarian: boolean;
+  contrarianNote: string | null;
+}
+
+export interface CoachAlert {
+  type: "danger" | "warning" | "info" | "positive";
+  icon: string;
+  title: string;
+  message: string;
+  action: string;
+}
+
+export interface CoachData {
+  alerts: CoachAlert[];
+  summary: {
+    todayLosses: number;
+    todayWins: number;
+    todayNet: number;
+    lossRatio: number;
+    recentLossStreak: number;
+    bankroll: number;
+    dailyLossLimit: number;
+    riskProfile: string;
+  };
+}
+
+export interface LeaderboardEntry {
+  id: number;
+  userId: number;
+  displayName: string;
+  wins: number;
+  losses: number;
+  winRate: number;
+  roi: number;
+  totalPicks: number;
+  streak: number;
+  badge: string | null;
+  isVerified: boolean;
+  updatedAt: string;
+}
+
+export interface LeaderboardData {
+  leaderboard: LeaderboardEntry[];
+  myEntry: LeaderboardEntry | null;
+  optedIn: boolean;
 }
 
 export interface ApiBankrollEntry {
@@ -402,6 +482,20 @@ export const api = {
         "/bankroll/entry",
         { method: "POST", body: JSON.stringify(entry), token },
       ),
+  },
+  coach: {
+    get: (token: string) => apiFetch<CoachData>("/coach", { token }),
+    setProfile: (token: string, riskProfile: "conservative" | "balanced" | "aggressive") =>
+      apiFetch<{ riskProfile: string }>("/coach/profile", {
+        method: "PUT",
+        body: JSON.stringify({ riskProfile }),
+        token,
+      }),
+  },
+  leaderboard: {
+    get: (token: string) => apiFetch<LeaderboardData>("/leaderboard", { token }),
+    optIn: (token: string) => apiFetch<{ message: string }>("/leaderboard/optin", { method: "POST", token }),
+    optOut: (token: string) => apiFetch<{ message: string }>("/leaderboard/optout", { method: "POST", token }),
   },
   setup: {
     status: (token: string) =>

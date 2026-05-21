@@ -191,6 +191,30 @@ interface RawPrediction {
     market?: string;
     overallAgreement?: boolean;
   };
+  agentScores?: {
+    injury?: number;
+    tactical?: number;
+    odds?: number;
+    sentiment?: number;
+    referee?: number;
+    weather?: number;
+    form?: number;
+    h2h?: number;
+  };
+  publicBacking?: {
+    homePercent?: number;
+    awayPercent?: number;
+    drawPercent?: number;
+    contrarian?: boolean;
+    contrarianNote?: string | null;
+  };
+  simulationData?: {
+    scorelineProbabilities?: Array<{ home: number; away: number; probability: number }>;
+    homeMean?: number;
+    awayMean?: number;
+    bttsProb?: number;
+    over25Prob?: number;
+  };
   tierRequired?: string;
 }
 
@@ -1818,6 +1842,33 @@ Return a JSON array ONLY — no markdown, no prose, no commentary. Each element:
     "market": "home_win"|"away_win"|"draw",
     "overallAgreement": boolean
   },
+  "agentScores": {
+    "injury": 0-100 (100=heavily favours prediction, 0=injury crisis hurts),
+    "tactical": 0-100 (system matchup, press vs. low-block, etc.),
+    "odds": 0-100 (bookmaker line confidence in this outcome),
+    "sentiment": 0-100 (media/social sentiment score for home team),
+    "referee": 0-100 (referee tendency favours outcome),
+    "weather": 0-100 (100=weather neutral/favours, 0=severely disrupts),
+    "form": 0-100 (recent form strongly supports prediction),
+    "h2h": 0-100 (head-to-head record supports prediction)
+  },
+  "publicBacking": {
+    "homePercent": 0-100 (estimated % of public bets on home win),
+    "awayPercent": 0-100,
+    "drawPercent": 0-100,
+    "contrarian": boolean (true if our prediction goes against the public majority),
+    "contrarianNote": string|null (e.g. "83% backing Arsenal but value favours Spurs")
+  },
+  "simulationData": {
+    "scorelineProbabilities": [
+      {"home": 0, "away": 0, "probability": 0-100},
+      ...top 5-6 most likely scorelines
+    ],
+    "homeMean": expected home goals (e.g. 1.6),
+    "awayMean": expected away goals (e.g. 1.1),
+    "bttsProb": 0-100 (both teams to score probability),
+    "over25Prob": 0-100 (over 2.5 goals probability)
+  },
   "tierRequired": "free"|"pro"|"elite"
 }
 
@@ -1881,6 +1932,37 @@ tierRequired rules:
       valueDetected: p.valueDetected ?? false,
       tierRequired,
       expiresAt,
+      simulationData: p.simulationData?.scorelineProbabilities?.length
+        ? {
+            iterations: 1000,
+            scorelineProbabilities: p.simulationData.scorelineProbabilities,
+            homeMean: p.simulationData.homeMean ?? 0,
+            awayMean: p.simulationData.awayMean ?? 0,
+            bttsProb: p.simulationData.bttsProb ?? 0,
+            over25Prob: p.simulationData.over25Prob ?? 0,
+          }
+        : undefined,
+      agentScores: p.agentScores
+        ? {
+            injury: p.agentScores.injury ?? 50,
+            tactical: p.agentScores.tactical ?? 50,
+            odds: p.agentScores.odds ?? 50,
+            sentiment: p.agentScores.sentiment ?? 50,
+            referee: p.agentScores.referee ?? 50,
+            weather: p.agentScores.weather ?? 50,
+            form: p.agentScores.form ?? 50,
+            h2h: p.agentScores.h2h ?? 50,
+          }
+        : undefined,
+      publicBacking: p.publicBacking?.homePercent != null
+        ? {
+            homePercent: p.publicBacking.homePercent,
+            awayPercent: p.publicBacking.awayPercent ?? 33,
+            drawPercent: p.publicBacking.drawPercent ?? 34,
+            contrarian: p.publicBacking.contrarian ?? false,
+            contrarianNote: p.publicBacking.contrarianNote ?? null,
+          }
+        : undefined,
     };
   });
 }
@@ -1904,12 +1986,18 @@ function formatPrediction(p: typeof predictionsTable.$inferSelect) {
     avoidReason: p.avoidReason,
     reasoning: p.reasoning,
     keyFactors: p.keyFactors as string[],
+    againstFactors: ((p.keyFactors as string[]) ?? [])
+      .filter((f) => f.startsWith("⚠️"))
+      .map((f) => f.replace(/^⚠️\s*/, "")),
     weatherImpact: p.weatherImpact,
     sharpMoneySignal: p.sharpMoneySignal,
     aiProbability: p.aiProbability,
     bookmakerProbability: p.bookmakerProbability,
     valueDetected: p.valueDetected,
     tierRequired: p.tierRequired,
+    simulationData: p.simulationData ?? null,
+    agentScores: p.agentScores ?? null,
+    publicBacking: p.publicBacking ?? null,
   };
 }
 

@@ -50,6 +50,9 @@ function mapPrediction(p: ApiPrediction): Prediction {
     bookmakerProbability: p.bookmakerProbability,
     valueDetected: p.valueDetected,
     tierRequired: p.tierRequired as Prediction["tierRequired"],
+    simulationData: p.simulationData ?? null,
+    agentScores: p.agentScores ?? null,
+    publicBacking: p.publicBacking ?? null,
   };
 }
 

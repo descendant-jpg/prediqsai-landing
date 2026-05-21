@@ -2,6 +2,40 @@ import { boolean, jsonb, pgTable, real, serial, text, timestamp } from "drizzle-
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
+export interface SimulationScoreline {
+  home: number;
+  away: number;
+  probability: number;
+}
+
+export interface SimulationData {
+  iterations: number;
+  scorelineProbabilities: SimulationScoreline[];
+  homeMean: number;
+  awayMean: number;
+  bttsProb: number;
+  over25Prob: number;
+}
+
+export interface AgentScores {
+  injury: number;
+  tactical: number;
+  odds: number;
+  sentiment: number;
+  referee: number;
+  weather: number;
+  form: number;
+  h2h: number;
+}
+
+export interface PublicBacking {
+  homePercent: number;
+  awayPercent: number;
+  drawPercent: number;
+  contrarian: boolean;
+  contrarianNote: string | null;
+}
+
 export const predictions = pgTable("predictions", {
   id: serial("id").primaryKey(),
   sport: text("sport").notNull(),
@@ -25,7 +59,10 @@ export const predictions = pgTable("predictions", {
   valueDetected: boolean("value_detected").notNull().default(false),
   tierRequired: text("tier_required").notNull().default("free"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  result: text("result"), // 'win' | 'loss' | 'push' | null
+  result: text("result"),
+  simulationData: jsonb("simulation_data").$type<SimulationData>(),
+  agentScores: jsonb("agent_scores").$type<AgentScores>(),
+  publicBacking: jsonb("public_backing").$type<PublicBacking>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

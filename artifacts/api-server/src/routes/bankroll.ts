@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 import { bankrollEntries, db, users } from "@workspace/db";
 import { requireAuth } from "../middleware/auth";
+import { syncLeaderboardEntry } from "./leaderboard";
 
 const router = Router();
 
@@ -59,6 +60,16 @@ router.post("/bankroll/entry", requireAuth, async (req, res) => {
 
   const newBankroll = Math.max(0, (user?.bankroll ?? 0) + delta);
   await db.update(users).set({ bankroll: newBankroll }).where(eq(users.id, req.userId!));
+
+  const [fullUser] = await db
+    .select({ username: users.username, leaderboardOptIn: users.leaderboardOptIn })
+    .from(users)
+    .where(eq(users.id, req.userId!))
+    .limit(1);
+
+  if (fullUser?.leaderboardOptIn) {
+    syncLeaderboardEntry(req.userId!, fullUser.username).catch(() => {});
+  }
 
   res.status(201).json({ entry, newBankroll });
 });

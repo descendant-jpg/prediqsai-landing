@@ -26,3 +26,4 @@ export * from "./adminLogs";
 export * from "./appConfig";
 export * from "./notificationHistory";
 export * from "./errorLogs";
+export * from "./leaderboard";

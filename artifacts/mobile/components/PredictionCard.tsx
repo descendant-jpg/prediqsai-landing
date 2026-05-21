@@ -11,8 +11,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AgentScorecard } from "@/components/AgentScorecard";
 import { ConfidenceMeter } from "@/components/ConfidenceMeter";
+import { CrowdSentimentBar } from "@/components/CrowdSentimentBar";
 import { RiskBadge } from "@/components/RiskBadge";
+import { SimulationPanel } from "@/components/SimulationPanel";
 import { SportBadge } from "@/components/SportBadge";
 import { TierGate } from "@/components/TierGate";
 import { useColors } from "@/hooks/useColors";
@@ -188,6 +191,33 @@ export function PredictionCard({ prediction }: Props) {
                 </View>
                 <Text style={[styles.sectionText, { color: colors.text }]}>{prediction.avoidReason}</Text>
               </View>
+            )}
+
+            {prediction.publicBacking && (
+              <TierGate requiredTier="pro">
+                <CrowdSentimentBar
+                  backing={prediction.publicBacking}
+                  prediction={prediction.prediction}
+                  homeTeam={prediction.homeTeam}
+                  awayTeam={prediction.awayTeam}
+                />
+              </TierGate>
+            )}
+
+            {prediction.agentScores && (
+              <TierGate requiredTier="pro">
+                <AgentScorecard scores={prediction.agentScores} />
+              </TierGate>
+            )}
+
+            {prediction.simulationData && (
+              <TierGate requiredTier="elite">
+                <SimulationPanel
+                  data={prediction.simulationData}
+                  homeTeam={prediction.homeTeam}
+                  awayTeam={prediction.awayTeam}
+                />
+              </TierGate>
             )}
 
             <View style={styles.disclaimer}>

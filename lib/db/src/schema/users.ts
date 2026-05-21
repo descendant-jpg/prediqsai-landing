@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   isSuspended: boolean("is_suspended").default(false),
   manualTierOverride: text("manual_tier_override"),
   freeTrialUntil: timestamp("free_trial_until", { withTimezone: true }),
+  riskProfile: text("risk_profile").notNull().default("balanced"),
+  leaderboardOptIn: boolean("leaderboard_opt_in").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({

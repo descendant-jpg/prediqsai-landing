@@ -1,4 +1,4 @@
-import { AlertCircle, ChevronRight, Settings, TrendingDown, TrendingUp } from "lucide-react-native";
+import { AlertCircle, ChevronRight, Settings, Trophy, TrendingDown, TrendingUp } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -124,10 +124,20 @@ export default function PerformanceScreen() {
         />
       }
     >
-      <Text style={[styles.title, { color: colors.text }]}>Performance</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Your analytics · 30-day window
-      </Text>
+      <View style={styles.titleRow}>
+        <View>
+          <Text style={[styles.title, { color: colors.text }]}>Performance</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your analytics · 30-day window</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.leaderboardBtn, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.35)" }]}
+          onPress={() => router.push("/leaderboard" as any)}
+          activeOpacity={0.8}
+        >
+          <Trophy size={14} color={colors.gold} />
+          <Text style={[styles.leaderboardBtnText, { color: colors.gold }]}>Leaderboard</Text>
+        </TouchableOpacity>
+      </View>
 
       {error ? (
         <View style={[styles.errorCard, { backgroundColor: "rgba(255,77,77,0.08)", borderColor: "rgba(255,77,77,0.25)" }]}>
@@ -295,4 +305,7 @@ const styles = StyleSheet.create({
   tableCell: { fontSize: 13, flex: 1 },
   adminLink: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, marginTop: 4 },
   adminLinkText: { flex: 1, fontSize: 14 },
+  titleRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  leaderboardBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1 },
+  leaderboardBtnText: { fontSize: 13, fontFamily: "Inter_700Bold" },
 });

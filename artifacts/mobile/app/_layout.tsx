@@ -43,10 +43,12 @@ function RootLayoutNav() {
       <Stack.Screen name="slip-analysis" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="setup" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="settings" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="arbitrage" options={{ headerShown: false }} />
-      <Stack.Screen name="worldcup"  options={{ headerShown: false }} />
-      <Stack.Screen name="admin"     options={{ headerShown: false }} />
-      <Stack.Screen name="about"     options={{ headerShown: false }} />
+      <Stack.Screen name="arbitrage"    options={{ headerShown: false }} />
+      <Stack.Screen name="worldcup"     options={{ headerShown: false }} />
+      <Stack.Screen name="admin"        options={{ headerShown: false }} />
+      <Stack.Screen name="about"        options={{ headerShown: false }} />
+      <Stack.Screen name="leaderboard"  options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="risk-profile" options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }

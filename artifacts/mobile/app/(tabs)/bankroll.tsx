@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { AlertTriangle, Cpu, Inbox, MinusCircle, PlusCircle, TrendingDown, TrendingUp, X } from "lucide-react-native";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -14,9 +14,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CoachAlerts } from "@/components/CoachAlerts";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { api, type CoachData } from "@/lib/api";
 import type { BankrollEntry, EntryType } from "@/types";
 
 type IconComp = React.ComponentType<{ size: number; color: string }>;
@@ -154,11 +157,23 @@ export default function BankrollScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile, bankrollEntries, addEntry } = useApp();
+  const { token } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<EntryType>("deposit");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coachData, setCoachData] = useState<CoachData | null>(null);
+
+  const loadCoach = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api.coach.get(token);
+      setCoachData(data);
+    } catch {}
+  }, [token]);
+
+  useEffect(() => { loadCoach(); }, [loadCoach]);
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding = insets.top + topPaddingWeb;
@@ -258,6 +273,10 @@ export default function BankrollScreen() {
               </Text>
             </View>
           </View>
+        )}
+
+        {coachData && coachData.alerts.length > 0 && (
+          <CoachAlerts alerts={coachData.alerts} riskProfile={coachData.summary.riskProfile} />
         )}
 
         <View style={styles.actionsRow}>
