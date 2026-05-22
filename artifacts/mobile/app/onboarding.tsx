@@ -1,8 +1,8 @@
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
-import { AlertTriangle, ArrowRight, Check } from "lucide-react-native";
+import { AlertTriangle, ArrowRight, Check, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -41,28 +41,33 @@ const USER_TYPES: UserType[] = [
   { key: "professional", label: "Professional Analyst", sub: "Full-time sports analysis" },
 ];
 
-const DISCLAIMER_ITEMS = [
-  { key: "age", text: "I am 18 years or older" },
-  { key: "edu", text: "I understand this is for educational purposes only" },
-  { key: "legal", text: "Betting is legal in my area" },
-  { key: "resp", text: "I will engage responsibly" },
+const STATIC_CONFIRMS = [
+  "I understand this is for educational purposes only",
+  "Betting is legal in my jurisdiction",
+  "I will engage responsibly and within my means",
 ];
 
 function Step0({
-  checked,
-  onToggle,
+  ageChecked,
+  onToggleAge,
   colors,
 }: {
-  checked: Record<string, boolean>;
-  onToggle: (key: string) => void;
+  ageChecked: boolean;
+  onToggleAge: () => void;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
 }) {
   return (
     <View style={styles.stepContainer}>
-      <View style={[styles.logoCircle, { backgroundColor: "rgba(0,229,255,0.12)", borderColor: colors.cyan }]}>
-        <Text style={styles.logoEmoji}>⚡</Text>
+      {/* Gold lightning bolt */}
+      <View style={[styles.logoCircle, { backgroundColor: "rgba(255,215,0,0.10)", borderColor: "#FFD700" }]}>
+        <Zap size={44} color="#FFD700" fill="#FFD700" />
       </View>
-      <Text style={[styles.welcomeTitle, { color: colors.text }]}>Welcome to{"\n"}PrediQs AI</Text>
+
+      {/* Title with cyan brand name */}
+      <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+        {"Welcome to\n"}
+        <Text style={{ color: colors.cyan }}>PrediQs AI</Text>
+      </Text>
       <Text style={[styles.welcomeSub, { color: colors.textSecondary }]}>
         PrediQs AI is an educational sports intelligence platform.
       </Text>
@@ -75,9 +80,7 @@ function Step0({
           "Show odds comparisons",
           "Educational insights only",
         ].map((t, i) => (
-          <Text key={i} style={[styles.doItem, { color: colors.textSecondary }]}>
-            • {t}
-          </Text>
+          <Text key={i} style={[styles.doItem, { color: colors.textSecondary }]}>• {t}</Text>
         ))}
       </View>
 
@@ -88,46 +91,56 @@ function Step0({
           "Provide gambling advice",
           "Guarantee any outcomes",
         ].map((t, i) => (
-          <Text key={i} style={[styles.doItem, { color: colors.textSecondary }]}>
-            • {t}
-          </Text>
+          <Text key={i} style={[styles.doItem, { color: colors.textSecondary }]}>• {t}</Text>
         ))}
       </View>
 
       <Text style={[styles.confirmTitle, { color: colors.textSecondary }]}>
-        By continuing you confirm:
+        By continuing you also confirm:
       </Text>
+      {STATIC_CONFIRMS.map((t, i) => (
+        <View key={i} style={styles.staticConfirmRow}>
+          <View style={[styles.staticDot, { backgroundColor: colors.textMuted }]} />
+          <Text style={[styles.staticConfirmText, { color: colors.textMuted }]}>{t}</Text>
+        </View>
+      ))}
 
-      {DISCLAIMER_ITEMS.map((item) => (
-        <TouchableOpacity
-          key={item.key}
+      {/* ── Required age checkbox ── */}
+      <TouchableOpacity
+        style={[
+          styles.checkRow,
+          {
+            borderColor: ageChecked ? colors.cyan : colors.border,
+            backgroundColor: ageChecked ? "rgba(0,229,255,0.09)" : colors.card,
+            marginTop: 16,
+          },
+        ]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onToggleAge();
+        }}
+        activeOpacity={0.75}
+      >
+        <View
           style={[
-            styles.checkRow,
+            styles.checkbox,
             {
-              borderColor: checked[item.key] ? colors.cyan : colors.border,
-              backgroundColor: checked[item.key] ? "rgba(0,229,255,0.07)" : colors.card,
+              borderColor: ageChecked ? colors.cyan : colors.border,
+              backgroundColor: ageChecked ? colors.cyan : "transparent",
             },
           ]}
-          onPress={() => {
-            Haptics.selectionAsync();
-            onToggle(item.key);
-          }}
-          activeOpacity={0.75}
         >
-          <View
-            style={[
-              styles.checkbox,
-              {
-                borderColor: checked[item.key] ? colors.cyan : colors.border,
-                backgroundColor: checked[item.key] ? colors.cyan : "transparent",
-              },
-            ]}
-          >
-            {checked[item.key] && <Check size={12} color={colors.background} />}
+          {ageChecked && <Check size={13} color="#070B12" strokeWidth={3} />}
+        </View>
+        <Text style={[styles.checkLabel, { color: ageChecked ? colors.text : colors.textSecondary }]}>
+          I am 18 years or older
+        </Text>
+        {ageChecked && (
+          <View style={[styles.tickedBadge, { backgroundColor: "rgba(0,229,255,0.15)" }]}>
+            <Text style={[styles.tickedBadgeText, { color: colors.cyan }]}>✓</Text>
           </View>
-          <Text style={[styles.checkLabel, { color: colors.text }]}>{item.text}</Text>
-        </TouchableOpacity>
-      ))}
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -185,7 +198,7 @@ function Step2({ selected, onToggle, colors }: { selected: string[]; onToggle: (
               <Text style={[styles.sportLabel, { color: active ? colors.cyan : colors.text }]}>{s.label}</Text>
               {active && (
                 <View style={[styles.checkBadge, { backgroundColor: colors.cyan }]}>
-                  <Check size={10} color={colors.background} />
+                  <Check size={10} color="#070B12" />
                 </View>
               )}
             </TouchableOpacity>
@@ -254,7 +267,7 @@ function Step4({ limit, onChangeLimit, colors }: { limit: number; onChangeLimit:
             onPress={() => { Haptics.selectionAsync(); onChangeLimit(p); }}
             activeOpacity={0.75}
           >
-            <Text style={[styles.presetText, { color: limit === p ? colors.background : colors.text }]}>${p}</Text>
+            <Text style={[styles.presetText, { color: limit === p ? "#070B12" : colors.text }]}>${p}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -292,6 +305,8 @@ function Step5({ colors }: { colors: ReturnType<typeof import("@/hooks/useColors
   );
 }
 
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -299,23 +314,42 @@ export default function OnboardingScreen() {
   const { updateBankroll } = useApp();
 
   const [step, setStep] = useState(0);
-  const [disclaimerChecked, setDisclaimerChecked] = useState<Record<string, boolean>>({
-    age: false,
-    edu: false,
-    legal: false,
-    resp: false,
-  });
+  const [ageChecked, setAgeChecked] = useState(false);
   const [selectedSports, setSelectedSports] = useState<string[]>(["soccer", "nfl"]);
   const [userType, setUserType] = useState("casual");
   const [dailyLimit, setDailyLimit] = useState(100);
 
   const flatListRef = useRef<FlatList>(null);
-  const progress = useRef(new Animated.Value(0)).current;
+  const progress    = useRef(new Animated.Value(0)).current;
+  const btnScale    = useRef(new Animated.Value(1)).current;
   const TOTAL_STEPS = 6;
 
-  function toggleDisclaimer(key: string) {
-    setDisclaimerChecked((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
+  const canContinue =
+    (step === 0 && ageChecked) ||
+    step === 1 ||
+    (step === 2 && selectedSports.length > 0) ||
+    (step === 3 && userType !== "") ||
+    step === 4 ||
+    step === 5;
+
+  // Animate button scale when it becomes active
+  useEffect(() => {
+    if (canContinue) {
+      Animated.spring(btnScale, {
+        toValue: 1.04,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 8,
+      }).start(() => {
+        Animated.spring(btnScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 8,
+        }).start();
+      });
+    }
+  }, [canContinue]);
 
   function goToStep(next: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -334,16 +368,6 @@ export default function OnboardingScreen() {
     router.replace("/(tabs)");
   }
 
-  const allDisclaimerChecked = DISCLAIMER_ITEMS.every((d) => disclaimerChecked[d.key]);
-
-  const canContinue =
-    (step === 0 && allDisclaimerChecked) ||
-    step === 1 ||
-    (step === 2 && selectedSports.length > 0) ||
-    (step === 3 && userType !== "") ||
-    step === 4 ||
-    step === 5;
-
   const stepData = [
     { key: "disclaimer" },
     { key: "welcome" },
@@ -353,6 +377,10 @@ export default function OnboardingScreen() {
     { key: "ready" },
   ];
   const progressWidth = progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
+
+  const btnBg      = canContinue ? "#00E5FF" : "#1A2535";
+  const btnTextCol = canContinue ? "#070B12" : "#4A6070";
+  const btnOpacity = canContinue ? 1.0 : 0.5;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -375,7 +403,11 @@ export default function OnboardingScreen() {
           <View style={{ width: SCREEN_WIDTH }}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {index === 0 && (
-                <Step0 checked={disclaimerChecked} onToggle={toggleDisclaimer} colors={colors} />
+                <Step0
+                  ageChecked={ageChecked}
+                  onToggleAge={() => setAgeChecked((v) => !v)}
+                  colors={colors}
+                />
               )}
               {index === 1 && <Step1 colors={colors} />}
               {index === 2 && <Step2 selected={selectedSports} onToggle={toggleSport} colors={colors} />}
@@ -393,79 +425,121 @@ export default function OnboardingScreen() {
       />
 
       <View style={[styles.navRow, { paddingBottom: insets.bottom + 20, borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        {/* Page dots — first dot is cyan on step 0 */}
         <View style={styles.dots}>
           {stepData.map((_, i) => (
-            <View key={i} style={[styles.dot, { backgroundColor: i === step ? colors.cyan : colors.border, width: i === step ? 20 : 7 }]} />
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                {
+                  backgroundColor: i === step ? "#00E5FF" : colors.border,
+                  width: i === step ? 20 : 7,
+                },
+              ]}
+            />
           ))}
         </View>
-        <TouchableOpacity
-          style={[styles.nextBtn, { backgroundColor: canContinue ? colors.cyan : colors.border, opacity: canContinue ? 1 : 0.5 }]}
-          onPress={() => { if (step < TOTAL_STEPS - 1) goToStep(step + 1); else finish(); }}
-          disabled={!canContinue}
-          activeOpacity={0.85}
+
+        {/* Animated button with glow when active */}
+        <Animated.View
+          style={[
+            styles.btnShadowWrap,
+            canContinue && styles.btnGlow,
+            { transform: [{ scale: btnScale }] },
+          ]}
         >
-          <Text style={[styles.nextBtnText, { color: canContinue ? colors.background : colors.textMuted }]}>
-            {step === 0 ? "I Understand — Continue" : step === TOTAL_STEPS - 1 ? "Go to Dashboard" : "Continue"}
-          </Text>
-          <ArrowRight size={16} color={canContinue ? colors.background : colors.textMuted} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.nextBtn,
+              { backgroundColor: btnBg, opacity: btnOpacity },
+            ]}
+            onPress={() => {
+              if (!canContinue) return;
+              if (step < TOTAL_STEPS - 1) goToStep(step + 1);
+              else finish();
+            }}
+            disabled={!canContinue}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.nextBtnText, { color: btnTextCol }]}>
+              {step === 0 ? "I Understand — Continue" : step === TOTAL_STEPS - 1 ? "Go to Dashboard" : "Continue"}
+            </Text>
+            <ArrowRight size={16} color={btnTextCol} />
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  progressBar: { paddingHorizontal: 20, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 },
-  progressTrack: { flex: 1, height: 3, borderRadius: 2, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 2 },
-  skipBtn: { paddingHorizontal: 4, paddingVertical: 4 },
-  skipText: { fontSize: 13 },
-  stepContainer: { width: SCREEN_WIDTH, padding: 24, paddingTop: 20, gap: 0 },
-  logoCircle: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 20, alignSelf: "center" },
-  logoEmoji: { fontSize: 44 },
-  welcomeTitle: { fontSize: 30, lineHeight: 38, marginBottom: 10 },
-  welcomeSub: { fontSize: 15, lineHeight: 23, marginBottom: 16 },
-  doCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 6 },
-  doCardTitle: { fontSize: 13, marginBottom: 2 },
-  doItem: { fontSize: 13, lineHeight: 20 },
-  confirmTitle: { fontSize: 13, marginTop: 18, marginBottom: 10 },
-  checkRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 8 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  checkLabel: { flex: 1, fontSize: 14 },
-  featureList: { gap: 10, marginTop: 4 },
-  featureRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
-  featureEmoji: { fontSize: 20 },
-  featureText: { fontSize: 14 },
-  eduNote: { borderRadius: 10, borderWidth: 1, padding: 12, marginTop: 14 },
-  eduNoteText: { fontSize: 12, lineHeight: 18, textAlign: "center" },
-  stepTitle: { fontSize: 24, marginBottom: 8, letterSpacing: -0.3 },
-  stepSub: { fontSize: 14, lineHeight: 21, marginBottom: 24 },
-  sportsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  sportCard: { width: (SCREEN_WIDTH - 60) / 2, padding: 16, borderRadius: 14, borderWidth: 1, alignItems: "center", gap: 8, position: "relative" },
-  sportEmoji: { fontSize: 32 },
-  sportLabel: { fontSize: 13, textAlign: "center" },
-  checkBadge: { position: "absolute", top: 8, right: 8, width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
-  bettorList: { gap: 12 },
-  bettorCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 14, borderWidth: 1, gap: 14 },
-  bettorLabel: { fontSize: 15 },
-  bettorSub: { fontSize: 12, marginTop: 2 },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
-  radioDot: { width: 10, height: 10, borderRadius: 5 },
-  limitDisplay: { borderRadius: 16, borderWidth: 1, padding: 24, alignItems: "center", marginBottom: 24, gap: 6 },
-  limitLabel: { fontSize: 12, letterSpacing: 0.5 },
-  limitValue: { fontSize: 44 },
-  presetGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
-  presetBtn: { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 10, borderWidth: 1 },
-  presetText: { fontSize: 14 },
-  warningBox: { flexDirection: "row", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: "flex-start" },
-  warningText: { flex: 1, fontSize: 12, lineHeight: 18 },
-  successCircle: { width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 24 },
-  readyList: { gap: 10, marginTop: 20, width: "100%" },
-  readyItem: { fontSize: 14 },
-  navRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 16, borderTopWidth: 1 },
-  dots: { flexDirection: "row", alignItems: "center", gap: 6 },
-  dot: { height: 7, borderRadius: 3.5 },
-  nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14 },
-  nextBtnText: { fontSize: 14 },
+  container:        { flex: 1 },
+  progressBar:      { paddingHorizontal: 20, paddingBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 },
+  progressTrack:    { flex: 1, height: 3, borderRadius: 2, overflow: "hidden" },
+  progressFill:     { height: "100%", borderRadius: 2 },
+  skipBtn:          { paddingHorizontal: 4, paddingVertical: 4 },
+  skipText:         { fontSize: 13 },
+  stepContainer:    { width: SCREEN_WIDTH, padding: 24, paddingTop: 20, gap: 0 },
+  logoCircle:       { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 20, alignSelf: "center" },
+  welcomeTitle:     { fontSize: 30, lineHeight: 38, marginBottom: 10, fontFamily: "Inter_700Bold" },
+  welcomeSub:       { fontSize: 15, lineHeight: 23, marginBottom: 16 },
+  doCard:           { borderRadius: 12, borderWidth: 1, padding: 14, gap: 6 },
+  doCardTitle:      { fontSize: 13, marginBottom: 2, fontFamily: "Inter_600SemiBold" },
+  doItem:           { fontSize: 13, lineHeight: 20 },
+  confirmTitle:     { fontSize: 13, marginTop: 18, marginBottom: 8, fontFamily: "Inter_500Medium" },
+  staticConfirmRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 5, paddingLeft: 2 },
+  staticDot:        { width: 4, height: 4, borderRadius: 2, marginTop: 7 },
+  staticConfirmText:{ flex: 1, fontSize: 13, lineHeight: 19 },
+  checkRow:         { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 14, borderWidth: 1.5, marginBottom: 8 },
+  checkbox:         { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  checkLabel:       { flex: 1, fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  tickedBadge:      { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  tickedBadgeText:  { fontSize: 13, fontFamily: "Inter_700Bold", color: "#00E5FF" },
+  featureList:      { gap: 10, marginTop: 4 },
+  featureRow:       { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
+  featureEmoji:     { fontSize: 20 },
+  featureText:      { fontSize: 14 },
+  eduNote:          { borderRadius: 10, borderWidth: 1, padding: 12, marginTop: 14 },
+  eduNoteText:      { fontSize: 12, lineHeight: 18, textAlign: "center" },
+  stepTitle:        { fontSize: 24, marginBottom: 8, letterSpacing: -0.3, fontFamily: "Inter_700Bold" },
+  stepSub:          { fontSize: 14, lineHeight: 21, marginBottom: 24 },
+  sportsGrid:       { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  sportCard:        { width: (SCREEN_WIDTH - 60) / 2, padding: 16, borderRadius: 14, borderWidth: 1, alignItems: "center", gap: 8, position: "relative" },
+  sportEmoji:       { fontSize: 32 },
+  sportLabel:       { fontSize: 13, textAlign: "center" },
+  checkBadge:       { position: "absolute", top: 8, right: 8, width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  bettorList:       { gap: 12 },
+  bettorCard:       { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 14, borderWidth: 1, gap: 14 },
+  bettorLabel:      { fontSize: 15 },
+  bettorSub:        { fontSize: 12, marginTop: 2 },
+  radio:            { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  radioDot:         { width: 10, height: 10, borderRadius: 5 },
+  limitDisplay:     { borderRadius: 16, borderWidth: 1, padding: 24, alignItems: "center", marginBottom: 24, gap: 6 },
+  limitLabel:       { fontSize: 12, letterSpacing: 0.5 },
+  limitValue:       { fontSize: 44, fontFamily: "Inter_700Bold" },
+  presetGrid:       { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
+  presetBtn:        { paddingHorizontal: 20, paddingVertical: 11, borderRadius: 10, borderWidth: 1 },
+  presetText:       { fontSize: 14 },
+  warningBox:       { flexDirection: "row", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: "flex-start" },
+  warningText:      { flex: 1, fontSize: 12, lineHeight: 18 },
+  successCircle:    { width: 96, height: 96, borderRadius: 48, alignItems: "center", justifyContent: "center", borderWidth: 2, marginBottom: 24 },
+  readyList:        { gap: 10, marginTop: 20, width: "100%" },
+  readyItem:        { fontSize: 14 },
+  navRow:           { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 24, paddingTop: 16, borderTopWidth: 1 },
+  dots:             { flexDirection: "row", alignItems: "center", gap: 6 },
+  dot:              { height: 7, borderRadius: 3.5 },
+  // Button
+  btnShadowWrap:    { borderRadius: 14 },
+  btnGlow:          {
+    shadowColor: "#00E5FF",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  nextBtn:          { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14 },
+  nextBtnText:      { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });
