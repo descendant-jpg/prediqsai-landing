@@ -81,6 +81,7 @@ function RootLayoutNav() {
       <Stack.Screen name="privacy-policy"        options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="terms-of-service"      options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="responsible-gambling"  options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="match-detail"          options={{ headerShown: false }} />
     </Stack>
   );
 }

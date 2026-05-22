@@ -1,0 +1,268 @@
+I found a competitor app called AIStats.
+Add these features to PrediQs AI
+that AIStats has which we don't yet.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 1: MATCH DETAIL PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When user taps any prediction card
+open a full match detail page with
+these tabs at the top:
+
+GRAPH | AI ANALYSIS | PREMATCH | 
+STANDINGS | STATS
+
+TAB 1 - GRAPH:
+Show Performance Graph:
+- Real-Time Power score (RTP)
+- Expected Power score
+- Line graph over 90 minutes
+- Both team logos at top
+- Toggle between home/away team
+- Updates every 60 seconds for live
+
+TAB 2 - AI ANALYSIS:
+- Full Oracle AI breakdown
+- Confidence % with arc meter
+- Risk level badge
+- Value detected badge
+- Key factors list (5 factors)
+- Against factors (2 risks)
+- Recommended bet type
+- Similar match insights
+- Was AI correct on similar matches
+
+TAB 3 - PREMATCH:
+Current Form section:
+- Last 5 results as colored dots
+  🟢 Win 🟡 Draw 🔴 Loss
+- Last 3 actual scorelines shown
+  with opponent logos
+- Home form separate from away form
+
+Outcomes Report:
+- 1X2 market edge %
+- Over/Under edge %
+- Asian Handicap edge %
+- BTTS edge %
+- Correct Score probability
+
+TAB 4 - STANDINGS:
+- Full league table
+- Team's current position highlighted
+- Points, wins, draws, losses
+- Goal difference
+- Form last 5 (colored dots)
+
+TAB 5 - STATS:
+- Head to head last 5 meetings
+- Average goals per game
+- Clean sheet %
+- Both teams score %
+- Average corners
+- Average cards
+- First/second half goals split
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 2: CORRECT SCORE PREDICTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add Correct Score tab on match page:
+
+Show grid of all possible scores:
+┌──────┬──────┬──────┐
+│ 1-0  │ 2-0  │ 3-0  │
+│ 8.00 │15.00 │33.00 │
+├──────┼──────┼──────┤
+│ 0-1  │ 1-1  │ 2-1  │
+│ 9.00 │ 7.00 │11.00 │
+├──────┼──────┼──────┤
+│ 0-2  │ 1-2  │ 2-2  │
+│17.00 │13.00 │19.00 │
+└──────┴──────┴──────┘
+
+Highlight AI's most likely score
+in cyan border
+
+Show:
+- AI predicted score (most likely)
+- Probability % for that score
+- How often this exact score
+  happened in similar matches
+- "54 of 69 similar matches" format
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 3: REAL-TIME POWER (RTP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For LIVE matches show RTP score:
+
+Real-Time Power = combination of:
+- Current possession advantage
+- Shot accuracy in last 15 mins
+- Momentum (last 5 events)
+- Press intensity
+- Expected goals rate
+
+Show as:
+- Number score (40 vs 24)
+- Trend arrow (↑ increasing ↓ decreasing)
+- Color: green if team dominating
+- Update every 60 seconds
+
+On live matches feed show:
+Arsenal vs Man United LIVE 72'
+Real-Time Power: +37% Arsenal
+
+This means Arsenal currently
+dominating by 37% vs expected
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 4: SIMILAR MATCH INSIGHTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For every match find historically
+similar matches and show:
+
+"In 69 similar matches:"
+- Home win: 54 times (78%)
+- Draw: 10 times (14%)
+- Away win: 5 times (7%)
+
+Similar match criteria:
+- Same teams (H2H)
+- Similar league position gap
+- Similar form going into match
+- Similar home/away records
+
+Show comparison:
+AI probability: 78%
+Bookmaker odds imply: 83%
+Difference: -5% (slight value)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 5: CURRENT FORM DISPLAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On every prediction card and
+match detail show current form:
+
+Arsenal: 🟢🔴🟢🟡🟢
+(W L W D W - last 5 games)
+
+With last 3 actual scores:
+Arsenal 3:2 Wolves
+Arsenal 2:3 Man City  
+Arsenal 1:3 Inter
+
+Manchester United: 🟢🟡🟡🔴🟢
+(W D D L W - last 5 games)
+
+Color dots:
+🟢 Green = Win
+🟡 Yellow = Draw
+🔴 Red = Loss
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 6: LIVE MATCH FEED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a LIVE tab on picks page:
+
+Shows all currently live matches:
+🔴 LIVE
+
+Arsenal vs Man United    72' 1-2
+Premier League
+Real-Time Power: +37% →
+
+Marseille vs Ajax        25' 0-0
+Champions League
+Real-Time Power: +27% →
+
+Each live card shows:
+- Teams and current score
+- Match minute (72')
+- League name and logo
+- RTP advantage %
+- Arrow showing momentum direction
+- Tap for full live analysis
+
+Auto-refreshes every 60 seconds
+Pull down to refresh manually
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 7: OUTCOMES REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On prematch tab show
+Outcomes Report with edges:
+
+1X2 (Match Result)
+Arsenal Win → +27% edge ›
+
+Individual Total Over Arsenal
+Arsenal Over 1.5 goals → +25% ›
+
+Asian Handicap 1st Half Arsenal
+Arsenal -0.5 1st Half → +21% ›
+
+Asian Handicap 2nd Half United
+Man Utd +0.5 2nd Half → +6% ›
+
+Each outcome shows:
+- Market name
+- Selection
+- Edge % vs bookmaker
+- Tap for full details
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE 8: PRE-MATCH vs LIVE TABS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Main picks page has 3 top tabs:
+
+PRE-MATCH | SEASON | LIVE
+
+PRE-MATCH:
+All upcoming matches today
+with AI predictions
+
+SEASON:
+Best bets for rest of season
+Long-term value opportunities
+Tournament winner predictions
+
+LIVE:
+All currently live matches
+with real-time analysis
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATA SOURCES FOR THESE FEATURES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use existing APIs:
+
+API-Sports for:
+- Live match data and scores
+- Current form (last 5 results)
+- Head to head history
+- League standings
+- Player and team stats
+
+The Odds API for:
+- Correct score odds grid
+- Asian handicap odds
+- All market odds comparison
+
+Claude AI for:
+- Similar match analysis
+- Outcomes report edge calculation
+- Real-time power narrative
+- AI Analysis tab content
+
+Build all 8 features and
+show me the new match detail
+page with all 5 tabs working.
+Also show the live match feed.

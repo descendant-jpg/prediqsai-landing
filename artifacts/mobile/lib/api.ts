@@ -318,6 +318,49 @@ export interface SlipAnalysisResult {
   analysis: unknown;
 }
 
+export interface TeamFormResult {
+  result: "W" | "D" | "L";
+  opponent: string;
+  score: string;
+  isHome: boolean;
+}
+
+export interface H2HResult {
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+}
+
+export interface StandingRow {
+  rank: number;
+  team: string;
+  logo: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  points: number;
+  goalDiff: number;
+  form: string;
+}
+
+export interface MatchDetailData {
+  fixtureId: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeId: number;
+  awayId: number;
+  leagueId: number;
+  homeForm: TeamFormResult[];
+  awayForm: TeamFormResult[];
+  h2h: H2HResult[];
+  standings: StandingRow[];
+  homeStandingRank: number | null;
+  awayStandingRank: number | null;
+}
+
 export interface PerformanceData {
   winRate: number;
   roi: number;
@@ -460,6 +503,8 @@ export const api = {
       apiFetch<SoccerFeedResponse>("/soccer/fixtures", { token }),
     live: (token: string) =>
       apiFetch<SoccerFixture[]>("/soccer/live", { token }),
+    fixtureDetail: (token: string, fixtureId: number) =>
+      apiFetch<MatchDetailData>(`/soccer/fixture/${fixtureId}/detail`, { token }),
   },
   slip: {
     analyze: (

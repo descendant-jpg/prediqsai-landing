@@ -410,3 +410,180 @@ export async function getLiveFixtures(): Promise<SoccerFixture[]> {
   cache.live = { data: filtered, expiresAt: now + LIVE_TTL };
   return filtered;
 }
+
+// ─── Match Detail ─────────────────────────────────────────────────────────────
+
+export interface TeamFormResult {
+  result: "W" | "D" | "L";
+  opponent: string;
+  score: string;
+  isHome: boolean;
+}
+
+export interface H2HResult {
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+}
+
+export interface StandingRow {
+  rank: number;
+  team: string;
+  logo: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  points: number;
+  goalDiff: number;
+  form: string;
+}
+
+export interface MatchDetail {
+  fixtureId: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeId: number;
+  awayId: number;
+  leagueId: number;
+  homeForm: TeamFormResult[];
+  awayForm: TeamFormResult[];
+  h2h: H2HResult[];
+  standings: StandingRow[];
+  homeStandingRank: number | null;
+  awayStandingRank: number | null;
+}
+
+const detailCache = new Map<number, { data: MatchDetail; expiresAt: number }>();
+const DETAIL_TTL = 5 * 60 * 1000;
+
+async function fetchGenericApi(endpoint: string): Promise<unknown[]> {
+  if (!API_SPORTS_KEY) return [];
+  try {
+    const resp = await fetch(`${FOOTBALL_BASE}/${endpoint}`, {
+      headers: { "x-apisports-key": API_SPORTS_KEY },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as { response?: unknown[] };
+    return data.response ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function parseTeamFormFromRaw(raw: unknown[], teamId: number): TeamFormResult[] {
+  return raw.slice(0, 5).map((item) => {
+    const r = item as Record<string, unknown>;
+    const t = r.teams as Record<string, unknown>;
+    const g = r.goals as Record<string, unknown>;
+    const home = t?.home as Record<string, unknown>;
+    const away = t?.away as Record<string, unknown>;
+    const isHome = (home?.id as number) === teamId;
+    const teamGoals = isHome ? ((g?.home as number) ?? 0) : ((g?.away as number) ?? 0);
+    const oppGoals = isHome ? ((g?.away as number) ?? 0) : ((g?.home as number) ?? 0);
+    const opp = isHome ? ((away?.name as string) ?? "?") : ((home?.name as string) ?? "?");
+    const res: "W" | "D" | "L" = teamGoals > oppGoals ? "W" : teamGoals < oppGoals ? "L" : "D";
+    return { result: res, opponent: opp, score: `${teamGoals}-${oppGoals}`, isHome };
+  });
+}
+
+export async function getFixtureDetail(fixtureId: number): Promise<MatchDetail | null> {
+  const now = Date.now();
+  const cached = detailCache.get(fixtureId);
+  if (cached && cached.expiresAt > now) return cached.data;
+  if (!API_SPORTS_KEY) return null;
+
+  const fixtureRaw = await fetchGenericApi(`fixtures?id=${fixtureId}`);
+  if (!fixtureRaw.length) return null;
+
+  const f = fixtureRaw[0] as Record<string, unknown>;
+  const teams = f.teams as Record<string, unknown>;
+  const league = f.league as Record<string, unknown>;
+  const homeTm = teams?.home as Record<string, unknown>;
+  const awayTm = teams?.away as Record<string, unknown>;
+  const homeId = homeTm?.id as number;
+  const awayId = awayTm?.id as number;
+  const leagueId = league?.id as number;
+  const season = (league?.season as number) ?? 2024;
+
+  if (!homeId || !awayId || !leagueId) return null;
+
+  const [h2hRaw, standingsRaw, homeFormRaw, awayFormRaw] = await Promise.all([
+    fetchGenericApi(`fixtures/headtohead?h2h=${homeId}-${awayId}&last=5`),
+    fetchGenericApi(`standings?league=${leagueId}&season=${season}`),
+    fetchGenericApi(`fixtures?team=${homeId}&last=5&status=FT`),
+    fetchGenericApi(`fixtures?team=${awayId}&last=5&status=FT`),
+  ]);
+
+  const h2h: H2HResult[] = h2hRaw.slice(0, 5).map((item) => {
+    const r = item as Record<string, unknown>;
+    const fi = r.fixture as Record<string, unknown>;
+    const t = r.teams as Record<string, unknown>;
+    const g = r.goals as Record<string, unknown>;
+    const home = t?.home as Record<string, unknown>;
+    const away = t?.away as Record<string, unknown>;
+    return {
+      date: (fi?.date as string) ?? "",
+      homeTeam: (home?.name as string) ?? "",
+      awayTeam: (away?.name as string) ?? "",
+      homeScore: (g?.home as number) ?? 0,
+      awayScore: (g?.away as number) ?? 0,
+    };
+  });
+
+  const homeForm = parseTeamFormFromRaw(homeFormRaw, homeId);
+  const awayForm = parseTeamFormFromRaw(awayFormRaw, awayId);
+
+  const standings: StandingRow[] = [];
+  let homeRank: number | null = null;
+  let awayRank: number | null = null;
+
+  try {
+    const leagueData = standingsRaw[0] as Record<string, unknown>;
+    const leagueInfo = leagueData?.league as Record<string, unknown>;
+    const rows = ((leagueInfo?.standings as unknown[][])?.[0]) ?? [];
+    for (const row of rows) {
+      const r = row as Record<string, unknown>;
+      const team = r.team as Record<string, unknown>;
+      const all = r.all as Record<string, unknown>;
+      const rank = r.rank as number;
+      const teamId = team?.id as number;
+      standings.push({
+        rank,
+        team: (team?.name as string) ?? "",
+        logo: (team?.logo as string) ?? "",
+        played: (all?.played as number) ?? 0,
+        won: (all?.win as number) ?? 0,
+        drawn: (all?.draw as number) ?? 0,
+        lost: (all?.lose as number) ?? 0,
+        points: (r.points as number) ?? 0,
+        goalDiff: (r.goalsDiff as number) ?? 0,
+        form: (r.form as string) ?? "",
+      });
+      if (teamId === homeId) homeRank = rank;
+      if (teamId === awayId) awayRank = rank;
+    }
+  } catch {}
+
+  const detail: MatchDetail = {
+    fixtureId,
+    homeTeam: (homeTm?.name as string) ?? "",
+    awayTeam: (awayTm?.name as string) ?? "",
+    homeId,
+    awayId,
+    leagueId,
+    homeForm,
+    awayForm,
+    h2h,
+    standings,
+    homeStandingRank: homeRank,
+    awayStandingRank: awayRank,
+  };
+
+  detailCache.set(fixtureId, { data: detail, expiresAt: now + DETAIL_TTL });
+  logger.info({ fixtureId }, "Match detail fetched and cached");
+  return detail;
+}
