@@ -1,0 +1,112 @@
+Create a simple landing website for 
+prediqsai.com that shows when someone
+visits the domain on web browser.
+
+This is separate from the mobile app.
+The website should be a beautiful
+landing page that promotes the app
+and drives downloads.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CREATE: public/index.html
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create a full landing page with:
+
+HEADER/HERO:
+- PrediQs AI logo and name
+- "Sports Intelligence AI" subtitle
+- World Cup 2026 countdown timer
+- Two CTA buttons:
+  [Download on App Store]
+  [Get it on Google Play]
+
+FEATURES SECTION:
+Show 6 key features with icons:
+⚡ AI Match Predictions
+🔄 Arbitrage Scanner
+📋 Slip Analyzer
+🤖 Oracle AI Assistant
+🏆 World Cup 2026
+💰 Bankroll Manager
+
+SOCIAL PROOF:
+- "3 users already joined"
+- 5 star rating display
+- "Educational sports intelligence"
+
+PRICING SECTION:
+FREE vs PREMIUM ($29.99/mo)
+Annual: $319/yr
+Lifetime: $299 one-time
+
+FOOTER:
+- Privacy Policy link
+- Terms of Service link
+- Contact: support@prediqsai.com
+- Social media links
+- "Educational purposes only • 18+"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALSO CREATE THESE PAGES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+public/privacy.html
+→ Full Privacy Policy page
+
+public/terms.html
+→ Full Terms of Service page
+
+public/support.html
+→ Support/FAQ page
+
+These are required for:
+✅ App Store submission
+✅ Privacy Policy URL
+✅ Support URL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SERVE THE WEBSITE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the Express server add routes
+to serve these HTML files:
+
+app.get('/', (req, res) => {
+  res.sendFile('public/index.html',
+    { root: '.' });
+});
+
+app.get('/privacy', (req, res) => {
+  res.sendFile('public/privacy.html',
+    { root: '.' });
+});
+
+app.get('/terms', (req, res) => {
+  res.sendFile('public/terms.html',
+    { root: '.' });
+});
+
+app.get('/support', (req, res) => {
+  res.sendFile('public/support.html',
+    { root: '.' });
+});
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN STYLE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Match PrediQs AI dark theme:
+Background: #070B12
+Cards: #0C1422
+Borders: #131E2E
+Cyan accent: #00E5FF
+Gold: #FFD700
+Text: #E0EAF5
+Muted: #7A93B0
+
+Mobile responsive design
+Works on all screen sizes
+
+Build the landing page and
+show me the URL to preview it.
