@@ -505,6 +505,24 @@ export const api = {
       apiFetch<SoccerFixture[]>("/soccer/live", { token }),
     fixtureDetail: (token: string, fixtureId: number) =>
       apiFetch<MatchDetailData>(`/soccer/fixture/${fixtureId}/detail`, { token }),
+    preview: (
+      token: string,
+      body: {
+        homeTeam: string;
+        awayTeam: string;
+        league: string;
+        sport: string;
+        prediction: string;
+        keyFactors: string[];
+        reasoning: string;
+        confidence: number;
+      },
+    ) =>
+      apiFetch<{ preview: string }>("/soccer/preview", {
+        method: "POST",
+        body: JSON.stringify(body),
+        token,
+      }),
   },
   slip: {
     analyze: (

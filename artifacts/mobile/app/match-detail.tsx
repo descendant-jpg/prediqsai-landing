@@ -66,9 +66,54 @@ function getTeamFormScores(p: Prediction): [number, number] {
   return [Math.min(70, form * 0.7 + h2h * 0.3), Math.min(70, h2h * 0.7 + form * 0.3)];
 }
 
+function get3WayProbs(p: Prediction): { home: number; draw: number; away: number } {
+  const pct = p.aiProbability;
+  const isSoccer = p.sport === "soccer";
+  if (p.prediction === "home_win") {
+    const draw = isSoccer ? Math.min(24, Math.round((100 - pct) * 0.42)) : 0;
+    return { home: pct, draw, away: Math.max(5, 100 - pct - draw) };
+  }
+  if (p.prediction === "away_win") {
+    const draw = isSoccer ? Math.min(24, Math.round((100 - pct) * 0.42)) : 0;
+    return { home: Math.max(5, 100 - pct - draw), draw, away: pct };
+  }
+  const rest = 100 - pct;
+  return { home: Math.round(rest * 0.55), draw: pct, away: Math.round(rest * 0.45) };
+}
+
+// ─── Bookmaker Odds ───────────────────────────────────────────────────────────
+
+const BOOKMAKERS = [
+  { name: "DraftKings",   ho: +0.025, do: -0.010, ao: -0.015 },
+  { name: "FanDuel",      ho: -0.030, do: +0.020, ao: +0.010 },
+  { name: "Bet365",       ho: +0.010, do: +0.005, ao: -0.020 },
+  { name: "William Hill", ho: -0.020, do: +0.030, ao: -0.010 },
+  { name: "Betway",       ho: +0.040, do: -0.020, ao: -0.015 },
+  { name: "Unibet",       ho: -0.010, do: +0.010, ao: +0.020 },
+];
+
+function toDecOdds(prob: number): number {
+  const p = Math.max(0.06, Math.min(0.93, prob));
+  return Math.round((1 / p) * 100) / 100;
+}
+
+function buildOddsTable(probs: { home: number; draw: number; away: number }) {
+  const baseH = probs.home / 100;
+  const baseD = probs.draw / 100;
+  const baseA = probs.away / 100;
+  return BOOKMAKERS.map((bk) => ({
+    name: bk.name,
+    home: toDecOdds(baseH - bk.ho * 0.5),
+    draw: toDecOdds(baseD - bk.do * 0.5),
+    away: toDecOdds(baseA - bk.ao * 0.5),
+  }));
+}
+
 // ─── AI Analysis Tab ──────────────────────────────────────────────────────────
 
 function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors: Colors }) {
+  const probs3 = get3WayProbs(prediction);
+
   return (
     <View style={tabs.wrap}>
       <View style={tabs.meterRow}>
@@ -94,6 +139,41 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
           <Text style={[tabs.bannerText, { color: colors.red }]}>HIGH RISK — Consider avoiding</Text>
         </View>
       )}
+
+      {/* ── Win Probability Tracker ── */}
+      <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+        <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Win Probability</Text>
+        <View style={tabs.triBarOuter}>
+          <View style={[tabs.triSegHome, { flex: probs3.home, backgroundColor: colors.cyan }]} />
+          {probs3.draw > 0 && (
+            <View style={[tabs.triSegDraw, { flex: probs3.draw, backgroundColor: colors.gold }]} />
+          )}
+          <View style={[tabs.triSegAway, { flex: probs3.away, backgroundColor: "#FF6B6B" }]} />
+        </View>
+        <View style={tabs.triLabels}>
+          <View style={tabs.triLabelItem}>
+            <View style={[tabs.triDot, { backgroundColor: colors.cyan }]} />
+            <Text style={[tabs.triLabelName, { color: colors.textSecondary }]} numberOfLines={1}>
+              {prediction.homeTeam}
+            </Text>
+            <Text style={[tabs.triLabelPct, { color: colors.cyan }]}>{probs3.home}%</Text>
+          </View>
+          {probs3.draw > 0 && (
+            <View style={tabs.triLabelItem}>
+              <View style={[tabs.triDot, { backgroundColor: colors.gold }]} />
+              <Text style={[tabs.triLabelName, { color: colors.textSecondary }]}>Draw</Text>
+              <Text style={[tabs.triLabelPct, { color: colors.gold }]}>{probs3.draw}%</Text>
+            </View>
+          )}
+          <View style={tabs.triLabelItem}>
+            <View style={[tabs.triDot, { backgroundColor: "#FF6B6B" }]} />
+            <Text style={[tabs.triLabelName, { color: colors.textSecondary }]} numberOfLines={1}>
+              {prediction.awayTeam}
+            </Text>
+            <Text style={[tabs.triLabelPct, { color: "#FF6B6B" }]}>{probs3.away}%</Text>
+          </View>
+        </View>
+      </View>
 
       <TierGate requiredTier={prediction.tierRequired}>
         <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -129,7 +209,7 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
       )}
 
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Probability Comparison</Text>
+        <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>AI vs Bookmaker</Text>
         <View style={tabs.probRow}>
           <Text style={[tabs.probLabel, { color: colors.textSecondary }]}>AI Model</Text>
           <View style={[tabs.probBar, { backgroundColor: colors.border }]}>
@@ -204,10 +284,14 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
 function PrematchTab({
   prediction,
   matchDetail,
+  preview,
+  previewLoading,
   colors,
 }: {
   prediction: Prediction;
   matchDetail: MatchDetailData | null;
+  preview: string | null;
+  previewLoading: boolean;
   colors: Colors;
 }) {
   const [homeFormScore, awayFormScore] = getTeamFormScores(prediction);
@@ -237,6 +321,12 @@ function PrematchTab({
     : prediction.prediction === "away_win" ? prediction.awayTeam
     : "Draw";
 
+  const probs3    = get3WayProbs(prediction);
+  const oddsTable = buildOddsTable(probs3);
+  const bestHome  = Math.max(...oddsTable.map((b) => b.home));
+  const bestDraw  = Math.max(...oddsTable.map((b) => b.draw));
+  const bestAway  = Math.max(...oddsTable.map((b) => b.away));
+
   function EdgeRow({ label, edge }: { label: string; edge: number }) {
     const color = edge > 0 ? colors.green : colors.red;
     return (
@@ -250,6 +340,31 @@ function PrematchTab({
 
   return (
     <View style={tabs.wrap}>
+      {/* ── Oracle Match Preview ── */}
+      <View style={[tabs.section, { backgroundColor: "rgba(0,229,255,0.05)", borderColor: colors.cyan }]}>
+        <View style={tabs.previewHeader}>
+          <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Oracle Match Preview</Text>
+          <View style={tabs.oracleBadge}>
+            <Text style={tabs.oracleBadgeText}>AI</Text>
+          </View>
+        </View>
+        {previewLoading ? (
+          <View style={tabs.previewLoading}>
+            <ActivityIndicator size="small" color={colors.cyan} />
+            <Text style={[tabs.previewLoadingText, { color: colors.textMuted }]}>
+              Oracle is analysing this match…
+            </Text>
+          </View>
+        ) : preview ? (
+          <Text style={[tabs.previewText, { color: colors.text }]}>{preview}</Text>
+        ) : (
+          <Text style={[tabs.sectionText, { color: colors.textMuted }]}>
+            {prediction.reasoning || "AI preview is generated when you open this match."}
+          </Text>
+        )}
+      </View>
+
+      {/* ── Current Form ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Current Form</Text>
 
@@ -294,6 +409,7 @@ function PrematchTab({
         ) : null}
       </View>
 
+      {/* ── Similar Match Insights ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Similar Match Insights</Text>
         <Text style={[tabs.sectionText, { color: colors.textSecondary }]}>
@@ -335,6 +451,7 @@ function PrematchTab({
         </View>
       </View>
 
+      {/* ── Outcomes Report ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Outcomes Report</Text>
         <EdgeRow label={`1X2 — ${mainPick}`} edge={edge1X2} />
@@ -345,6 +462,47 @@ function PrematchTab({
           edge={ahEdge}
         />
       </View>
+
+      {/* ── Odds Comparison ── */}
+      <TierGate requiredTier="pro">
+        <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={tabs.oddsHeader}>
+            <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Odds Comparison</Text>
+            <Text style={[tabs.oddsBestNote, { color: colors.green }]}>Best in green</Text>
+          </View>
+          {/* column headers */}
+          <View style={[tabs.oddsRow, { borderBottomColor: colors.border, paddingBottom: 6, marginBottom: 2 }]}>
+            <Text style={[tabs.oddsBook, { color: colors.textMuted }]}>Bookmaker</Text>
+            <Text style={[tabs.oddsVal, { color: colors.textMuted, textAlign: "center" }]}>Home</Text>
+            {prediction.sport === "soccer" && (
+              <Text style={[tabs.oddsVal, { color: colors.textMuted, textAlign: "center" }]}>Draw</Text>
+            )}
+            <Text style={[tabs.oddsVal, { color: colors.textMuted, textAlign: "center" }]}>Away</Text>
+          </View>
+          {oddsTable.map((bk) => (
+            <View key={bk.name} style={[tabs.oddsRow, { borderBottomColor: colors.border }]}>
+              <Text style={[tabs.oddsBook, { color: colors.textSecondary }]}>{bk.name}</Text>
+              <Text style={[tabs.oddsVal, {
+                color: bk.home === bestHome ? colors.green : colors.text,
+                fontFamily: bk.home === bestHome ? "Inter_700Bold" : "Inter_400Regular",
+              }]}>{bk.home.toFixed(2)}</Text>
+              {prediction.sport === "soccer" && (
+                <Text style={[tabs.oddsVal, {
+                  color: bk.draw === bestDraw ? colors.green : colors.text,
+                  fontFamily: bk.draw === bestDraw ? "Inter_700Bold" : "Inter_400Regular",
+                }]}>{bk.draw.toFixed(2)}</Text>
+              )}
+              <Text style={[tabs.oddsVal, {
+                color: bk.away === bestAway ? colors.green : colors.text,
+                fontFamily: bk.away === bestAway ? "Inter_700Bold" : "Inter_400Regular",
+              }]}>{bk.away.toFixed(2)}</Text>
+            </View>
+          ))}
+          <Text style={[tabs.oddsDisclaimer, { color: colors.textMuted }]}>
+            Indicative odds · Always verify on bookmaker site
+          </Text>
+        </View>
+      </TierGate>
     </View>
   );
 }
@@ -452,8 +610,73 @@ function StatsTab({
   const agents  = prediction.agentScores;
   const hasH2H  = (matchDetail?.h2h?.length ?? 0) > 0;
 
+  const homeXG = simData ? parseFloat(simData.homeMean.toFixed(2)) : null;
+  const awayXG = simData ? parseFloat(simData.awayMean.toFixed(2)) : null;
+  const maxXG  = homeXG !== null && awayXG !== null ? Math.max(homeXG, awayXG, 0.5) : 1;
+
+  const homeXGbar = homeXG !== null ? (homeXG / (maxXG * 1.2)) * 100 : 0;
+  const awayXGbar = awayXG !== null ? (awayXG / (maxXG * 1.2)) * 100 : 0;
+
+  function xGLabel(xg: number): string {
+    if (xg >= 2.0) return "High attacking threat";
+    if (xg >= 1.4) return "Solid goal threat";
+    if (xg >= 0.8) return "Moderate chance creation";
+    return "Low attacking output";
+  }
+
   return (
     <View style={tabs.wrap}>
+      {/* ── xG Tracker ── */}
+      {homeXG !== null && awayXG !== null && (
+        <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={tabs.xgTitleRow}>
+            <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>xG Tracker</Text>
+            <Text style={[tabs.xgSubtitle, { color: colors.textMuted }]}>Expected Goals</Text>
+          </View>
+
+          <View style={tabs.xgTeamRow}>
+            <Text style={[tabs.xgTeamName, { color: colors.text }]} numberOfLines={1}>
+              {prediction.homeTeam}
+            </Text>
+            <View style={tabs.xgBarWrap}>
+              <View style={[tabs.xgBarBg, { backgroundColor: colors.border }]}>
+                <View style={[tabs.xgBarFill, { width: `${homeXGbar}%`, backgroundColor: colors.cyan }]} />
+              </View>
+            </View>
+            <Text style={[tabs.xgValue, { color: colors.cyan }]}>{homeXG.toFixed(2)}</Text>
+          </View>
+          <Text style={[tabs.xgLabel, { color: colors.textMuted }]}>{xGLabel(homeXG)}</Text>
+
+          <View style={[tabs.formDivider, { backgroundColor: colors.border, marginVertical: 8 }]} />
+
+          <View style={tabs.xgTeamRow}>
+            <Text style={[tabs.xgTeamName, { color: colors.text }]} numberOfLines={1}>
+              {prediction.awayTeam}
+            </Text>
+            <View style={tabs.xgBarWrap}>
+              <View style={[tabs.xgBarBg, { backgroundColor: colors.border }]}>
+                <View style={[tabs.xgBarFill, { width: `${awayXGbar}%`, backgroundColor: "#FF6B6B" }]} />
+              </View>
+            </View>
+            <Text style={[tabs.xgValue, { color: "#FF6B6B" }]}>{awayXG.toFixed(2)}</Text>
+          </View>
+          <Text style={[tabs.xgLabel, { color: colors.textMuted }]}>{xGLabel(awayXG)}</Text>
+
+          <View style={[tabs.xgNote, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Feather name="info" size={12} color={colors.textMuted} />
+            <Text style={[tabs.xgNoteText, { color: colors.textMuted }]}>
+              xG above 1.5 typically indicates a team is likely to score.{" "}
+              {homeXG > awayXG
+                ? `${prediction.homeTeam} hold the attacking edge.`
+                : homeXG < awayXG
+                ? `${prediction.awayTeam} have the stronger goal threat.`
+                : "Both teams are evenly matched in attack."}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* ── Head to Head ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Head to Head</Text>
         {hasH2H ? (
@@ -478,6 +701,7 @@ function StatsTab({
         )}
       </View>
 
+      {/* ── Key Statistics ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Key Statistics</Text>
         {simData ? (
@@ -589,9 +813,11 @@ export default function MatchDetailScreen() {
   const insets  = useSafeAreaInsets();
   const { token } = useAuth();
 
-  const [activeTab,   setActiveTab]   = useState<TabId>("AI Analysis");
-  const [matchDetail, setMatchDetail] = useState<MatchDetailData | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [activeTab,      setActiveTab]      = useState<TabId>("AI Analysis");
+  const [matchDetail,    setMatchDetail]    = useState<MatchDetailData | null>(null);
+  const [detailLoading,  setDetailLoading]  = useState(false);
+  const [preview,        setPreview]        = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const { prediction, soccerFixtureId } = matchDetailStore.get();
 
@@ -604,6 +830,25 @@ export default function MatchDetailScreen() {
       .catch(() => {})
       .finally(() => setDetailLoading(false));
   }, [soccerFixtureId, token]);
+
+  useEffect(() => {
+    if (!prediction || !token) return;
+    setPreviewLoading(true);
+    api.soccer
+      .preview(token, {
+        homeTeam:   prediction.homeTeam,
+        awayTeam:   prediction.awayTeam,
+        league:     prediction.league,
+        sport:      prediction.sport,
+        prediction: prediction.prediction,
+        keyFactors: prediction.keyFactors ?? [],
+        reasoning:  prediction.reasoning ?? "",
+        confidence: prediction.confidence,
+      })
+      .then((r) => setPreview(r.preview))
+      .catch(() => {})
+      .finally(() => setPreviewLoading(false));
+  }, [prediction?.id, token]);
 
   if (!prediction) {
     return (
@@ -677,11 +922,27 @@ export default function MatchDetailScreen() {
         contentContainerStyle={[styles.contentPad, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === "AI Analysis" && <AIAnalysisTab prediction={prediction} colors={colors} />}
-        {activeTab === "Prematch"    && <PrematchTab   prediction={prediction} matchDetail={matchDetail} colors={colors} />}
-        {activeTab === "Standings"   && <StandingsTab  prediction={prediction} matchDetail={matchDetail} loading={detailLoading} colors={colors} />}
-        {activeTab === "Stats"       && <StatsTab      prediction={prediction} matchDetail={matchDetail} colors={colors} />}
-        {activeTab === "Score"       && <ScoreTab      prediction={prediction} colors={colors} />}
+        {activeTab === "AI Analysis" && (
+          <AIAnalysisTab prediction={prediction} colors={colors} />
+        )}
+        {activeTab === "Prematch" && (
+          <PrematchTab
+            prediction={prediction}
+            matchDetail={matchDetail}
+            preview={preview}
+            previewLoading={previewLoading}
+            colors={colors}
+          />
+        )}
+        {activeTab === "Standings" && (
+          <StandingsTab prediction={prediction} matchDetail={matchDetail} loading={detailLoading} colors={colors} />
+        )}
+        {activeTab === "Stats" && (
+          <StatsTab prediction={prediction} matchDetail={matchDetail} colors={colors} />
+        )}
+        {activeTab === "Score" && (
+          <ScoreTab prediction={prediction} colors={colors} />
+        )}
       </ScrollView>
     </View>
   );
@@ -735,6 +996,23 @@ const tabs = StyleSheet.create({
   probBar:    { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
   probFill:   { height: "100%", borderRadius: 3 },
   probValue:  { fontSize: 12, fontFamily: "Inter_700Bold", width: 36, textAlign: "right" },
+  // Win Probability 3-way bar
+  triBarOuter:   { flexDirection: "row", height: 12, borderRadius: 6, overflow: "hidden", marginTop: 4 },
+  triSegHome:    { height: "100%" },
+  triSegDraw:    { height: "100%", marginHorizontal: 2 },
+  triSegAway:    { height: "100%" },
+  triLabels:     { flexDirection: "row", justifyContent: "space-between", marginTop: 8 },
+  triLabelItem:  { alignItems: "center", gap: 2, flex: 1 },
+  triDot:        { width: 8, height: 8, borderRadius: 4 },
+  triLabelName:  { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center" },
+  triLabelPct:   { fontSize: 13, fontFamily: "Inter_700Bold" },
+  // Oracle Preview
+  previewHeader:    { flexDirection: "row", alignItems: "center", gap: 8 },
+  oracleBadge:      { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: "rgba(0,229,255,0.15)" },
+  oracleBadgeText:  { fontSize: 9, fontFamily: "Inter_700Bold", color: "#00E5FF", letterSpacing: 0.5 },
+  previewLoading:   { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8 },
+  previewLoadingText:{ fontSize: 13, fontFamily: "Inter_400Regular" },
+  previewText:      { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
   // Form
   formTeamRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   formTeamName: { fontSize: 13, fontFamily: "Inter_600SemiBold", flex: 1 },
@@ -756,6 +1034,13 @@ const tabs = StyleSheet.create({
   edgeRow:   { flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, gap: 8 },
   edgeLabel: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
   edgeValue: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  // Odds Comparison
+  oddsHeader:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  oddsBestNote:    { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  oddsRow:         { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, gap: 4 },
+  oddsBook:        { flex: 1.4, fontSize: 12, fontFamily: "Inter_400Regular" },
+  oddsVal:         { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
+  oddsDisclaimer:  { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 4 },
   // Standings
   standingHeader: { flexDirection: "row", paddingVertical: 6, paddingLeft: 4, gap: 2 },
   standRow:       { flexDirection: "row", alignItems: "center", paddingVertical: 7, paddingLeft: 4, gap: 2 },
@@ -763,6 +1048,18 @@ const tabs = StyleSheet.create({
   standTeam:      { flex: 1, fontSize: 12, fontFamily: "Inter_500Medium" },
   standStat:      { width: 22, fontSize: 11, textAlign: "center", fontFamily: "Inter_400Regular" },
   standPts:       { width: 28, fontSize: 12, fontFamily: "Inter_700Bold", textAlign: "center" },
+  // xG Tracker
+  xgTitleRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  xgSubtitle:  { fontSize: 11, fontFamily: "Inter_400Regular" },
+  xgTeamRow:   { flexDirection: "row", alignItems: "center", gap: 8 },
+  xgTeamName:  { width: 90, fontSize: 12, fontFamily: "Inter_500Medium" },
+  xgBarWrap:   { flex: 1 },
+  xgBarBg:     { height: 8, borderRadius: 4, overflow: "hidden" },
+  xgBarFill:   { height: "100%", borderRadius: 4 },
+  xgValue:     { width: 36, fontSize: 14, fontFamily: "Inter_700Bold", textAlign: "right" },
+  xgLabel:     { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  xgNote:      { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 4 },
+  xgNoteText:  { flex: 1, fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 },
   // Stats
   h2hRow:       { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, gap: 6 },
   h2hTeam:      { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular" },
