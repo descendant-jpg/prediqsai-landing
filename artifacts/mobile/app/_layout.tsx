@@ -1,8 +1,9 @@
 import { setBaseUrl } from "@workspace/api-client-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -20,19 +21,47 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+const ONBOARDING_KEY = "prediqsai_onboarding_done";
+
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const prevUserRef = useRef<typeof user>(undefined);
 
   useEffect(() => {
     if (isLoading) return;
-    const inAuthGroup = segments[0] === "(auth)";
-    if (!user && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    } else if (user && inAuthGroup) {
-      router.replace("/(tabs)");
+
+    async function navigate() {
+      const inAuthGroup = segments[0] === "(auth)";
+      const inOnboarding = segments[0] === "onboarding";
+
+      if (!user) {
+        if (!inAuthGroup) router.replace("/(auth)/login");
+        return;
+      }
+
+      if (inAuthGroup || inOnboarding) {
+        const done = await SecureStore.getItemAsync(ONBOARDING_KEY);
+        if (!done) {
+          router.replace("/onboarding");
+        } else {
+          router.replace("/(tabs)");
+        }
+        return;
+      }
+
+      if (prevUserRef.current === null && user) {
+        const done = await SecureStore.getItemAsync(ONBOARDING_KEY);
+        if (!done) {
+          router.replace("/onboarding");
+          return;
+        }
+      }
     }
+
+    navigate();
+    prevUserRef.current = user;
   }, [user, isLoading, segments]);
 
   return (

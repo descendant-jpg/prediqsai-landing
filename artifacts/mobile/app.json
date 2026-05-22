@@ -1,23 +1,31 @@
 {
   "expo": {
     "name": "PrediQs AI",
-    "slug": "mobile",
+    "slug": "prediqsai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "prediqsai",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#070B12"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.prediqsai.app",
+      "buildNumber": "1"
     },
     "android": {
-      "backgroundColor": "#070B12"
+      "package": "com.prediqsai.app",
+      "versionCode": 1,
+      "backgroundColor": "#070B12",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#070B12"
+      }
     },
     "web": {
       "favicon": "./assets/images/icon.png"

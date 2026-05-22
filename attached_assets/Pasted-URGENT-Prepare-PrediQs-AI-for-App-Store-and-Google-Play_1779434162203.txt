@@ -1,0 +1,344 @@
+URGENT: Prepare PrediQs AI for 
+App Store and Google Play submission.
+World Cup 2026 starts in 21 days.
+
+Focus on making the app stable,
+clean and ready to submit.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 1: FIX ALL CRASHES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix every error that causes:
+- App to crash
+- Blank white screens
+- Infinite loading
+- Broken navigation
+- Any red error screens
+
+Test every screen and fix:
+□ Dashboard loads correctly
+□ Picks page loads real data
+□ Oracle AI responds
+□ ARB Scanner loads
+□ Slip Analyzer opens
+□ Bankroll loads
+□ Settings opens
+□ Admin panel works
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 2: CLEAN UP UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Remove or fix:
+- Any "Claude" or "ChatGPT" text
+  still showing → replace with
+  "PrediQs AI"
+- Any placeholder text like
+  "Lorem ipsum" or "Coming soon"
+- Any broken images or icons
+- Any test/debug buttons visible
+  to regular users
+- DEV MODE label (hide from
+  regular users, only show
+  to admin account)
+- Any console.log statements
+- Any TODO comments in UI
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 3: REQUIRED LEGAL PAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make sure these exist and work:
+□ Privacy Policy screen
+□ Terms of Service screen
+□ Responsible Gambling screen
+□ Disclaimer popup on first launch
+□ Age verification (18+) checkbox
+□ Educational disclaimer on
+  every main screen footer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 4: ONBOARDING FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Make sure new users see:
+1. Disclaimer popup → accept
+2. Rating prompt → rate or skip
+3. Sign up / Login screen
+4. Basic onboarding (3-5 screens)
+5. Dashboard
+
+Onboarding screens:
+Screen 1: Welcome to PrediQs AI
+"AI-powered sports intelligence
+for NFL, NBA, MLB and Soccer"
+[Get Started →]
+
+Screen 2: Choose your sports
+Multi-select buttons:
+🏈 NFL  🏀 NBA  ⚾ MLB  ⚽ Soccer
+[Continue →]
+
+Screen 3: Your betting experience
+○ Beginner (new to betting)
+○ Casual (bet occasionally)
+○ Regular (bet weekly)
+○ Serious (bet daily)
+[Continue →]
+
+Screen 4: Turn on notifications
+🔔 Never miss a pick
+Enable alerts for:
+* Daily top picks
+* Value bet alerts
+* Live momentum shifts
+* Arbitrage opportunities
+[Enable Notifications →]
+[Maybe Later]
+
+Screen 5: You're ready!
+"Welcome to PrediQs AI
+Your AI sports intelligence
+engine is ready"
+[Start Exploring →]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 5: APP STORE ASSETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create these required assets:
+
+App Icon:
+- Dark navy background #070B12
+- "P" or lightning bolt symbol
+- Cyan #00E5FF accent color
+- Gold #FFD700 highlight
+- Sizes: 1024x1024px (main)
+  App Store requires this size
+
+Splash Screen:
+- Dark navy background
+- PrediQs AI logo centered
+- "Sports Intelligence AI" subtitle
+- Loading animation
+
+App Store Screenshots (need 5-8):
+Screenshot 1: Dashboard with
+  World Cup countdown visible
+
+Screenshot 2: Picks page showing
+  NFL/Soccer predictions with
+  confidence meters
+
+Screenshot 3: Oracle AI chat
+  showing a question and answer
+
+Screenshot 4: ARB Scanner showing
+  an arbitrage opportunity
+
+Screenshot 5: Slip Analyzer
+  showing a slip being analyzed
+
+Screenshot 6: Pricing page
+
+Generate these screenshot designs
+as mockups I can use for submission.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 6: APP STORE METADATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Save this for submission:
+
+APP NAME:
+PrediQs AI - Sports Intelligence
+
+SUBTITLE (30 chars max):
+AI Sports Analysis & Picks
+
+DESCRIPTION:
+PrediQs AI is an educational sports
+intelligence platform powered by
+advanced AI analysis.
+
+⚠️ For educational and informational
+purposes only. We do not accept bets.
+
+FEATURES:
+⚡ AI Match Analysis
+Get AI-powered statistical analysis
+for NFL, NBA, MLB and Soccer matches
+worldwide including World Cup 2026
+
+🔄 ARB Scanner
+Educational odds comparison tool
+showing discrepancies across 40+
+bookmakers simultaneously
+
+📋 Slip Analyzer
+Upload any bet slip for instant
+AI educational review of every
+selection with detailed breakdown
+
+🤖 Oracle AI Assistant
+Ask any sports question and get
+instant expert educational response
+powered by advanced AI
+
+💰 Bankroll Education
+Learn proper bankroll management
+with Kelly Criterion calculator
+and performance tracking tools
+
+🏆 World Cup 2026
+Full coverage of all 104 matches
+with AI statistical analysis for
+the biggest sporting event of 2026
+
+📚 Sports Betting Academy
+Educational content from beginner
+to advanced sports analytics
+
+KEYWORDS:
+sports analysis, AI predictions,
+football tips, NFL picks, soccer
+analysis, sports intelligence,
+betting education, World Cup 2026,
+NBA analysis, sports AI
+
+CATEGORY: Sports
+AGE RATING: 17+
+PRICE: Free (with Premium upgrade)
+
+SUPPORT URL:
+https://prediqsai.com/support
+
+PRIVACY POLICY URL:
+https://prediqsai.com/privacy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 7: BUILD FOR PRODUCTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prepare the app for production build:
+
+1. Update app.json with:
+{
+  "expo": {
+    "name": "PrediQs AI",
+    "slug": "prediqsai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070B12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": 
+        "com.prediqsai.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.prediqsai.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": 
+          "./assets/adaptive-icon.png",
+        "backgroundColor": "#070B12"
+      }
+    }
+  }
+}
+
+2. Create EAS build config (eas.json):
+{
+  "cli": {
+    "version": ">= 5.9.1"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+
+3. Install EAS CLI:
+npm install -g eas-cli
+eas login
+eas build:configure
+
+4. Build for iOS:
+eas build --platform ios 
+  --profile production
+
+5. Build for Android:
+eas build --platform android 
+  --profile production
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY 8: FINAL CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before submitting confirm:
+
+LEGAL:
+□ Privacy Policy page works
+□ Terms of Service page works
+□ Responsible Gambling page works
+□ Disclaimer popup shows on
+  first launch
+□ Age verification checkbox works
+□ Educational disclaimers on
+  every screen footer
+
+FUNCTIONALITY:
+□ Sign up works
+□ Login works
+□ Logout works
+□ Dashboard loads real data
+□ Predictions show real games
+□ Oracle AI responds correctly
+□ ARB Scanner finds opportunities
+□ Slip Analyzer reads images
+□ Bankroll tracker saves data
+□ Push notifications work
+□ Settings saves preferences
+□ Admin panel accessible
+
+DESIGN:
+□ Dark theme consistent
+□ No broken images
+□ No placeholder text
+□ No "Claude" or "ChatGPT" visible
+□ App icon looks professional
+□ Splash screen looks good
+□ All fonts loading correctly
+
+PERFORMANCE:
+□ App loads in under 3 seconds
+□ No lag when scrolling
+□ Smooth animations
+□ No memory leaks
+□ Works on iOS 15+
+□ Works on Android 10+
+
+Do all of this now.
+Fix everything.
+Generate the app icon and
+splash screen assets.
+Show me the final app ready
+for App Store submission.

@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import * as SecureStore from "expo-secure-store";
 import { AlertTriangle, ArrowRight, Check } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -329,6 +330,7 @@ export default function OnboardingScreen() {
 
   async function finish() {
     try { await updateBankroll(0); } catch {}
+    await SecureStore.setItemAsync("prediqsai_onboarding_done", "true");
     router.replace("/(tabs)");
   }
 

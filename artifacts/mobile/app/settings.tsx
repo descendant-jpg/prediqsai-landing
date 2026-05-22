@@ -197,6 +197,14 @@ export default function SettingsScreen() {
 
   async function handleSetTier(tier: Tier) {
     if (!token || tier === user?.tier || isChangingTier) return;
+    if (!user?.isAdmin) {
+      Alert.alert(
+        "Subscriptions Coming Soon",
+        "Full payment processing is launching very soon. You'll be notified when upgrades go live!",
+        [{ text: "Got it" }],
+      );
+      return;
+    }
     setIsChangingTier(true);
     try {
       await api.subscription.setTier(token, tier);
@@ -247,16 +255,18 @@ export default function SettingsScreen() {
           <View style={{ width: 22 }} />
         </View>
 
-        {/* Beta banner */}
-        <View style={[styles.betaBanner, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: "rgba(0,229,255,0.25)" }]}>
-          <Zap size={16} color="#00E5FF" />
-          <View style={styles.betaText}>
-            <Text style={[styles.betaTitle, { color: "#00E5FF" }]}>Beta Access — Full Features Unlocked</Text>
-            <Text style={[styles.betaSub, { color: colors.textSecondary }]}>
-              Payment coming soon. Enjoy full access during beta — no credit card needed.
-            </Text>
+        {/* Beta banner — admin only during development */}
+        {user?.isAdmin && (
+          <View style={[styles.betaBanner, { backgroundColor: "rgba(255,107,53,0.08)", borderColor: "rgba(255,107,53,0.25)" }]}>
+            <Zap size={16} color="#FF6B35" />
+            <View style={styles.betaText}>
+              <Text style={[styles.betaTitle, { color: "#FF6B35" }]}>Admin / Dev Mode Active</Text>
+              <Text style={[styles.betaSub, { color: colors.textSecondary }]}>
+                You can switch tiers freely. This banner is only visible to admins.
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Profile card */}
         <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -274,104 +284,98 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Dev mode label */}
+        {/* Subscription section */}
         <View style={styles.sectionLabel}>
-          <View style={[styles.devBadge, { backgroundColor: "rgba(255,107,53,0.12)", borderColor: "rgba(255,107,53,0.3)" }]}>
-            <Code2 size={11} color="#FF6B35" />
-            <Text style={[styles.devBadgeText, { color: "#FF6B35" }]}>DEV MODE</Text>
-          </View>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tier Simulator</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Plan</Text>
           <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-            Switch tiers to test gated features — no payment required during development
+            Compare plans and unlock more AI-powered features
           </Text>
         </View>
 
-        {/* Annual / Monthly toggle */}
-        <View style={[styles.billingToggle, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <TouchableOpacity
-            style={[styles.toggleBtn, !annualMode && { backgroundColor: colors.cyan, borderRadius: 8 }]}
-            onPress={() => setAnnualMode(false)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.toggleBtnText, { color: !annualMode ? colors.background : colors.textSecondary }]}>Monthly</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleBtn, annualMode && { backgroundColor: "#00FF94", borderRadius: 8 }]}
-            onPress={() => setAnnualMode(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.toggleBtnText, { color: annualMode ? colors.background : colors.textSecondary }]}>Annual</Text>
-            <View style={[styles.savePill, { backgroundColor: annualMode ? "rgba(0,0,0,0.15)" : "rgba(0,255,148,0.15)" }]}>
-              <Text style={[styles.savePillText, { color: annualMode ? colors.background : "#00FF94" }]}>Save up to 45%</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tier cards */}
-        <View style={styles.tierGrid}>
-          {TIER_CARDS.map((tier) => {
-            const isActive = currentTier === tier.key;
-            const save = annualSaveLabel(tier.key);
-            return (
+        {/* Admin-only: Tier Simulator */}
+        {user?.isAdmin && (
+          <>
+            {/* Annual / Monthly toggle */}
+            <View style={[styles.billingToggle, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <TouchableOpacity
-                key={tier.key}
-                style={[
-                  styles.tierCard,
-                  {
-                    backgroundColor: isActive ? `${tier.color}10` : colors.card,
-                    borderColor: isActive ? tier.color : tier.key === "free" ? "#94A3B8" : tier.key === "pro" ? "#00E5FF" : "#FFD700",
-                    borderWidth: isActive ? 2 : 1,
-                    opacity: isChangingTier && !isActive ? 0.6 : 1,
-                  },
-                ]}
-                onPress={() => handleSetTier(tier.key)}
-                disabled={isChangingTier || isActive}
+                style={[styles.toggleBtn, !annualMode && { backgroundColor: colors.cyan, borderRadius: 8 }]}
+                onPress={() => setAnnualMode(false)}
                 activeOpacity={0.8}
               >
-                {/* Card header row */}
-                <View style={styles.tierCardHeader}>
-                  <Text style={[styles.tierCardLabel, { color: isActive ? tier.color : colors.text }]}>{tier.label}</Text>
-                  <View style={styles.cardHeaderRight}>
-                    {tier.badge && (
-                      <View style={[styles.popularBadge, { backgroundColor: tier.key === "pro" ? "rgba(0,229,255,0.15)" : "rgba(255,215,0,0.15)", borderColor: tier.color }]}>
-                        {tier.badgeIcon === "star" && <Star size={9} color={tier.color} />}
-                        {tier.badgeIcon === "crown" && <Crown size={9} color={tier.color} />}
-                        <Text style={[styles.popularBadgeText, { color: tier.color }]}>{tier.badge}</Text>
-                      </View>
-                    )}
-                    {isActive && (
-                      <View style={[styles.activeCheck, { backgroundColor: tier.color }]}>
-                        <Check size={10} color={colors.background} />
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                {/* Price */}
-                <Text style={[styles.tierCardPrice, { color: isActive ? tier.color : colors.text }]}>{priceLabel(tier.key)}</Text>
-                {save && (
-                  <Text style={[styles.annualSave, { color: "#00FF94" }]}>{save}</Text>
-                )}
-                {tier.key === "pro" && !annualMode && (
-                  <Text style={[styles.annualHint, { color: colors.textMuted }]}>$99/year — save 45%</Text>
-                )}
-                {tier.key === "elite" && !annualMode && (
-                  <Text style={[styles.annualHint, { color: colors.textMuted }]}>$299/year — save 38%</Text>
-                )}
-
-                {/* Feature dots */}
-                <View style={styles.tierFeatures}>
-                  {tier.cardFeatures.map((f, i) => (
-                    <View key={i} style={styles.featureRow}>
-                      <View style={[styles.featureDot, { backgroundColor: isActive ? tier.color : colors.textMuted }]} />
-                      <Text style={[styles.featureText, { color: isActive ? colors.text : colors.textSecondary }]}>{f}</Text>
-                    </View>
-                  ))}
+                <Text style={[styles.toggleBtnText, { color: !annualMode ? colors.background : colors.textSecondary }]}>Monthly</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleBtn, annualMode && { backgroundColor: "#00FF94", borderRadius: 8 }]}
+                onPress={() => setAnnualMode(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.toggleBtnText, { color: annualMode ? colors.background : colors.textSecondary }]}>Annual</Text>
+                <View style={[styles.savePill, { backgroundColor: annualMode ? "rgba(0,0,0,0.15)" : "rgba(0,255,148,0.15)" }]}>
+                  <Text style={[styles.savePillText, { color: annualMode ? colors.background : "#00FF94" }]}>Save up to 45%</Text>
                 </View>
               </TouchableOpacity>
-            );
-          })}
-        </View>
+            </View>
+
+            {/* Tier cards */}
+            <View style={styles.tierGrid}>
+              {TIER_CARDS.map((tier) => {
+                const isActive = currentTier === tier.key;
+                const save = annualSaveLabel(tier.key);
+                return (
+                  <TouchableOpacity
+                    key={tier.key}
+                    style={[
+                      styles.tierCard,
+                      {
+                        backgroundColor: isActive ? `${tier.color}10` : colors.card,
+                        borderColor: isActive ? tier.color : tier.key === "free" ? "#94A3B8" : tier.key === "pro" ? "#00E5FF" : "#FFD700",
+                        borderWidth: isActive ? 2 : 1,
+                        opacity: isChangingTier && !isActive ? 0.6 : 1,
+                      },
+                    ]}
+                    onPress={() => handleSetTier(tier.key)}
+                    disabled={isChangingTier || isActive}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.tierCardHeader}>
+                      <Text style={[styles.tierCardLabel, { color: isActive ? tier.color : colors.text }]}>{tier.label}</Text>
+                      <View style={styles.cardHeaderRight}>
+                        {tier.badge && (
+                          <View style={[styles.popularBadge, { backgroundColor: tier.key === "pro" ? "rgba(0,229,255,0.15)" : "rgba(255,215,0,0.15)", borderColor: tier.color }]}>
+                            {tier.badgeIcon === "star" && <Star size={9} color={tier.color} />}
+                            {tier.badgeIcon === "crown" && <Crown size={9} color={tier.color} />}
+                            <Text style={[styles.popularBadgeText, { color: tier.color }]}>{tier.badge}</Text>
+                          </View>
+                        )}
+                        {isActive && (
+                          <View style={[styles.activeCheck, { backgroundColor: tier.color }]}>
+                            <Check size={10} color={colors.background} />
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <Text style={[styles.tierCardPrice, { color: isActive ? tier.color : colors.text }]}>{priceLabel(tier.key)}</Text>
+                    {save && <Text style={[styles.annualSave, { color: "#00FF94" }]}>{save}</Text>}
+                    {tier.key === "pro" && !annualMode && (
+                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$99/year — save 45%</Text>
+                    )}
+                    {tier.key === "elite" && !annualMode && (
+                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$299/year — save 38%</Text>
+                    )}
+                    <View style={styles.tierFeatures}>
+                      {tier.cardFeatures.map((f, i) => (
+                        <View key={i} style={styles.featureRow}>
+                          <View style={[styles.featureDot, { backgroundColor: isActive ? tier.color : colors.textMuted }]} />
+                          <Text style={[styles.featureText, { color: isActive ? colors.text : colors.textSecondary }]}>{f}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
 
         {/* Active features for current tier */}
         <View style={[styles.activeCard, { backgroundColor: colors.card, borderColor: `${currentCard.color}30` }]}>
