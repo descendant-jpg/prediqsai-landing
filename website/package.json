@@ -1,0 +1,13 @@
+{
+  "name": "prediqsai-landing-website",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20",
+    "pnpm": "10.26.1"
+  },
+  "scripts": {
+    "build": "cd .. && pnpm install --no-frozen-lockfile && pnpm --filter @workspace/website run build",
+    "start": "npx serve ../artifacts/website/dist/public -s -l ${PORT:-3000}"
+  }
+}
