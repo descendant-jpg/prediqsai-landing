@@ -1,0 +1,8 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "cd artifacts/website && pnpm run build && npx serve dist/public -s -l ${PORT:-3000}"
+  }
+}
