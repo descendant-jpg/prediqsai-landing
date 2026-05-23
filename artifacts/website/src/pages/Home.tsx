@@ -463,7 +463,6 @@ function Pricing() {
       price: "$39.99",
       period: "per month",
       annualNote: "$455/yr (save 5%)",
-      lifetimeNote: "or $299 lifetime",
       color: CYAN,
       features: [
         "Unlimited AI predictions",
@@ -535,9 +534,6 @@ function Pricing() {
             </div>
             {p.annualNote && (
               <p style={{ color: GOLD, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{p.annualNote}</p>
-            )}
-            {p.lifetimeNote && (
-              <p style={{ color: MUTED, fontSize: 12, marginBottom: 16 }}>{p.lifetimeNote}</p>
             )}
             {!p.annualNote && <div style={{ marginBottom: 24 }} />}
 
