@@ -145,6 +145,40 @@ function Countdown() {
   );
 }
 
+const AI_LABELS = ["GPT-4", "Claude", "Gemini", "Grok", "PrediQs AI"];
+
+function PoweredByBadge() {
+  const [idx, setIdx] = useState(0);
+  const [opacity, setOpacity] = useState(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOpacity(0);
+      setTimeout(() => {
+        setIdx((i) => (i + 1) % AI_LABELS.length);
+        setOpacity(1);
+      }, 350);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 8,
+      background: `${CARD}cc`, border: `1px solid ${CYAN}30`,
+      borderRadius: 999, padding: "6px 16px", marginBottom: 24,
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: CYAN, display: "inline-block", boxShadow: `0 0 8px ${CYAN}` }} />
+      <span style={{ color: CYAN, fontSize: 13, fontWeight: 600 }}>
+        Powered by{" "}
+        <span style={{ transition: "opacity 0.35s ease", opacity, display: "inline-block", minWidth: 80 }}>
+          {AI_LABELS[idx]}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function Hero() {
   return (
     <section
@@ -169,14 +203,7 @@ function Hero() {
         pointerEvents: "none",
       }} />
 
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 8,
-        background: `${CARD}cc`, border: `1px solid ${CYAN}30`,
-        borderRadius: 999, padding: "6px 16px", marginBottom: 24,
-      }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: CYAN, display: "inline-block", boxShadow: `0 0 8px ${CYAN}` }} />
-        <span style={{ color: CYAN, fontSize: 13, fontWeight: 600 }}>Powered by PrediQs AI</span>
-      </div>
+      <PoweredByBadge />
 
       <h1 style={{
         fontSize: "clamp(36px, 6vw, 72px)",
@@ -202,7 +229,7 @@ function Hero() {
         lineHeight: 1.7,
         marginBottom: 16,
       }}>
-        Real-time sports analytics, Claude AI match previews, bankroll management,
+        Real-time sports analytics, multi-model AI match previews, bankroll management,
         and value bet detection — all in one intelligent mobile app.
       </p>
 
@@ -267,13 +294,13 @@ const features = [
   {
     icon: "🤖",
     title: "AI Predictions",
-    desc: "Claude AI analyses live ESPN data every 6 hours to generate high-confidence picks across NFL, NBA, MLB, and Soccer.",
+    desc: "Our multi-model AI engine combines GPT-4, Gemini, and proprietary models to analyze live ESPN data every 6 hours, generating high-confidence picks across NFL, NBA, MLB, and Soccer.",
     color: CYAN,
   },
   {
     icon: "⚡",
     title: "Oracle AI Preview",
-    desc: "Deep match previews with team form, head-to-head stats, injury reports, and expected goals analysis.",
+    desc: "Deep match previews powered by an ensemble of AI models — team form, head-to-head stats, injury reports, and expected goals analysis.",
     color: GOLD,
   },
   {
@@ -440,18 +467,18 @@ function Pricing() {
       color: CYAN,
       features: [
         "Unlimited AI predictions",
-        "Oracle AI match previews",
+        "Multi-Model AI match previews",
         "6-bookmaker odds comparison",
         "Full bankroll management",
         "Kelly Criterion calculator",
         "Win rate & ROI analytics",
         "World Cup 2026 coverage",
-        "Priority AI assistant access",
+        "Priority Multi-Model AI assistant access",
         "Arbitrage Scanner (10+ bookmakers)",
         "Live in-play betting alerts",
         "Early line movement detection",
         "Multi-sport parlay optimizer",
-        "Dedicated AI betting assistant (24/7)",
+        "Dedicated Multi-Model AI betting assistant (24/7)",
         "Exclusive World Cup 2026 prop bets",
         "Export reports to PDF/CSV",
         "VIP Discord community access",
