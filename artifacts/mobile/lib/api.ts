@@ -314,6 +314,51 @@ export interface SoccerFeedResponse {
   hasApiKey: boolean;
 }
 
+export interface NBAGame {
+  id: number;
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  status: string;
+  arena: string;
+  season: number;
+}
+
+export interface NFLGame {
+  id: number;
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  status: string;
+  week: string;
+  season: number;
+}
+
+export interface MLBGame {
+  id: number;
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  status: string;
+  venue: string;
+  season: number;
+}
+
+export interface AllSportsResponse {
+  soccer: SoccerFeedResponse;
+  nba: NBAGame[];
+  nfl: NFLGame[];
+  mlb: MLBGame[];
+  hasApiKey: boolean;
+  fetchedAt: string;
+}
+
 export interface SlipAnalysisResult {
   analysis: unknown;
 }
@@ -497,6 +542,9 @@ export const api = {
         token,
       }),
     accuracy: (token: string) => apiFetch<AccuracyStats>("/predictions/accuracy", { token }),
+  },
+  sports: {
+    today: (token: string) => apiFetch<AllSportsResponse>("/sports/today", { token }),
   },
   soccer: {
     fixtures: (token: string) =>

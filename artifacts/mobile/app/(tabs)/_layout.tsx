@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { BarChart2, CircleDot, Crosshair, DollarSign, LayoutGrid, Zap } from "lucide-react-native";
+import { Bot, Crosshair, DollarSign, LayoutGrid, User } from "lucide-react-native";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
@@ -56,26 +56,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="soccer"
-        options={{
-          title: "Football",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="soccerball" tintColor={color} size={22} />
-            ) : (
-              <CircleDot size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
         name="assistant"
         options={{
-          title: "PrediQs AI",
+          title: "Oracle",
           tabBarIcon: ({ color }) =>
             isIOS ? (
               <SymbolView name="bolt.circle.fill" tintColor={color} size={22} />
             ) : (
-              <Zap size={20} color={color} />
+              <Bot size={20} color={color} />
             ),
         }}
       />
@@ -92,17 +80,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="performance"
+        name="profile"
         options={{
-          title: "Stats",
+          title: "Profile",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="trophy.fill" tintColor={color} size={22} />
+              <SymbolView name="person.circle.fill" tintColor={color} size={22} />
             ) : (
-              <BarChart2 size={20} color={color} />
+              <User size={20} color={color} />
             ),
         }}
       />
+      {/* Hidden screens — accessible via router.push but not in tab bar */}
+      <Tabs.Screen name="soccer"      options={{ href: null }} />
+      <Tabs.Screen name="performance" options={{ href: null }} />
     </Tabs>
   );
 }

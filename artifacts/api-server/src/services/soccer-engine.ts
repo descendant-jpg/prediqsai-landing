@@ -253,8 +253,13 @@ function parseFixture(raw: Record<string, unknown>): SoccerFixture | null {
   if (!fixture || !league || !teams) return null;
 
   const leagueId = league.id as number;
-  const meta = LEAGUES[leagueId];
-  if (!meta) return null;
+  // Accept ANY league — use map for known tiers, generic fallback for unknowns
+  const meta: LeagueMeta = LEAGUES[leagueId] ?? {
+    name: (league.name as string) ?? `League ${leagueId}`,
+    country: (league.country as string) ?? "Unknown",
+    flag: "🌐",
+    tier: 99,
+  };
 
   const fixtureId = fixture.id as number;
   const status = fixture.status as Record<string, unknown> | undefined;
@@ -323,18 +328,31 @@ function buildGroups(fixtures: SoccerFixture[]): SoccerLeagueGroup[] {
 
 async function fetchFromApi(params: string): Promise<SoccerFixture[]> {
   if (!API_SPORTS_KEY) return [];
-  const url = `${FOOTBALL_BASE}/fixtures?${params}`;
-  const resp = await fetch(url, {
-    headers: { "x-apisports-key": API_SPORTS_KEY },
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!resp.ok) {
-    logger.warn({ status: resp.status, params }, "API-Sports football non-OK");
-    return [];
+  const allItems: Record<string, unknown>[] = [];
+  let page = 1;
+
+  while (page <= 5) {
+    const url = `${FOOTBALL_BASE}/fixtures?${params}&page=${page}`;
+    const resp = await fetch(url, {
+      headers: { "x-apisports-key": API_SPORTS_KEY },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!resp.ok) {
+      logger.warn({ status: resp.status, params, page }, "API-Sports football non-OK");
+      break;
+    }
+    const data = (await resp.json()) as {
+      response?: unknown[];
+      paging?: { current: number; total: number };
+    };
+    const items = (data.response ?? []) as Record<string, unknown>[];
+    allItems.push(...items);
+    const totalPages = data.paging?.total ?? 1;
+    if (page >= totalPages || items.length === 0) break;
+    page++;
   }
-  const data = (await resp.json()) as { response?: unknown[] };
-  const items = (data.response ?? []) as Record<string, unknown>[];
-  const parsed = items.map(parseFixture).filter((f): f is SoccerFixture => f !== null);
+
+  const parsed = allItems.map(parseFixture).filter((f): f is SoccerFixture => f !== null);
   parsed.sort(sortByKickoff);
   return parsed;
 }

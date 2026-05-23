@@ -3,6 +3,7 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 import { requireAuth } from "../middleware/auth";
 import { getTodaysFixtures, getLiveFixtures, getFixtureDetail } from "../services/soccer-engine";
+import { getAllSportsToday } from "../services/multi-sport-engine";
 
 const router = Router();
 
@@ -42,6 +43,26 @@ router.get("/soccer/fixture/:id/detail", requireAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get fixture detail");
     res.status(500).json({ error: "Failed to fetch match detail" });
+  }
+});
+
+router.get("/sports/today", requireAuth, async (req, res) => {
+  try {
+    const [soccerData, multiSport] = await Promise.all([
+      getTodaysFixtures(),
+      getAllSportsToday(),
+    ]);
+    res.json({
+      soccer: soccerData,
+      nba: multiSport.nba,
+      nfl: multiSport.nfl,
+      mlb: multiSport.mlb,
+      hasApiKey: multiSport.hasApiKey,
+      fetchedAt: multiSport.fetchedAt,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get all sports today");
+    res.status(500).json({ error: "Failed to fetch sports data" });
   }
 });
 

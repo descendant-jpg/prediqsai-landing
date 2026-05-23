@@ -18,12 +18,65 @@ import { PredictionCard } from "@/components/PredictionCard";
 import { SPORT_FILTERS } from "@/constants/mockData";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { api, type AccuracyStats, type ApiPrediction, type SoccerFixture } from "@/lib/api";
+import { api, type AccuracyStats, type AllSportsResponse, type ApiPrediction, type NBAGame, type NFLGame, type MLBGame, type SoccerFixture, type SoccerLeagueGroup } from "@/lib/api";
 import type { Prediction } from "@/types";
 
 type FilterKey  = (typeof SPORT_FILTERS)[number]["key"];
-type TopTab     = "PRE-MATCH" | "SEASON" | "LIVE";
-const TOP_TABS: TopTab[] = ["PRE-MATCH", "SEASON", "LIVE"];
+type TopTab     = "PRE-MATCH" | "TODAY" | "LIVE" | "SEASON";
+const TOP_TABS: TopTab[] = ["PRE-MATCH", "TODAY", "LIVE", "SEASON"];
+
+// ── Helpers for TODAY tab ────────────────────────────────────────────────────
+
+function formatKickoff(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "--:--";
+  }
+}
+
+function MultiSportGameCard({
+  homeTeam, awayTeam, homeScore, awayScore, status, meta, colors,
+}: {
+  homeTeam: string; awayTeam: string;
+  homeScore: number | null; awayScore: number | null;
+  status: string; meta: string;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
+  const isLive = /in progress|live|Q[1-4]|1H|2H|halftime/i.test(status);
+  return (
+    <View style={{
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: isLive ? "rgba(255,77,77,0.4)" : colors.border,
+    }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 11, fontFamily: "Inter_400Regular" }}>{meta}</Text>
+        {isLive && (
+          <View style={{ backgroundColor: "rgba(255,77,77,0.18)", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+            <Text style={{ color: "#FF4D4D", fontSize: 11, fontFamily: "Inter_700Bold" }}>LIVE</Text>
+          </View>
+        )}
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Text style={{ color: colors.text, fontSize: 15, fontFamily: "Inter_600SemiBold", flex: 1 }} numberOfLines={1}>{homeTeam}</Text>
+        {homeScore != null && (
+          <Text style={{ color: colors.text, fontSize: 18, fontFamily: "Inter_700Bold", marginHorizontal: 6 }}>{homeScore}</Text>
+        )}
+      </View>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+        <Text style={{ color: colors.textSecondary, fontSize: 15, fontFamily: "Inter_400Regular", flex: 1 }} numberOfLines={1}>{awayTeam}</Text>
+        {awayScore != null && (
+          <Text style={{ color: colors.textSecondary, fontSize: 18, fontFamily: "Inter_700Bold", marginHorizontal: 6 }}>{awayScore}</Text>
+        )}
+      </View>
+      <Text style={{ color: colors.textMuted, fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 6 }}>{status}</Text>
+    </View>
+  );
+}
 
 function mapPrediction(p: ApiPrediction): Prediction {
   return {
@@ -73,14 +126,16 @@ export default function PicksScreen() {
   const insets  = useSafeAreaInsets();
   const { token } = useAuth();
 
-  const [topTab,       setTopTab]       = useState<TopTab>("PRE-MATCH");
-  const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
-  const [predictions,  setPredictions]  = useState<Prediction[]>([]);
-  const [isLoading,    setIsLoading]    = useState(true);
-  const [error,        setError]        = useState("");
-  const [accuracy,     setAccuracy]     = useState<AccuracyStats | null>(null);
-  const [liveFixtures, setLiveFixtures] = useState<SoccerFixture[]>([]);
-  const [liveLoading,  setLiveLoading]  = useState(false);
+  const [topTab,        setTopTab]        = useState<TopTab>("PRE-MATCH");
+  const [activeFilter,  setActiveFilter]  = useState<FilterKey>("all");
+  const [predictions,   setPredictions]   = useState<Prediction[]>([]);
+  const [isLoading,     setIsLoading]     = useState(true);
+  const [error,         setError]         = useState("");
+  const [accuracy,      setAccuracy]      = useState<AccuracyStats | null>(null);
+  const [liveFixtures,  setLiveFixtures]  = useState<SoccerFixture[]>([]);
+  const [liveLoading,   setLiveLoading]   = useState(false);
+  const [allSports,     setAllSports]     = useState<AllSportsResponse | null>(null);
+  const [sportsLoading, setSportsLoading] = useState(false);
 
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
@@ -120,13 +175,24 @@ export default function PicksScreen() {
     return () => { active = false; clearInterval(interval); };
   }, [topTab, token]);
 
+  useEffect(() => {
+    if (topTab !== "TODAY" || !token) return;
+    if (allSports) return; // cached
+    let active = true;
+    setSportsLoading(true);
+    api.sports.today(token)
+      .then((data) => { if (active) setAllSports(data); })
+      .catch(() => {})
+      .finally(() => { if (active) setSportsLoading(false); });
+    return () => { active = false; };
+  }, [topTab, token, allSports]);
+
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
-  const filtered      = applyFilter(predictions, activeFilter);
-  const seasonPicks   = predictions
+  const filtered    = applyFilter(predictions, activeFilter);
+  const seasonPicks = predictions
     .filter((p) => p.valueDetected && !p.avoidMatch)
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(0, 10);
+    .sort((a, b) => b.confidence - a.confidence);
 
   const monthLabel = accuracy?.month
     ? new Date(accuracy.month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -271,6 +337,156 @@ export default function PicksScreen() {
         </>
       )}
 
+      {/* ── TODAY (all sports fixtures) ── */}
+      {topTab === "TODAY" && (
+        <>
+          {sportsLoading && !allSports ? (
+            <View style={styles.centered}>
+              <ActivityIndicator color={colors.cyan} size="large" />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading today's fixtures…</Text>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
+            >
+              {/* Soccer section */}
+              {(() => {
+                const groups: SoccerLeagueGroup[] = allSports?.soccer?.leagueGroups ?? [];
+                const total = allSports?.soccer?.totalCount ?? 0;
+                return (
+                  <>
+                    <View style={styles.sportHeader}>
+                      <Text style={[styles.sportEmoji]}>⚽</Text>
+                      <Text style={[styles.sportName, { color: colors.text }]}>Soccer</Text>
+                      <Text style={[styles.sportCount, { color: colors.textMuted }]}>{total} matches</Text>
+                    </View>
+                    {groups.length === 0 ? (
+                      <Text style={[styles.noGamesText, { color: colors.textMuted }]}>
+                        {allSports?.soccer?.hasApiKey === false
+                          ? "API key required for live soccer fixtures"
+                          : "No soccer fixtures today"}
+                      </Text>
+                    ) : (
+                      groups.map((group) => (
+                        <View key={group.leagueId} style={{ marginBottom: 12 }}>
+                          <Text style={[styles.leagueHeader, { color: colors.textSecondary }]}>
+                            {group.leagueFlag} {group.leagueName}
+                            <Text style={{ color: colors.textMuted }}> · {group.leagueCountry}</Text>
+                          </Text>
+                          {group.fixtures.map((f) => (
+                            <MultiSportGameCard
+                              key={f.id}
+                              homeTeam={f.homeTeam}
+                              awayTeam={f.awayTeam}
+                              homeScore={f.homeScore}
+                              awayScore={f.awayScore}
+                              status={f.statusShort === "NS" ? formatKickoff(f.kickoff) : f.statusLong}
+                              meta={`${group.leagueFlag} ${group.leagueName}`}
+                              colors={colors}
+                            />
+                          ))}
+                        </View>
+                      ))
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* NBA section */}
+              {(() => {
+                const games = allSports?.nba ?? [];
+                return (
+                  <>
+                    <View style={[styles.sportHeader, { marginTop: 8 }]}>
+                      <Text style={styles.sportEmoji}>🏀</Text>
+                      <Text style={[styles.sportName, { color: colors.text }]}>NBA</Text>
+                      <Text style={[styles.sportCount, { color: colors.textMuted }]}>{games.length} games</Text>
+                    </View>
+                    {games.length === 0 ? (
+                      <Text style={[styles.noGamesText, { color: colors.textMuted }]}>No NBA games today</Text>
+                    ) : (
+                      games.map((g) => (
+                        <MultiSportGameCard
+                          key={g.id}
+                          homeTeam={g.homeTeam}
+                          awayTeam={g.awayTeam}
+                          homeScore={g.homeScore}
+                          awayScore={g.awayScore}
+                          status={g.status}
+                          meta={`🏀 NBA · ${g.arena || "Arena TBD"}`}
+                          colors={colors}
+                        />
+                      ))
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* NFL section */}
+              {(() => {
+                const games = allSports?.nfl ?? [];
+                return (
+                  <>
+                    <View style={[styles.sportHeader, { marginTop: 8 }]}>
+                      <Text style={styles.sportEmoji}>🏈</Text>
+                      <Text style={[styles.sportName, { color: colors.text }]}>NFL</Text>
+                      <Text style={[styles.sportCount, { color: colors.textMuted }]}>{games.length} games</Text>
+                    </View>
+                    {games.length === 0 ? (
+                      <Text style={[styles.noGamesText, { color: colors.textMuted }]}>No NFL games today</Text>
+                    ) : (
+                      games.map((g) => (
+                        <MultiSportGameCard
+                          key={g.id}
+                          homeTeam={g.homeTeam}
+                          awayTeam={g.awayTeam}
+                          homeScore={g.homeScore}
+                          awayScore={g.awayScore}
+                          status={g.status}
+                          meta={`🏈 NFL · ${g.week || "Week"}`}
+                          colors={colors}
+                        />
+                      ))
+                    )}
+                  </>
+                );
+              })()}
+
+              {/* MLB section */}
+              {(() => {
+                const games = allSports?.mlb ?? [];
+                return (
+                  <>
+                    <View style={[styles.sportHeader, { marginTop: 8 }]}>
+                      <Text style={styles.sportEmoji}>⚾</Text>
+                      <Text style={[styles.sportName, { color: colors.text }]}>MLB</Text>
+                      <Text style={[styles.sportCount, { color: colors.textMuted }]}>{games.length} games</Text>
+                    </View>
+                    {games.length === 0 ? (
+                      <Text style={[styles.noGamesText, { color: colors.textMuted }]}>No MLB games today</Text>
+                    ) : (
+                      games.map((g) => (
+                        <MultiSportGameCard
+                          key={g.id}
+                          homeTeam={g.homeTeam}
+                          awayTeam={g.awayTeam}
+                          homeScore={g.homeScore}
+                          awayScore={g.awayScore}
+                          status={g.status}
+                          meta={`⚾ MLB · ${g.venue || "Venue TBD"}`}
+                          colors={colors}
+                        />
+                      ))
+                    )}
+                  </>
+                );
+              })()}
+            </ScrollView>
+          )}
+        </>
+      )}
+
       {/* ── SEASON ── */}
       {topTab === "SEASON" && (
         <FlatList
@@ -397,4 +613,11 @@ const styles = StyleSheet.create({
   livePulse:      { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FF4D4D" },
   liveHeaderText: { fontSize: 14, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
   liveRefreshText:{ fontSize: 12, fontFamily: "Inter_400Regular" },
+  // TODAY
+  sportHeader:    { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10, marginTop: 4 },
+  sportEmoji:     { fontSize: 20 },
+  sportName:      { fontSize: 16, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  sportCount:     { fontSize: 12, fontFamily: "Inter_400Regular" },
+  leagueHeader:   { fontSize: 12, fontFamily: "Inter_600SemiBold", letterSpacing: 0.2, marginBottom: 6, marginTop: 4 },
+  noGamesText:    { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 16, paddingLeft: 4 },
 });
