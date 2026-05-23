@@ -1,374 +1,178 @@
-import * as Haptics from "expo-haptics";
-import { fetch } from "expo/fetch";
-import { Send, Zap } from "lucide-react-native";
-import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
+  ArrowRight,
+  BarChart2,
+  BookOpen,
+  MessageCircle,
+  RefreshCw,
+  ScanLine,
+  Search,
+} from "lucide-react-native";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { SUGGESTED_PROMPTS } from "@/constants/mockData";
 import { useColors } from "@/hooks/useColors";
-import { useLanguage } from "@/context/LanguageContext";
-import { chatUrl } from "@/lib/api";
-import type { ChatMessage } from "@/types";
 
-const SYSTEM_PROMPT_DISPLAY = "Sports Intelligence Engine";
+const TOOLS = [
+  {
+    id: "chat",
+    emoji: "💬",
+    Icon: MessageCircle,
+    title: "Oracle AI Chat",
+    desc: "Ask anything about sports, bets, or predictions",
+    route: "/oracle-chat",
+    color: "#00E5FF",
+  },
+  {
+    id: "slip",
+    emoji: "📋",
+    Icon: ScanLine,
+    title: "Slip Analyzer",
+    desc: "Upload your bet slip for instant AI review",
+    route: "/slip-analysis",
+    color: "#FFD700",
+  },
+  {
+    id: "arb",
+    emoji: "🔄",
+    Icon: RefreshCw,
+    title: "ARB Scanner",
+    desc: "Find guaranteed profit opportunities across bookmakers",
+    route: "/arbitrage",
+    color: "#00FF94",
+  },
+  {
+    id: "replay",
+    emoji: "📖",
+    Icon: BarChart2,
+    title: "Prediction Replay",
+    desc: "Review past AI predictions and accuracy breakdown",
+    route: "/performance",
+    color: "#FF6B35",
+  },
+  {
+    id: "bookmaker",
+    emoji: "🏦",
+    Icon: Search,
+    title: "Research Center",
+    desc: "World Cup 2026 insights, odds analysis & more",
+    route: "/worldcup",
+    color: "#A855F7",
+  },
+  {
+    id: "coaching",
+    emoji: "📚",
+    Icon: BookOpen,
+    title: "Betting Coach",
+    desc: "Personalised bankroll advice and risk coaching",
+    route: "/bankroll",
+    color: "#EC4899",
+  },
+] as const;
 
-function generateId(): string {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-}
-
-export default function AssistantScreen() {
+export default function AssistantHubScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language } = useLanguage();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const flatListRef = useRef<FlatList>(null);
+  const router = useRouter();
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
-  const topPadding = insets.top + topPaddingWeb;
-  const bottomPaddingWeb = Platform.OS === "web" ? 34 : 0;
-  const bottomPadding = insets.bottom + bottomPaddingWeb;
-
-  async function sendMessage(content: string) {
-    if (!content.trim() || isStreaming) return;
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    const userMsg: ChatMessage = {
-      id: generateId(),
-      role: "user",
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    const newMessages = [userMsg, ...messages];
-    setMessages(newMessages);
-    setInput("");
-    setIsStreaming(true);
-
-    const assistantId = generateId();
-    const assistantMsg: ChatMessage = {
-      id: assistantId,
-      role: "assistant",
-      content: "",
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessages([assistantMsg, userMsg, ...messages]);
-
-    try {
-      const apiMessages = [...messages, userMsg]
-        .reverse()
-        .map((m) => ({ role: m.role, content: m.content }));
-
-      const response = await fetch(chatUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, language: language.claudeInstruction }),
-      });
-
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = "";
-      let lineBuffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        lineBuffer += decoder.decode(value, { stream: true });
-        const lines = lineBuffer.split("\n");
-        lineBuffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.content) {
-              accumulated += data.content;
-              const snap = accumulated;
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: snap } : m,
-                ),
-              );
-            }
-          } catch {}
-        }
-      }
-    } catch (err) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, content: "PrediQs AI is temporarily unavailable. Try again shortly." }
-            : m,
-        ),
-      );
-    } finally {
-      setIsStreaming(false);
-    }
-  }
-
-  function MessageBubble({ message }: { message: ChatMessage }) {
-    const isUser = message.role === "user";
-    return (
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        {!isUser && (
-          <View style={[styles.aiAvatar, { backgroundColor: colors.cyan }]}>
-            <Zap size={12} color={colors.background} />
-          </View>
-        )}
-        <View
-          style={[
-            styles.bubbleContent,
-            isUser
-              ? { backgroundColor: colors.cyan }
-              : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-          ]}
-        >
-          {!isUser && message.content === "" ? (
-            <View style={styles.typingRow}>
-              <ActivityIndicator size="small" color={colors.cyan} />
-              <Text style={[styles.typingText, { color: colors.textSecondary }]}>
-                PrediQs AI is analyzing...
-              </Text>
-            </View>
-          ) : (
-            <Text
-              style={[
-                styles.bubbleText,
-                { color: isUser ? colors.background : colors.text },
-              ]}
-            >
-              {message.content}
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  }
+  const topPadding    = insets.top + topPaddingWeb;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { paddingTop: topPadding + 16, borderBottomColor: colors.border, backgroundColor: colors.background },
-        ]}
-      >
-        <View style={[styles.aiIcon, { backgroundColor: colors.cyan }]}>
-          <Zap size={16} color={colors.background} />
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={{ paddingTop: topPadding + 16, paddingBottom: insets.bottom + 60 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <View style={[styles.brainIcon, { backgroundColor: "rgba(0,229,255,0.12)" }]}>
+          <Text style={{ fontSize: 28 }}>🤖</Text>
         </View>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>PrediQs AI</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            {SYSTEM_PROMPT_DISPLAY}
-          </Text>
+        <Text style={[styles.title, { color: colors.text }]}>PrediQs AI</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Sports Intelligence Engine
+        </Text>
+        <View style={[styles.tagRow]}>
+          {["5 AI Models", "Real-time Data", "40+ Bookmakers"].map((tag) => (
+            <View key={tag} style={[styles.tag, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: "rgba(0,229,255,0.2)" }]}>
+              <Text style={[styles.tagText, { color: colors.cyan }]}>{tag}</Text>
+            </View>
+          ))}
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MessageBubble message={item} />}
-          inverted
-          contentContainerStyle={styles.messagesList}
-          showsVerticalScrollIndicator={false}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          scrollEnabled={!!messages.length}
-          ListFooterComponent={
-            messages.length === 0 ? (
-              <View style={styles.emptyState}>
-                <View style={[styles.emptyIcon, { backgroundColor: "rgba(0,229,255,0.1)" }]}>
-                  <Zap size={32} color={colors.cyan} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  ⚡ PrediQs AI Sports Intelligence
-                </Text>
-                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                  {"I analyze real-time data from:\n📊 Odds across 40+ bookmakers\n⚡ Live match statistics\n📰 Latest injury & team news\n🌤️ Stadium weather conditions\n💰 Sharp money movements\n🧠 5 AI prediction models"}
-                </Text>
-                <View style={styles.prompts}>
-                  {SUGGESTED_PROMPTS.slice(0, 4).map((prompt, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      style={[styles.promptBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-                      onPress={() => sendMessage(prompt)}
-                      activeOpacity={0.75}
-                    >
-                      <Text style={[styles.promptText, { color: colors.textSecondary }]}>
-                        {prompt}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            ) : null
-          }
-        />
+      {/* ── Tool Grid ── */}
+      <View style={styles.grid}>
+        {TOOLS.map((tool) => (
+          <TouchableOpacity
+            key={tool.id}
+            style={[styles.tile, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => router.push(tool.route as any)}
+            activeOpacity={0.75}
+          >
+            <View style={[styles.tileIconWrap, { backgroundColor: `${tool.color}18` }]}>
+              <Text style={{ fontSize: 22 }}>{tool.emoji}</Text>
+            </View>
+            <View style={styles.tileBody}>
+              <Text style={[styles.tileName, { color: colors.text }]}>{tool.title}</Text>
+              <Text style={[styles.tileDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                {tool.desc}
+              </Text>
+            </View>
+            <ArrowRight size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        ))}
+      </View>
 
-        <View
-          style={[
-            styles.inputContainer,
-            {
-              backgroundColor: colors.background,
-              borderTopColor: colors.border,
-              paddingBottom: bottomPadding + 12,
-            },
-          ]}
-        >
-          <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask PrediQs AI anything..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              maxLength={500}
-              editable={!isStreaming}
-              returnKeyType="send"
-              onSubmitEditing={() => sendMessage(input)}
-              blurOnSubmit={false}
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendBtn,
-                {
-                  backgroundColor:
-                    input.trim() && !isStreaming ? colors.cyan : colors.border,
-                },
-              ]}
-              onPress={() => sendMessage(input)}
-              disabled={!input.trim() || isStreaming}
-              activeOpacity={0.8}
-            >
-              {isStreaming ? (
-                <ActivityIndicator size="small" color={colors.background} />
-              ) : (
-                <Send
-                  size={16}
-                  color={input.trim() ? colors.background : colors.textMuted}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-          <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
-            For informational purposes only. Gamble responsibly.
+      {/* ── Quick-start prompt ── */}
+      <TouchableOpacity
+        style={[styles.chatCta, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: "rgba(0,229,255,0.25)" }]}
+        onPress={() => router.push("/oracle-chat" as any)}
+        activeOpacity={0.8}
+      >
+        <Text style={{ fontSize: 20 }}>💬</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.ctaTitle, { color: colors.cyan }]}>Start a conversation</Text>
+          <Text style={[styles.ctaDesc, { color: colors.textSecondary }]}>
+            Ask about tonight's picks, injury news, or betting strategies
           </Text>
         </View>
-      </KeyboardAvoidingView>
-    </View>
+        <ArrowRight size={18} color={colors.cyan} />
+      </TouchableOpacity>
+
+      <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
+        For informational and educational purposes only. Always gamble responsibly.
+      </Text>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  flex: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  aiIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: { fontSize: 17 },
-  headerSubtitle: { fontSize: 12 },
-  messagesList: {
-    padding: 16,
-    gap: 12,
-    flexGrow: 1,
-    justifyContent: "flex-end",
-  },
-  bubble: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 4,
-  },
-  userBubble: { flexDirection: "row-reverse" },
-  aiBubble: { flexDirection: "row" },
-  aiAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  bubbleContent: {
-    maxWidth: "78%",
-    borderRadius: 16,
-    padding: 12,
-  },
-  bubbleText: { fontSize: 15, lineHeight: 22 },
-  typingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  typingText: { fontSize: 14 },
-  emptyState: {
-    alignItems: "center",
-    paddingTop: 40,
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyTitle: { fontSize: 22 },
-  emptySubtitle: { fontSize: 14, textAlign: "center", lineHeight: 21 },
-  prompts: { width: "100%", gap: 8, marginTop: 8 },
-  promptBtn: { padding: 14, borderRadius: 12, borderWidth: 1 },
-  promptText: { fontSize: 14 },
-  inputContainer: { padding: 12, borderTopWidth: 1, gap: 6 },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingLeft: 16,
-    paddingRight: 6,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  input: { flex: 1, fontSize: 15, maxHeight: 100, paddingVertical: 6 },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  disclaimer: { fontSize: 10, textAlign: "center" },
+  container:    { flex: 1 },
+  header:       { alignItems: "center", paddingHorizontal: 24, paddingBottom: 24 },
+  brainIcon:    { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 14 },
+  title:        { fontSize: 26, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  subtitle:     { fontSize: 14, fontFamily: "Inter_400Regular", marginTop: 4, marginBottom: 14 },
+  tagRow:       { flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" },
+  tag:          { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1 },
+  tagText:      { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  grid:         { paddingHorizontal: 16, gap: 10 },
+  tile:         { flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 16, padding: 16, borderWidth: 1 },
+  tileIconWrap: { width: 46, height: 46, borderRadius: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  tileBody:     { flex: 1 },
+  tileName:     { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+  tileDesc:     { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
+  chatCta:      { flexDirection: "row", alignItems: "center", gap: 14, marginHorizontal: 16, marginTop: 20, borderRadius: 16, padding: 18, borderWidth: 1 },
+  ctaTitle:     { fontSize: 14, fontFamily: "Inter_700Bold" },
+  ctaDesc:      { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 17 },
+  disclaimer:   { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", marginHorizontal: 24, marginTop: 20 },
 });

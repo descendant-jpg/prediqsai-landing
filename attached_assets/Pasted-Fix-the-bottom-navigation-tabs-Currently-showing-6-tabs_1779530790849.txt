@@ -1,0 +1,249 @@
+Fix the bottom navigation tabs.
+Currently showing 6 tabs which
+is too many for mobile.
+
+CURRENT (wrong):
+Dashboard | Picks | Football | 
+PrediQs AI | Finance | Stats
+
+CHANGE TO exactly 5 tabs:
+
+🏠 Dashboard
+⚡ Picks  
+🤖 PrediQs AI
+💰 Finance
+👤 Profile
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 1: DASHBOARD (HOME)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Icon: house/home icon
+Label: "Dashboard"
+Screen: Main dashboard with
+- World Cup countdown
+- Today's stats
+- Featured pick
+- Quick actions
+- Recent activity
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 2: PICKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Icon: lightning bolt ⚡
+Label: "Picks"
+Screen: All predictions
+
+Inside Picks screen add
+sport filter tabs at top:
+
+ALL | ⚽ Soccer | 🏈 NFL | 
+🏀 NBA | ⚾ MLB
+
+And status filters:
+Today | Tomorrow | Live | Won | Lost
+
+This replaces the separate
+"Football" and "Stats" tabs.
+Everything is inside Picks now.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 3: PREDIQS AI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Icon: robot/brain icon 🤖
+Label: "PrediQs AI"
+Screen: AI Tools hub showing:
+
+┌─────────────────────────────┐
+│ 🤖 PrediQs AI               │
+│ Sports Intelligence Engine  │
+├─────────────────────────────┤
+│                             │
+│ [💬 Oracle AI Chat]         │
+│ Ask anything about sports   │
+│                             │
+│ [📋 Slip Analyzer]          │
+│ Upload your bet slip        │
+│                             │
+│ [🔄 ARB Scanner]            │
+│ Find guaranteed profits     │
+│                             │
+│ [📖 Prediction Replay]      │
+│ Review past predictions     │
+│                             │
+│ [🏦 Bookmaker Finder]       │
+│ Find best bookmaker for you │
+│                             │
+└─────────────────────────────┘
+
+Tapping each opens that feature.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 4: FINANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Icon: dollar/coin icon 💰
+Label: "Finance"
+Screen: Bankroll & performance hub:
+
+Inside Finance screen:
+Top tabs:
+Bankroll | Performance | Paper Bets
+
+BANKROLL tab:
+- Current balance
+- Add entry button
+- Win/loss history
+- Kelly calculator
+
+PERFORMANCE tab:
+- Win rate chart
+- ROI by sport
+- Monthly trend
+- Best leagues
+
+PAPER BETS tab:
+- Active paper bets
+- Settled history
+- Virtual bankroll
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB 5: PROFILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Icon: person icon 👤
+Label: "Profile"
+Screen: Account & settings:
+
+ACCOUNT section:
+- Profile photo and name
+- Username and email
+- Current tier badge
+- Referral link
+- Subscription status
+
+FEATURES section:
+- Notification settings
+- Language selector
+- Country/currency
+- Betting experience level
+
+SUPPORT section:
+- Contact Us
+- Help & FAQ
+- Replay App Guide
+- Follow Us (social links)
+- Join Community (Telegram)
+
+LEGAL section:
+- Terms of Service
+- Privacy Policy
+- Responsible Gambling
+
+ACCOUNT ACTIONS:
+- 🔐 Admin Panel (admin only)
+- 🔴 Sign Out
+
+App version at bottom:
+"PrediQs AI v1.0.0"
+"Educational purposes only"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TAB BAR DESIGN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Background: #070B12
+Active tab color: #00E5FF (cyan)
+Inactive tab color: #3A5060
+Active tab has:
+- Cyan icon
+- Cyan label
+- Small cyan dot underneath
+- Slight glow effect
+
+Inactive tab:
+- Muted grey icon
+- Muted grey label
+- No underline
+
+Tab bar has top border:
+borderTopColor: '#131E2E'
+borderTopWidth: 1
+
+Slight blur on iOS:
+Use BlurView on iOS only
+Plain dark background on Android
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANT NAMING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The AI tab must show exactly:
+Label: "PrediQs AI"
+NOT "Oracle"
+NOT "AI"
+NOT "Chat"
+NOT "Assistant"
+
+Just "PrediQs AI" as the tab name.
+
+The icon for PrediQs AI tab:
+Use a brain or robot icon
+Color cyan when active
+Color grey when inactive
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REMOVE THESE TABS COMPLETELY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Delete "Football" tab entirely
+Delete "Stats" tab entirely
+
+Move their content to:
+Football → inside Picks tab
+           as sport filter button
+Stats → inside Finance tab
+        as Performance section
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BADGE NOTIFICATIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add notification badges:
+
+Picks tab badge:
+Red number showing new picks
+today that user hasn't seen
+Example: ⚡ Picks (23)
+
+PrediQs AI tab badge:
+Red dot when arb opportunity
+is detected
+Example: 🤖 PrediQs AI 🔴
+
+Finance tab badge:
+Red dot when paper bet settles
+Example: 💰 Finance 🔴
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFTER FIXING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Confirm:
+□ Exactly 5 tabs showing
+□ No "Football" tab
+□ No "Stats" tab
+□ Tab 3 says "PrediQs AI" exactly
+□ All tabs navigate correctly
+□ Active tab glows cyan
+□ Picks has sport filters inside
+□ Finance has bankroll inside
+□ Profile has all settings
+□ PrediQs AI tab opens AI hub
+□ Admin button in Profile only
+  visible to admin account
+
+Show me the updated bottom
+navigation with all 5 tabs.
