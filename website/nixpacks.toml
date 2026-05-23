@@ -1,6 +1,10 @@
+[phases.setup]
+nixPkgs = ["nodejs_24"]
+
 [phases.install]
 cmds = [
-  "npm install -g pnpm@10.26.1",
+  "corepack enable",
+  "corepack prepare pnpm@10.26.1 --activate",
   "cd .. && pnpm install --no-frozen-lockfile"
 ]
 
@@ -8,4 +12,4 @@ cmds = [
 cmds = ["cd .. && pnpm --filter @workspace/website run build"]
 
 [start]
-cmd = "npx serve ../artifacts/website/dist/public -s -l ${PORT:-3000}"
+cmd = "node -e \"require('child_process').spawn('npx',['serve','../artifacts/website/dist/public','-s','-l',process.env.PORT||'3000'],{stdio:'inherit'})\""
