@@ -1,5 +1,4 @@
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TOKEN_KEY = "prediqs_auth_token";
 
@@ -15,28 +14,13 @@ export function chatUrl(): string {
 
 export const tokenStorage = {
   async get(): Promise<string | null> {
-    if (Platform.OS === "web") {
-      return typeof localStorage !== "undefined"
-        ? localStorage.getItem(TOKEN_KEY)
-        : null;
-    }
-    return SecureStore.getItemAsync(TOKEN_KEY);
+    return AsyncStorage.getItem(TOKEN_KEY);
   },
   async set(token: string): Promise<void> {
-    if (Platform.OS === "web") {
-      if (typeof localStorage !== "undefined")
-        localStorage.setItem(TOKEN_KEY, token);
-      return;
-    }
-    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    await AsyncStorage.setItem(TOKEN_KEY, token);
   },
   async remove(): Promise<void> {
-    if (Platform.OS === "web") {
-      if (typeof localStorage !== "undefined")
-        localStorage.removeItem(TOKEN_KEY);
-      return;
-    }
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await AsyncStorage.removeItem(TOKEN_KEY);
   },
 };
 

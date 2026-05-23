@@ -1,7 +1,7 @@
 import { setBaseUrl } from "@workspace/api-client-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -42,7 +42,7 @@ function RootLayoutNav() {
       }
 
       if (inAuthGroup || inOnboarding) {
-        const done = await SecureStore.getItemAsync(ONBOARDING_KEY);
+        const done = await AsyncStorage.getItem(ONBOARDING_KEY);
         if (!done) {
           router.replace("/onboarding");
         } else {
@@ -52,7 +52,7 @@ function RootLayoutNav() {
       }
 
       if (prevUserRef.current === null && user) {
-        const done = await SecureStore.getItemAsync(ONBOARDING_KEY);
+        const done = await AsyncStorage.getItem(ONBOARDING_KEY);
         if (!done) {
           router.replace("/onboarding");
           return;
