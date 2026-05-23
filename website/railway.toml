@@ -1,7 +1,8 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm install -g pnpm@10.26.1 && cd .. && pnpm install --no-frozen-lockfile && pnpm --filter @workspace/website run build"
+  builder = "NIXPACKS"
+  buildCommand = "npm install -g pnpm@10.26.1 && cd .. && pnpm install --no-frozen-lockfile && pnpm --filter @workspace/website run build"
 
-[deploy]
-startCommand = "npx serve ../artifacts/website/dist/public -s -l ${PORT:-3000}"
-healthcheckPath = "/"
+  [deploy]
+  startCommand = "npx serve ../artifacts/website/dist/public -s -l ${PORT:-3000}"
+  healthcheckPath = "/"
+  
