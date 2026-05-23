@@ -4,6 +4,7 @@ import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import Support from "@/pages/Support";
 import NotFound from "@/pages/not-found";
+import AppModals from "@/components/AppModals";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
 function App() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <AppModals />
       <Router />
     </WouterRouter>
   );

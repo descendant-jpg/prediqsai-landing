@@ -1,0 +1,125 @@
+Build a React app for "Prediqs AI" — a trading signals platform. 
+Create three modal/popup screens that appear on app launch:
+
+---
+
+SCREEN 1 — RATING POPUP
+Trigger: Shows first on app open.
+- Dark card modal with backdrop blur overlay
+- A gold/amber circular icon with a star outline inside
+- Heading: "Enjoying Prediqs AI?"
+- Subtext: "If you love the app, take a moment to rate us! 
+  Your feedback helps us grow and improve."
+- Primary button (teal/green): "▶️ Rate on Play Store"
+- Ghost text link below: "Not Now"
+
+---
+
+SCREEN 2 — DISCLAIMER / RISK MODAL
+Trigger: Shows after rating popup is dismissed.
+- Dark card with a gradient dark-brown-to-black background
+- Sticky header with orange triangle warning icon in a dark circle
+- Bold white heading: "Educational only. Not financial advice. 
+  Trading involves risk of loss."
+- Scrollable body with 4 sections separated by dividers:
+
+  1. "Educational Purpose Only" (orange heading)
+     Text: "Prediqs AI provides educational trading information 
+     and market analysis for informational purposes only. 
+     This is NOT financial advice, investment advice, or trading advice."
+
+  2. "High Risk Warning" (red heading)
+     Text: "Trading forex, CFDs, cryptocurrencies, and other financial 
+     instruments involves substantial risk of loss. You may lose some 
+     or all of your invested capital. Only trade with money you can 
+     afford to lose."
+
+  3. "Past Performance" (orange heading)
+     Text: "Past performance of any trading signal or strategy does 
+     not guarantee future results. Historical data is provided for 
+     educational purposes only."
+
+  4. "Your Responsibility" (teal/green heading)
+     Text: "You are solely responsible for your trading decisions. 
+     We strongly recommend consulting a qualified financial advisor 
+     before trading. Prediqs AI and its operators are not liable for 
+     any trading losses."
+
+- Below the sections, show 5 bullet points with orange ⚠️ circle icons:
+  • We are NOT a registered investment advisor
+  • We are NOT a licensed broker or financial institution
+  • Signals are for educational purposes only
+  • Always do your own research before trading
+  • Never risk more than you can afford to lose
+
+- Fixed bottom button (gold/amber): "I Understand and Accept"
+  (saves acceptance to localStorage, never shows again)
+
+---
+
+SCREEN 3 — LANGUAGE SELECTOR
+Trigger: Tapping the globe + language button in top-right of app header.
+- Slide-up bottom sheet modal style with backdrop blur
+- Header row: "Language" title on left, X close button on right
+- Scrollable list of languages showing:
+  NATIVE SCRIPT in bold white (large) on top
+  English name in grey below (smaller)
+  Gold checkmark on the right for the currently selected language
+
+  Languages to include:
+  English / English
+  Español / Spanish
+  العربية / Arabic
+  Français / French
+  Deutsch / German
+  Português / Portuguese
+  中文 / Chinese
+  हिन्दी / Hindi
+  日本語 / Japanese
+  한국어 / Korean
+  Türkçe / Turkish
+  Русский / Russian
+  Italiano / Italian
+
+- Selecting a language closes the modal and updates the globe button 
+  in the header to show the native name of the selected language
+- Save selected language to localStorage
+
+---
+
+APP HEADER (visible behind modals)
+- Black background
+- Left: Prediqs AI logo (dark circle with gold border, candlestick 
+  chart SVG icon inside, gold glow)
+- Right: Globe icon + currently selected language native name + 
+  dropdown chevron, inside a pill-shaped button
+
+FOOTER (bottom of app screen, behind modals):
+Show three small items in a row: 🔒 Encrypted  🛡️ Secure  🌐 Global
+
+---
+
+DESIGN SYSTEM:
+- Background: #0d0d0d (near black)
+- Card background: #141414 with rgba(255,255,255,0.08) border
+- Primary accent: #F5A623 (gold/amber)
+- Secondary accent: #00C9A7 (teal)
+- Danger/warning: #E53935 (red)
+- Text primary: #ffffff
+- Text secondary: #999999
+- Border radius on cards: 20px
+- Border radius on buttons: 14px
+- Font: DM Sans (Google Fonts) — 400, 700, 800 weights
+- Buttons have subtle box-shadow and scale(1.02) on hover
+- Modals animate in with a slide-up + spring effect
+- All modals have backdrop blur overlay: rgba(0,0,0,0.75) + blur(6px)
+
+---
+
+TECH STACK:
+- React (functional components + hooks)
+- No external UI libraries (pure CSS-in-JS with inline styles or 
+  CSS modules)
+- Import DM Sans from Google Fonts in index.html
+- Use localStorage to persist: accepted disclaimer, selected language
+- Mobile-first layout, max modal width 380px, centered on desktop
