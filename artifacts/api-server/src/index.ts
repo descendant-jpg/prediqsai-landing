@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { initTelegramBot } from "./telegram-bot";
 import { db, users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
@@ -42,4 +43,5 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   autoBootstrapAdmin();
+  initTelegramBot();
 });
