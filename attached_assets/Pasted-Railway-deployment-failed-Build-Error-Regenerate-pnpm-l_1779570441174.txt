@@ -1,0 +1,42 @@
+Railway deployment failed — Build Error
+
+Regenerate pnpm-lock.yaml by running "pnpm install" locally and committing the result, then trigger a manual redeploy from the Railway dashboard. The build failed because pnpm-lock.yaml is out of sync with the overrides defined in pnpm-workspace.yaml, caused by a previous commit that hand-edited the lockfile instead of running pnpm install. A fix was already pushed to main but was skipped because the service's watch patterns (/artifacts/website/**) don't include root-level dependency files.
+
+Repository: https://github.com/descendant-jpg/prediqsai-landing
+Branch: main · Commit: 1ab4329 — Update the website's social media sharing image
+
+Update the opengraph.jpg image file in the public directory of the website artifacts.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: aebede2a-d960-4bdd-b230-25310c5aada8
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: c094be3e-2b97-4c08-9d08-c56674c43cde
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/cd79b9e9-2d1e-4d25-9fdc-c826abde734b/aebede2a-d960-4bdd-b230-25310c5aada8/h0JF0dq
+Replit-Helium-Checkpoint-Created: true
+Deployment ID: d90f559d-a396-4c5e-b7d7-157d67931acf
+Service ID: 821e87e2-1da3-4760-ac76-24cd52262c0f
+Environment ID: fe57a9a4-5e63-4748-b57f-ce71268cafa8
+
+---
+
+## Problem
+The @workspace/website service (REPO, Railpack builder) fails at the BUILD stage with:
+```
+ERR_PNPM_LOCKFILE_CONFIG_MISMATCH  Cannot proceed with the frozen installation. The current "overrides" configuration doesn't match the value found in the lockfile
+```
+The SNAPSHOT stage completed successfully. The build command is `pnpm --filter @workspace/website build`, and the install step runs `pnpm install --frozen-lockfile --prefer-offline` which enforces strict lockfile consistency. The service has watch patterns set to `/artifacts/website/**`.
+
+## Diagnosis
+The pnpm-workspace.yaml defines an `overrides` section with many entries (esbuild, rollup, lightningcss, and other platform-specific overrides). A previous Replit Agent commit manually edited pnpm-lock.yaml to add @replit/connectors-sdk instead of running pnpm install, leaving the lockfile's internal overrides hash out of sync with pnpm-workspace.yaml. The --frozen-lockfile flag detects this mismatch and refuses to proceed.
+
+The triggering commit (1ab4329) only changed artifacts/website/public/opengraph.jpg — the lockfile mismatch pre-existed this commit. A fix commit (a1965c60) was pushed to main but was SKIPPED by Railway because the watch patterns (/artifacts/website/**) do not match root-level files like package.json or pnpm-lock.yaml. The package.json on HEAD still contains @replit/connectors-sdk in dependencies, and the lockfile may still be inconsistent.
+
+## Fix
+This fix cannot be automated because it requires running pnpm install locally to regenerate the lockfile:
+
+1. Clone the repository and checkout `main`.
+2. Run `pnpm install` at the repo root — this regenerates pnpm-lock.yaml with correct overrides metadata matching pnpm-workspace.yaml. If @replit/connectors-sdk should not be a dependency, also remove it from package.json before running install.
+3. Commit and push the updated pnpm-lock.yaml (and package.json if changed).
+4. After pushing, trigger a manual redeploy from the Railway dashboard (click Deploy on the service), because the watch patterns (/artifacts/website/**) will cause the deployment to be skipped if only root-level files changed.
+
+Optionally, update the service's watch paths to also include /package.json, /pnpm-lock.yaml, and /pnpm-workspace.yaml so future dependency changes automatically trigger deployments.
