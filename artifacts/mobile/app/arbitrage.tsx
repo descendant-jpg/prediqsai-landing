@@ -431,28 +431,26 @@ export default function ArbitrageScreen() {
 
   const scanAnim = useRef(new Animated.Value(0)).current;
 
-  const tier    = (user?.tier ?? "free") as "free" | "pro" | "elite";
-  const isElite = tier === "elite";
-  const isPro   = tier === "pro" || isElite;
+  const isPremium = user?.tier === "premium" || user?.tier === "pro" || user?.tier === "elite";
 
   const topPadding = insets.top + (Platform.OS === "web" ? 67 : 0);
 
   useEffect(() => {
-    if (!isElite) return;
+    if (!isPremium) return;
     Animated.loop(
       Animated.sequence([
         Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: Platform.OS !== "web" }),
         Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: Platform.OS !== "web" }),
       ]),
     ).start();
-  }, [isElite, scanAnim]);
+  }, [isPremium, scanAnim]);
 
   const load = useCallback(async (force = false) => {
     if (!token) return;
     if (force) setIsRefreshing(true); else setIsLoading(true);
     setError("");
     try {
-      const result = force && isElite
+      const result = force && isPremium
         ? await api.arbitrage.scan(token, selectedRegion)
         : await api.arbitrage.list(token, selectedRegion);
       setData(result);
@@ -462,7 +460,7 @@ export default function ArbitrageScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [token, isElite, selectedRegion]);
+  }, [token, isPremium, selectedRegion]);
 
   // Fetch live exchange rates on mount (public endpoint — no auth needed)
   useEffect(() => {
@@ -472,17 +470,55 @@ export default function ArbitrageScreen() {
   // Reload when region changes
   useEffect(() => { setData(null); load(); }, [selectedRegion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Elite: auto-refresh every 30s
+  // Premium: auto-refresh every 30s
   useEffect(() => {
-    if (!isElite) return;
+    if (!isPremium) return;
     const id = setInterval(() => load(true), 30_000);
     return () => clearInterval(id);
-  }, [isElite, load]);
+  }, [isPremium, load]);
 
   const opps = data?.opportunities ?? [];
   const disclaimer = data?.disclaimer ?? (selectedRegion === "africa"
     ? "Verify your local bookmaker holds a valid gaming license. 1xBet and Melbet operate with limited regulation — use with caution. 18+ only."
     : "Odds comparison data is shown for educational purposes only. PrediQs AI does not facilitate placing of any bets or wagers. 18+ only.");
+
+  if (!isPremium) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: topPadding + 12, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <ArrowLeft size={22} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>🔄 Odds Comparison</Text>
+            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>⭐ Premium Feature</Text>
+          </View>
+        </View>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32, alignItems: "center", paddingTop: 48 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={{ fontSize: 64 }}>🔄</Text>
+          <Text style={[styles.gateTitle, { color: colors.text, marginTop: 16, textAlign: "center" }]}>ARB Scanner</Text>
+          <Text style={[styles.gateSub, { color: colors.textSecondary, textAlign: "center", marginVertical: 12 }]}>
+            Scan 40+ global and African bookmakers for guaranteed profit margins. Real-time odds discrepancy detection with stake calculator.
+          </Text>
+          <View style={[styles.teaserCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.25)", marginBottom: 20, width: "100%" }]}>
+            {["Real-time auto-refresh every 30s", "40+ global + African bookmakers", "2-way & 3-way arbitrage", "Profit calculator with stake optimizer", "Push alerts for new arbs"].map((f) => (
+              <Text key={f} style={[styles.teaserText, { color: colors.textSecondary }]}>✓ {f}</Text>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={[styles.upgradeBtn, { backgroundColor: "#FFD700" }]}
+            onPress={() => router.push("/settings")}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.upgradeBtnText, { color: "#070B12" }]}>⭐ Upgrade to Premium — $39.99/mo</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -493,15 +529,11 @@ export default function ArbitrageScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>🔄 Odds Comparison</Text>
-          {isElite
-            ? <Animated.Text style={[styles.headerSub, { color: "#00FF94", opacity: scanAnim }]}>⚡ LIVE — scanning 40+ bookmakers</Animated.Text>
-            : <Text style={[styles.headerSub, { color: colors.textSecondary }]}>{isPro ? "Top 3 discrepancies · Manual refresh" : "Upgrade to view discrepancies"}</Text>}
+          <Animated.Text style={[styles.headerSub, { color: "#00FF94", opacity: scanAnim }]}>⚡ LIVE — scanning 40+ bookmakers</Animated.Text>
         </View>
-        {isPro && (
-          <TouchableOpacity style={[styles.refreshBtn, { borderColor: colors.border }]} onPress={() => load(true)} disabled={isRefreshing} activeOpacity={0.7}>
-            <RefreshCw size={16} color={isRefreshing ? colors.textMuted : colors.cyan} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={[styles.refreshBtn, { borderColor: colors.border }]} onPress={() => load(true)} disabled={isRefreshing} activeOpacity={0.7}>
+          <RefreshCw size={16} color={isRefreshing ? colors.textMuted : colors.cyan} />
+        </TouchableOpacity>
       </View>
 
       {/* Region tabs */}
@@ -596,50 +628,15 @@ export default function ArbitrageScreen() {
           </View>
         )}
 
-        {/* Free tier gate */}
-        {!isPro && !isLoading && (
-          <View style={[styles.gateCard, { backgroundColor: colors.card, borderColor: "#00E5FF" }]}>
-            <Zap size={28} color="#00E5FF" />
-            <Text style={[styles.gateTitle, { color: colors.text }]}>Odds Discrepancy Analysis</Text>
-            <Text style={[styles.gateSub, { color: colors.textSecondary }]}>
-              Advanced: Top 3 odds discrepancies per day with statistical stake calculator.{"\n"}Professional: Real-time scanner, unlimited discrepancies, auto-calculator & alerts.
-            </Text>
-            {opps.length > 0 || (data?.totalFound ?? 0) > 0 ? (
-              <View style={[styles.teaserCard, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
-                <Text style={[styles.teaserText, { color: colors.textSecondary }]}>
-                  🔄 {data?.totalFound ?? "Multiple"} {selectedRegion === "africa" ? "African " : ""}odds {(data?.totalFound ?? 0) === 1 ? "discrepancy" : "discrepancies"} found now — upgrade to view
-                </Text>
-              </View>
-            ) : null}
-            <TouchableOpacity style={[styles.upgradeBtn, { backgroundColor: "#00E5FF" }]} onPress={() => router.push("/settings")} activeOpacity={0.85}>
-              <Text style={[styles.upgradeBtnText, { color: colors.background }]}>🔒 Advanced Analytics — $14.99/mo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.upgradeBtn, { backgroundColor: "rgba(255,215,0,0.12)", borderWidth: 1, borderColor: "#FFD700" }]} onPress={() => router.push("/settings")} activeOpacity={0.85}>
-              <Crown size={14} color="#FFD700" />
-              <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>Professional Intelligence — $39.99/mo</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Pro / Elite content */}
-        {isPro && !isLoading && (
+        {/* Premium content */}
+        {!isLoading && (
           <>
-            {isElite ? (
-              <View style={[styles.eliteBanner, { backgroundColor: "rgba(0,255,148,0.08)", borderColor: "rgba(0,255,148,0.3)" }]}>
-                <View style={[styles.liveDot, { backgroundColor: "#00FF94" }]} />
-                <Text style={[styles.eliteBannerText, { color: "#00FF94" }]}>
-                  LIVE — Auto-refresh every 30s · {opps.length} active {opps.length === 1 ? "opportunity" : "opportunities"}
-                </Text>
-              </View>
-            ) : (
-              <View style={[styles.proInfoBanner, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
-                <Zap size={14} color="#00E5FF" />
-                <Text style={[styles.proInfoText, { color: colors.textSecondary }]}>Pro: Top 3 arbs (2-way only) · Tap refresh to update</Text>
-                <TouchableOpacity onPress={() => router.push("/settings")} activeOpacity={0.8}>
-                  <Text style={{ color: "#FFD700", fontSize: 11 }}>👑 Go Elite</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={[styles.eliteBanner, { backgroundColor: "rgba(0,255,148,0.08)", borderColor: "rgba(0,255,148,0.3)" }]}>
+              <View style={[styles.liveDot, { backgroundColor: "#00FF94" }]} />
+              <Text style={[styles.eliteBannerText, { color: "#00FF94" }]}>
+                LIVE — Auto-refresh every 30s · {opps.length} active {opps.length === 1 ? "opportunity" : "opportunities"}
+              </Text>
+            </View>
 
             {opps.length === 0 && !isLoading && (
               <View style={styles.emptyState}>
@@ -658,21 +655,6 @@ export default function ArbitrageScreen() {
             {opps.map((arb) => (
               <ArbCard key={arb.id} arb={arb} region={selectedRegion} liveRates={liveRates} onCalculate={(a) => { setSelectedArb(a); setCalcVisible(true); }} />
             ))}
-
-            {!isElite && opps.length > 0 && (
-              <View style={[styles.eliteUpgradeCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.3)" }]}>
-                <Crown size={18} color="#FFD700" />
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={[styles.eliteUpgradeTitle, { color: "#FFD700" }]}>Unlock Full Scanner — Elite</Text>
-                  <Text style={[styles.eliteUpgradeSub, { color: colors.textSecondary }]}>
-                    Real-time 30s refresh · 3-way arbs · Unlimited opportunities · Push alerts · $39.99/mo
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => router.push("/settings")} activeOpacity={0.8}>
-                  <ChevronRight size={18} color="#FFD700" />
-                </TouchableOpacity>
-              </View>
-            )}
           </>
         )}
 

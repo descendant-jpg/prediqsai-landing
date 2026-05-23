@@ -7,12 +7,16 @@ import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
+function normalizeTier(raw: string): string {
+  return (raw === "pro" || raw === "elite") ? "premium" : raw;
+}
+
 function publicUser(u: typeof users.$inferSelect) {
   return {
     id: u.id,
     username: u.username,
     email: u.email,
-    tier: u.tier,
+    tier: normalizeTier(u.tier),
     bankroll: u.bankroll,
     dailyLossLimit: u.dailyLossLimit,
     isAdmin: u.isAdmin ?? false,

@@ -222,17 +222,17 @@ export default function SlipAnalysisScreen() {
           </View>
 
           {isLocked ? (
-            <View style={[styles.lockedBox, { backgroundColor: "rgba(255,107,53,0.08)", borderColor: "rgba(255,107,53,0.3)" }]}>
-              <Text style={{ fontSize: 32 }}>🔒</Text>
-              <Text style={[styles.lockedTitle, { color: "#FF6B35" }]}>PRO Feature</Text>
+            <View style={[styles.lockedBox, { backgroundColor: "rgba(255,215,0,0.07)", borderColor: "rgba(255,215,0,0.35)" }]}>
+              <Text style={{ fontSize: 40 }}>🔒</Text>
+              <Text style={[styles.lockedTitle, { color: "#FFD700" }]}>Premium Feature</Text>
               <Text style={[styles.lockedSub, { color: colors.textSecondary }]}>
-                Upgrade to PRO for 5 daily slip analyses, or Elite for unlimited.
+                Upgrade to Premium for unlimited AI slip analysis across all your betting slips.
               </Text>
               <TouchableOpacity
-                style={[styles.upgradeBtn, { backgroundColor: "#FF6B35" }]}
-                onPress={() => router.back()}
+                style={[styles.upgradeBtn, { backgroundColor: "#FFD700" }]}
+                onPress={() => router.push("/settings" as any)}
               >
-                <Text style={[styles.upgradeBtnText, { color: "#fff" }]}>Upgrade Now</Text>
+                <Text style={[styles.upgradeBtnText, { color: "#070B12" }]}>⭐ Upgrade — $39.99/mo</Text>
               </TouchableOpacity>
             </View>
           ) : (

@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SUGGESTED_PROMPTS } from "@/constants/mockData";
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
 import { chatUrl } from "@/lib/api";
@@ -26,16 +27,24 @@ function generateId(): string {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 }
 
+const FREE_MSG_LIMIT = 3;
+
 export default function OracleChatScreen() {
   const colors  = useColors();
   const insets  = useSafeAreaInsets();
   const router  = useRouter();
   const { language } = useLanguage();
+  const { user } = useAuth();
+
+  const isFree = !user || (user.tier !== "premium" && user.tier !== "pro" && user.tier !== "elite");
 
   const [messages,    setMessages]    = useState<ChatMessage[]>([]);
   const [input,       setInput]       = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+
+  const userMsgCount = messages.filter((m) => m.role === "user").length;
+  const hitLimit = isFree && userMsgCount >= FREE_MSG_LIMIT;
 
   const topPaddingWeb    = Platform.OS === "web" ? 67 : 0;
   const topPadding       = insets.top + topPaddingWeb;
@@ -43,7 +52,7 @@ export default function OracleChatScreen() {
   const bottomPadding    = insets.bottom + bottomPaddingWeb;
 
   async function sendMessage(content: string) {
-    if (!content.trim() || isStreaming) return;
+    if (!content.trim() || isStreaming || hitLimit) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const userMsg: ChatMessage = {
@@ -204,33 +213,54 @@ export default function OracleChatScreen() {
         />
 
         <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: bottomPadding + 12 }]}>
-          <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask PrediQs AI anything..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              maxLength={500}
-              editable={!isStreaming}
-              returnKeyType="send"
-              onSubmitEditing={() => sendMessage(input)}
-              blurOnSubmit={false}
-            />
-            <TouchableOpacity
-              style={[styles.sendBtn, { backgroundColor: input.trim() && !isStreaming ? colors.cyan : colors.border }]}
-              onPress={() => sendMessage(input)}
-              disabled={!input.trim() || isStreaming}
-              activeOpacity={0.8}
-            >
-              {isStreaming ? (
-                <ActivityIndicator size="small" color={colors.background} />
-              ) : (
-                <Send size={16} color={input.trim() ? colors.background : colors.textMuted} />
+          {hitLimit ? (
+            <View style={[styles.limitBanner, { backgroundColor: "rgba(255,215,0,0.08)", borderColor: "rgba(255,215,0,0.35)" }]}>
+              <Text style={[styles.limitTitle, { color: "#FFD700" }]}>⭐ {FREE_MSG_LIMIT}/{FREE_MSG_LIMIT} free messages used</Text>
+              <Text style={[styles.limitSub, { color: colors.textSecondary }]}>Upgrade to Premium for unlimited Oracle AI</Text>
+              <TouchableOpacity
+                style={[styles.limitBtn, { backgroundColor: "#FFD700" }]}
+                onPress={() => router.push("/settings" as any)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.limitBtnText, { color: "#070B12" }]}>Upgrade — $39.99/mo</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {isFree && (
+                <Text style={[styles.msgCount, { color: colors.textMuted }]}>
+                  {userMsgCount}/{FREE_MSG_LIMIT} free messages
+                </Text>
               )}
-            </TouchableOpacity>
-          </View>
+              <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder="Ask PrediQs AI anything..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  maxLength={500}
+                  editable={!isStreaming}
+                  returnKeyType="send"
+                  onSubmitEditing={() => sendMessage(input)}
+                  blurOnSubmit={false}
+                />
+                <TouchableOpacity
+                  style={[styles.sendBtn, { backgroundColor: input.trim() && !isStreaming ? colors.cyan : colors.border }]}
+                  onPress={() => sendMessage(input)}
+                  disabled={!input.trim() || isStreaming}
+                  activeOpacity={0.8}
+                >
+                  {isStreaming ? (
+                    <ActivityIndicator size="small" color={colors.background} />
+                  ) : (
+                    <Send size={16} color={input.trim() ? colors.background : colors.textMuted} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
           <Text style={[styles.disclaimer, { color: colors.textMuted }]}>For informational purposes only. Gamble responsibly.</Text>
         </View>
       </KeyboardAvoidingView>
@@ -267,4 +297,10 @@ const styles = StyleSheet.create({
   input:          { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", maxHeight: 100, paddingVertical: 6 },
   sendBtn:        { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   disclaimer:     { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center" },
+  limitBanner:   { padding: 16, borderRadius: 16, borderWidth: 1, alignItems: "center", gap: 8, marginBottom: 8 },
+  limitTitle:    { fontSize: 14, fontFamily: "Inter_700Bold" },
+  limitSub:      { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center" },
+  limitBtn:      { paddingHorizontal: 24, paddingVertical: 11, borderRadius: 20, marginTop: 4 },
+  limitBtnText:  { fontSize: 13, fontFamily: "Inter_700Bold" },
+  msgCount:      { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "right", marginBottom: 4 },
 });

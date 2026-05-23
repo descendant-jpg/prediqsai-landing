@@ -69,7 +69,7 @@ export interface UserData {
   id: number;
   username: string;
   email: string;
-  tier: "free" | "pro" | "elite";
+  tier: "free" | "pro" | "elite" | "premium";
   bankroll: number;
   dailyLossLimit: number;
   isAdmin?: boolean;
@@ -687,7 +687,7 @@ export const api = {
   subscription: {
     status: (token: string) =>
       apiFetch<{ tier: string }>("/subscription/status", { token }),
-    setTier: (token: string, tier: "free" | "pro" | "elite") =>
+    setTier: (token: string, tier: "free" | "pro" | "elite" | "premium") =>
       apiFetch<{ tier: string }>("/subscription/tier", {
         method: "PUT",
         body: JSON.stringify({ tier }),

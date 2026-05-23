@@ -1,16 +1,42 @@
 import { and, eq, gte, isNotNull, ne } from "drizzle-orm";
 import { Router } from "express";
 
-import { db, predictions as predictionsTable } from "@workspace/db";
+import { db, predictions as predictionsTable, users } from "@workspace/db";
 import { requireAuth } from "../middleware/auth";
 import { getPredictions, refreshPredictions } from "../services/prediction-engine";
 
 const router = Router();
 
+// Premier League competition IDs (ESPN uses "eng.1" slug)
+const FREE_TIER_LEAGUES = ["premier league", "epl", "english premier league"];
+
 router.get("/predictions", requireAuth, async (req, res) => {
   try {
+    const [user] = await db
+      .select({ tier: users.tier })
+      .from(users)
+      .where(eq(users.id, req.userId!))
+      .limit(1);
+
+    const rawTier = user?.tier ?? "free";
+    const isPremium = rawTier === "premium" || rawTier === "pro" || rawTier === "elite";
+
     const preds = await getPredictions();
-    res.json(preds);
+
+    if (isPremium) {
+      res.json(preds);
+      return;
+    }
+
+    // Free tier: soccer + Premier League only, max 2
+    const free = preds
+      .filter((p) =>
+        p.sport === "soccer" &&
+        FREE_TIER_LEAGUES.some((l) => p.league.toLowerCase().includes(l))
+      )
+      .slice(0, 2);
+
+    res.json(free);
   } catch (err) {
     req.log.error({ err }, "Failed to get predictions");
     res.status(500).json({ error: "Failed to fetch predictions" });

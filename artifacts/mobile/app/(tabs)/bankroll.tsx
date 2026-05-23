@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CoachAlerts } from "@/components/CoachAlerts";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
+import { TierGate } from "@/components/TierGate";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -234,7 +235,9 @@ function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
         ))}
       </View>
 
-      <KellyCalculator />
+      <TierGate requiredTier="premium" customMessage="Kelly Criterion calculator requires Premium">
+        <KellyCalculator />
+      </TierGate>
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>History</Text>
       {bankrollEntries.length === 0 ? (

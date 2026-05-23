@@ -1,4 +1,4 @@
-export type Tier = "free" | "pro" | "elite";
+export type Tier = "free" | "premium";
 export type SportType = "nfl" | "nba" | "mlb" | "soccer";
 export type RiskLevel = "low" | "medium" | "high";
 export type PredictionType = "home_win" | "away_win" | "draw" | "over" | "under";

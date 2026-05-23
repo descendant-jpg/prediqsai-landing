@@ -1,0 +1,501 @@
+Update PrediQs AI pricing and
+free tier restrictions completely.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEW PRICING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FREE: $0 forever
+PREMIUM: $39.99/month
+ANNUAL: $455.88 × 95% = $433.08
+Round to: $433/year (5% discount)
+
+Show on pricing screen:
+MONTHLY: $39.99/month
+ANNUAL:  $433/year
+"Save 5% with annual plan"
+"Only $36.08/month"
+
+In Nigerian Naira:
+MONTHLY: ₦59,999/month
+ANNUAL:  ₦569,999/year
+
+In Kenyan Shilling:
+MONTHLY: KES 5,199/month
+ANNUAL:  KES 4,939/year
+
+In Ghanaian Cedi:
+MONTHLY: GHS 599/month
+ANNUAL:  GHS 569/year
+
+In South African Rand:
+MONTHLY: ZAR 749/month
+ANNUAL:  ZAR 711/year
+
+In British Pounds:
+MONTHLY: £31.99/month
+ANNUAL:  £30.39/year
+
+Update everywhere pricing shows:
+- Pricing/upgrade screen
+- Locked feature prompts
+- Settings page
+- Onboarding
+- Admin panel
+- App Store description
+- Website landing page
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FREE TIER - VERY LIMITED:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Free users get ONLY this:
+
+PREDICTIONS:
+✅ 2 picks per day maximum
+✅ Soccer only
+✅ Premier League only
+   (no other leagues)
+✅ Basic confidence % shown
+   (number only, no meter)
+❌ NO reasoning shown
+❌ NO risk level badge
+❌ NO value bet detection
+❌ NO form dots
+❌ NO match detail page
+❌ NO head to head
+❌ NO standings
+❌ NO stats tab
+
+ORACLE AI:
+✅ 3 messages per day only
+✅ Basic questions only
+❌ Cuts off hard at 3 messages
+❌ No match analysis
+❌ No strategy advice
+❌ No accumulator building
+
+Show after 3rd message:
+"You've used all 3 free messages
+today. Upgrade to Premium for
+unlimited Oracle AI access.
+[Upgrade Now - $39.99/mo]"
+
+SLIP ANALYZER:
+❌ Completely locked
+❌ Cannot open screen
+Show teaser banner only:
+"📋 Slip Analyzer
+Upload any bet slip for instant
+AI analysis of every selection.
+🔒 Premium Only - $39.99/mo
+[Upgrade to Access]"
+
+ARB SCANNER:
+❌ Completely locked
+❌ Cannot open screen
+❌ Cannot see any opportunities
+Show teaser only:
+"🔄 ARB Scanner
+Find guaranteed profit opportunities
+across 40+ bookmakers worldwide.
+🔒 Premium Only - $39.99/mo
+[Upgrade to Access]"
+
+Show live counter to motivate:
+"⚡ 3 arb opportunities live
+right now — you're missing them"
+
+BANKROLL MANAGER:
+✅ Can view screen
+✅ Add bankroll balance manually
+✅ See win/loss count
+❌ No Kelly Calculator
+❌ No performance charts
+❌ No ROI tracking
+❌ No emotional detection
+❌ Paper bets: 3 maximum only
+
+WORLD CUP:
+✅ See countdown timer only
+✅ See match schedule (no analysis)
+❌ No AI predictions
+❌ No match analysis
+❌ No live tracking
+❌ No group standings
+Show lock on every match:
+"🔒 Premium - $39.99/mo"
+
+NOTIFICATIONS:
+✅ Daily 2 picks notification
+❌ No value bet alerts
+❌ No arb alerts
+❌ No lineup alerts
+❌ No sharp money alerts
+❌ No live alerts
+
+SPORTS ACADEMY:
+✅ First 3 lessons only
+   (out of full course)
+❌ Everything else locked
+
+COMMUNITY:
+✅ View leaderboard only
+❌ No participation
+❌ No tipster following
+❌ No prediction game
+
+MATCH DETAIL:
+❌ Completely locked
+Tapping any prediction card
+shows upgrade prompt instead
+of opening match detail
+
+PERFORMANCE:
+✅ Basic win/loss count only
+❌ No charts
+❌ No ROI
+❌ No breakdown
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PREMIUM TIER - EVERYTHING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Premium users get ALL of this:
+
+PREDICTIONS:
+✅ Unlimited picks daily
+✅ All sports (NFL NBA MLB Soccer)
+✅ All 50+ leagues worldwide
+✅ Full AI reasoning shown
+✅ Risk level badges
+✅ Value bet detection
+✅ Form dots (last 5 results)
+✅ Full match detail page
+✅ Head to head history
+✅ League standings
+✅ Full stats tab
+✅ xG tracker
+✅ Correct score grid
+✅ Similar match insights
+✅ Outcomes report
+✅ Odds comparison
+✅ Weather analysis
+✅ Injury scanner
+
+ORACLE AI:
+✅ Unlimited messages
+✅ Full match deep analysis
+✅ Strategy advice
+✅ Accumulator building
+✅ Prediction replay
+✅ Bookmaker finder
+✅ Remembers conversation
+
+SLIP ANALYZER:
+✅ Unlimited analyses
+✅ All bookmakers worldwide
+✅ Full leg-by-leg breakdown
+✅ Verdict (Place/Modify/Avoid)
+✅ Shareable analysis card
+✅ History saved
+
+ARB SCANNER: ← PREMIUM ONLY
+✅ Real-time scanning
+✅ 40+ bookmakers
+✅ 2-way and 3-way arb
+✅ Exact stake calculator
+✅ Window countdown timer
+✅ Instant push alerts
+✅ Local currency display
+✅ History tracking
+
+BANKROLL MANAGER:
+✅ Unlimited entries
+✅ Kelly Criterion calculator
+✅ Full performance charts
+✅ ROI by sport and league
+✅ Emotional betting detection
+✅ Monthly reports
+✅ Paper bets unlimited
+✅ Paper bet competitions
+
+WORLD CUP 2026:
+✅ All 104 matches
+✅ Full AI predictions
+✅ Group stage tracker
+✅ Live scores
+✅ Tournament predictor
+✅ African team tracker
+✅ World Cup arbitrage
+
+NOTIFICATIONS:
+✅ All notification types
+✅ Daily picks (unlimited)
+✅ Value bet alerts
+✅ Arb opportunity alerts
+✅ Lineup confirmed alerts
+✅ Sharp money alerts
+✅ Live momentum alerts
+✅ Customizable preferences
+
+SPORTS ACADEMY:
+✅ Full beginner course
+✅ Full intermediate course
+✅ Full advanced course
+✅ All quizzes and tests
+✅ All glossary terms
+
+COMMUNITY:
+✅ Full leaderboard access
+✅ Follow top tipsters
+✅ Prediction game
+✅ Weekly challenges
+✅ Syndicate room
+
+PERFORMANCE:
+✅ Full win rate charts
+✅ ROI by sport
+✅ ROI by league
+✅ Monthly trends
+✅ CLV tracker
+✅ PDF exports
+
+EXTRAS:
+✅ Early access to new features
+✅ Priority support
+✅ Ad-free experience
+✅ Referral earnings
+✅ Bookmaker cashback
+✅ 15 language support
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LOCKED FEATURE MESSAGES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Every locked feature shows:
+"🔒 Premium Feature
+[Feature description]
+Unlock everything for $39.99/month
+[Upgrade to Premium →]"
+
+Specific messages:
+
+ARB Scanner locked:
+"🔄 ARB Scanner
+Find guaranteed profit opportunities
+across 40+ bookmakers worldwide.
+Real-time alerts. Exact stake calculator.
+Works in USA, UK and Africa.
+🔒 Premium Only
+[Upgrade - $39.99/mo →]"
+
+Slip Analyzer locked:
+"📋 Slip Analyzer  
+Upload any bet slip photo for
+instant AI review of every leg.
+Works with any bookmaker worldwide.
+🔒 Premium Only
+[Upgrade - $39.99/mo →]"
+
+Oracle AI cutoff:
+"You've used your 3 free messages.
+Upgrade for unlimited Oracle AI.
+🔒 Premium Only
+[Upgrade - $39.99/mo →]"
+
+Match detail locked:
+"🔒 Full match analysis available
+with Premium subscription.
+Get AI reasoning, H2H, standings,
+xG stats and odds comparison.
+[Upgrade - $39.99/mo →]"
+
+Picks limit reached:
+"You've seen your 2 free picks today.
+Upgrade for unlimited picks across
+NFL, NBA, MLB and 50+ soccer leagues.
+[Upgrade - $39.99/mo →]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPGRADE SCREEN DESIGN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Match SignalPro layout exactly:
+
+"⭐ Upgrade to Premium"
+"Get unlimited picks, AI tools & more"
+
+Feature pills at top:
+[⚡ Unlimited Picks]
+[🔄 ARB Scanner]
+[📋 Slip Analyzer]
+
+Three pricing tabs:
+[MONTHLY ✓] [ANNUAL] 
+
+MONTHLY selected shows:
+$39.99/month
+
+ANNUAL shows:
+$433/year
+"Save 5% vs monthly"
+
+Premium Features list:
+⭐ Unlimited picks all sports
+🔄 ARB Scanner (real-time)
+📋 Slip Analyzer (unlimited)
+🤖 Oracle AI (unlimited)
+🏆 World Cup 2026 full coverage
+💰 Bankroll + Kelly Calculator
+📊 Performance analytics
+🔔 All notification types
+📚 Full Sports Academy
+👥 Community full access
+🌍 50+ soccer leagues
+⚡ Early access features
+🎯 Value bet detection
+💎 Priority support
+
+[Subscribe Now - $39.99/mo] 
+← Gold/yellow button
+
+[Annual - $433/yr • Save 5%]
+← Cyan button
+
+"Cancel anytime • Secure payment"
+"Subscriptions auto-renew unless
+cancelled before renewal date"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DATABASE UPDATE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update tier checking throughout:
+
+const FREE_LIMITS = {
+  picksPerDay: 2,
+  oracleMessages: 3,
+  paperBets: 3,
+  leaguesAllowed: ['PL'], // Premier League only
+  sportsAllowed: ['soccer'],
+  academyLessons: 3,
+  arbScannerAccess: false,
+  slipAnalyzerAccess: false,
+  matchDetailAccess: false,
+  worldCupAnalysis: false,
+  kellyCalculator: false,
+  performanceCharts: false
+};
+
+const PREMIUM_LIMITS = {
+  picksPerDay: Infinity,
+  oracleMessages: Infinity,
+  paperBets: Infinity,
+  leaguesAllowed: 'all',
+  sportsAllowed: 'all',
+  academyLessons: Infinity,
+  arbScannerAccess: true,
+  slipAnalyzerAccess: true,
+  matchDetailAccess: true,
+  worldCupAnalysis: true,
+  kellyCalculator: true,
+  performanceCharts: true
+};
+
+Check tier before every feature:
+const checkAccess = (
+  userTier, 
+  feature
+) => {
+  if (userTier === 'premium' || 
+      userTier === 'elite') {
+    return true;
+  }
+  return FREE_LIMITS[feature] === true 
+    || FREE_LIMITS[feature] > 0;
+};
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TIER SIMULATOR UPDATE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update DEV MODE tier simulator:
+
+FREE card:
+┌─────────────────────────┐
+│ FREE                    │
+│ $0 forever              │
+│ • 2 picks/day           │
+│ • Premier League only   │
+│ • 3 Oracle messages/day │
+│ • 3 paper bets max      │
+│ • No ARB scanner        │
+│ • No slip analyzer      │
+└─────────────────────────┘
+
+PREMIUM card (gold border):
+┌─────────────────────────┐
+│ PREMIUM    ⭐ BEST VALUE │
+│ $39.99/month            │
+│ $433/year (save 5%)     │
+│ • Unlimited everything  │
+│ • All sports & leagues  │
+│ • ARB Scanner ✅        │
+│ • Slip Analyzer ✅      │
+│ • Oracle AI unlimited   │
+│ • World Cup full ✅     │
+│ • All features unlocked │
+└─────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADMIN PANEL UPDATE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update admin panel to show:
+Free users: X
+Premium monthly: X ($39.99)
+Premium annual: X ($433)
+MRR: $X
+
+Update all pricing references
+in admin panel from old prices
+to new $39.99/month
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APPLY CHANGES EVERYWHERE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Update ALL these files:
+- Pricing/upgrade screen
+- ARB Scanner screen
+- Slip Analyzer screen
+- Oracle AI chat screen
+- Picks/predictions screen
+- Dashboard quick actions
+- World Cup section
+- Match detail page
+- Settings/profile screen
+- Onboarding flow
+- Admin panel
+- Landing website
+- App Store description text
+- Any constants/config files
+  where prices are stored
+
+Make sure NO free user can:
+- Access ARB scanner
+- Access Slip analyzer
+- See more than 2 picks
+- Send more than 3 Oracle messages
+- Open match detail page
+- See World Cup predictions
+- Use Kelly calculator
+- See performance charts
+
+Build all changes now and
+show me:
+1. Updated pricing screen
+2. ARB Scanner locked screen
+3. Free user picks page (2 picks)
+4. Upgrade prompt design

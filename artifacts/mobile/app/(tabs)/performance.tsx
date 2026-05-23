@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
+import { TierGate } from "@/components/TierGate";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type PerformanceData } from "@/lib/api";
@@ -197,62 +198,66 @@ export default function PerformanceScreen() {
       )}
 
       {sportEntries.length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>By Sport</Text>
-          <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            {sportEntries.map(([sport, stats], i) => {
-              const color = getColor(sport);
-              const pct = totalTierPicks > 0 ? (stats.picks / Math.max(data!.predictionCount, 1)) * 100 : 40;
-              return (
-                <View
-                  key={sport}
-                  style={[
-                    styles.sportRow,
-                    i < sportEntries.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 },
-                  ]}
-                >
-                  <View style={[styles.sportDot, { backgroundColor: color }]} />
-                  <Text style={[styles.sportName, { color: colors.text }]}>{sport.toUpperCase()}</Text>
-                  <View style={styles.sportBarWrap}>
-                    <View style={[styles.sportBarBg, { backgroundColor: colors.border }]}>
-                      <View style={[styles.sportBarFill, { width: `${Math.min(pct, 100)}%` as never, backgroundColor: color }]} />
+        <TierGate requiredTier="premium" customMessage="Sport breakdown chart requires Premium">
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>By Sport</Text>
+            <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              {sportEntries.map(([sport, stats], i) => {
+                const color = getColor(sport);
+                const pct = totalTierPicks > 0 ? (stats.picks / Math.max(data!.predictionCount, 1)) * 100 : 40;
+                return (
+                  <View
+                    key={sport}
+                    style={[
+                      styles.sportRow,
+                      i < sportEntries.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 },
+                    ]}
+                  >
+                    <View style={[styles.sportDot, { backgroundColor: color }]} />
+                    <Text style={[styles.sportName, { color: colors.text }]}>{sport.toUpperCase()}</Text>
+                    <View style={styles.sportBarWrap}>
+                      <View style={[styles.sportBarBg, { backgroundColor: colors.border }]}>
+                        <View style={[styles.sportBarFill, { width: `${Math.min(pct, 100)}%` as never, backgroundColor: color }]} />
+                      </View>
+                      <Text style={[styles.sportWinRate, { color: color }]}>{stats.picks} picks</Text>
                     </View>
-                    <Text style={[styles.sportWinRate, { color: color }]}>{stats.picks} picks</Text>
+                    <Text style={[styles.sportConf, { color: colors.textSecondary }]}>{stats.avgConfidence}% avg</Text>
                   </View>
-                  <Text style={[styles.sportConf, { color: colors.textSecondary }]}>{stats.avgConfidence}% avg</Text>
-                </View>
-              );
-            })}
-          </View>
-        </>
+                );
+              })}
+            </View>
+          </>
+        </TierGate>
       )}
 
       {tiers.length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Confidence Tiers</Text>
-          <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.tableHeaderText, { color: colors.textMuted, flex: 2 }]}>Tier</Text>
-              <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Picks</Text>
-              <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Share</Text>
-            </View>
-            {tiers.map((row, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.tableRow,
-                  i < tiers.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 },
-                ]}
-              >
-                <Text style={[styles.tableCell, { color: colors.text, flex: 2 }]}>{row.tier}</Text>
-                <Text style={[styles.tableCell, { color: colors.textSecondary }]}>{row.count}</Text>
-                <Text style={[styles.tableCell, { color: colors.textSecondary }]}>
-                  {totalTierPicks > 0 ? `${Math.round((row.count / totalTierPicks) * 100)}%` : "—"}
-                </Text>
+        <TierGate requiredTier="premium" customMessage="Confidence tier breakdown requires Premium">
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Confidence Tiers</Text>
+            <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.tableHeaderText, { color: colors.textMuted, flex: 2 }]}>Tier</Text>
+                <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Picks</Text>
+                <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Share</Text>
               </View>
-            ))}
-          </View>
-        </>
+              {tiers.map((row, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.tableRow,
+                    i < tiers.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 },
+                  ]}
+                >
+                  <Text style={[styles.tableCell, { color: colors.text, flex: 2 }]}>{row.tier}</Text>
+                  <Text style={[styles.tableCell, { color: colors.textSecondary }]}>{row.count}</Text>
+                  <Text style={[styles.tableCell, { color: colors.textSecondary }]}>
+                    {totalTierPicks > 0 ? `${Math.round((row.count / totalTierPicks) * 100)}%` : "—"}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        </TierGate>
       )}
 
       {user?.id === 1 && (

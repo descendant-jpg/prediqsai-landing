@@ -8,20 +8,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { api } from "@/lib/api";
 
-type Tier = "free" | "pro" | "elite";
+type Tier = "free" | "premium";
 
 // ─── Pricing constants (single source of truth) ───────────────────────────────
 
 export const TIER_PRICING = {
-  free:  { monthly: 0,      annual: 0,   annualSave: 0 },
-  pro:   { monthly: 14.99,  annual: 99,  annualSave: 80.88 },
-  elite: { monthly: 39.99,  annual: 299, annualSave: 179.89 },
+  free:    { monthly: 0,      annual: 0,    annualSave: 0 },
+  premium: { monthly: 39.99,  annual: 433,  annualSave: 46.88 },
 } as const;
 
 export const UPGRADE_PRICE: Record<Tier, string> = {
-  free:  "$0",
-  pro:   "$14.99/mo",
-  elite: "$39.99/mo",
+  free:    "$0",
+  premium: "$39.99/mo",
 };
 
 // ─── Tier card features (compact) ─────────────────────────────────────────────
@@ -36,110 +34,72 @@ const TIER_CARDS: {
 }[] = [
   {
     key: "free",
-    label: "Basic Learning",
+    label: "Free",
     color: "#94A3B8",
     badge: null,
     badgeIcon: null,
     cardFeatures: [
-      "3 picks/day (soccer only)",
+      "2 picks/day (soccer + PL only)",
       "Basic confidence %",
-      "1 High Risk warning/day",
-      "5 AI messages/day",
-      "5 practice scenarios max",
+      "3 Oracle AI messages/day",
+      "Bankroll tracker (basic)",
+      "Leaderboard (view only)",
     ],
   },
   {
-    key: "pro",
-    label: "Advanced Analytics",
-    color: "#00E5FF",
-    badge: "MOST POPULAR",
+    key: "premium",
+    label: "Premium",
+    color: "#FFD700",
+    badge: "⭐ BEST VALUE",
     badgeIcon: "star",
     cardFeatures: [
-      "Unlimited picks all sports",
-      "3 model consensus (StatIQ + PatternAI + PulseAI)",
-      "Full AI reasoning & explanation",
-      "Statistical edge detection",
-      "Market movement alerts",
-      "50 AI messages/day",
-      "Slip review tool (5/day)",
-    ],
-  },
-  {
-    key: "elite",
-    label: "Professional Intelligence",
-    color: "#FFD700",
-    badge: "BEST ROI",
-    badgeIcon: "crown",
-    cardFeatures: [
-      "Everything in Pro",
-      "All 5 AI models (+ SharpIQ + ContextAI)",
-      "Live in-game momentum AI",
-      "Odds discrepancy scanner",
-      "Voice AI assistant",
-      "Unlimited everything",
-      "PDF exports & API access",
+      "Unlimited picks all sports & leagues",
+      "Full AI reasoning + risk badges",
+      "ARB Scanner (40+ bookmakers)",
+      "Slip Analyzer (unlimited)",
+      "Unlimited Oracle AI",
+      "Full match detail, H2H & stats",
+      "Kelly Calculator + ROI charts",
+      "World Cup 2026 full coverage",
+      "All notifications & alerts",
     ],
   },
 ];
 
 // ─── Active features per tier ─────────────────────────────────────────────────
 
-type FeatureItem = { label: string; active: boolean; requiredTier?: "pro" | "elite" };
+type FeatureItem = { label: string; active: boolean; requiredTier?: "premium" };
 
 const TIER_ACTIVE_FEATURES: Record<Tier, FeatureItem[]> = {
   free: [
-    { label: "3 picks per day (soccer only)", active: true },
-    { label: "Basic confidence meter", active: true },
-    { label: "1 High Risk warning", active: true },
-    { label: "5 AI messages", active: true },
-    { label: "5 practice scenarios", active: true },
-    { label: "View leaderboard", active: true },
-    { label: "Full AI reasoning", active: false, requiredTier: "pro" },
-    { label: "Statistical edge", active: false, requiredTier: "pro" },
-    { label: "Slip review tool", active: false, requiredTier: "pro" },
-    { label: "Live momentum AI", active: false, requiredTier: "elite" },
-    { label: "Voice AI", active: false, requiredTier: "elite" },
+    { label: "2 AI picks per day (soccer only)", active: true },
+    { label: "Premier League picks only", active: true },
+    { label: "Basic confidence %", active: true },
+    { label: "3 Oracle AI messages per day", active: true },
+    { label: "Leaderboard (view only)", active: true },
+    { label: "Bankroll tracker (basic)", active: true },
+    { label: "Unlimited picks all sports", active: false, requiredTier: "premium" },
+    { label: "Full AI reasoning & risk badges", active: false, requiredTier: "premium" },
+    { label: "ARB Scanner (40+ bookmakers)", active: false, requiredTier: "premium" },
+    { label: "Slip Analyzer (unlimited)", active: false, requiredTier: "premium" },
+    { label: "Match detail & H2H stats", active: false, requiredTier: "premium" },
+    { label: "Kelly Criterion calculator", active: false, requiredTier: "premium" },
+    { label: "Performance charts & ROI", active: false, requiredTier: "premium" },
+    { label: "World Cup 2026 predictions", active: false, requiredTier: "premium" },
   ],
-  pro: [
-    { label: "Unlimited picks all sports", active: true },
-    { label: "3 model consensus", active: true },
-    { label: "Full AI reasoning", active: true },
-    { label: "Statistical edge detection", active: true },
-    { label: "Line movement alerts", active: true },
-    { label: "Market movement signals", active: true },
-    { label: "Statistical stake calculator", active: true },
-    { label: "AI assistant (50/day)", active: true },
-    { label: "Slip review tool (5/day)", active: true },
-    { label: "Unlimited practice scenarios", active: true },
-    { label: "Weather analysis", active: true },
-    { label: "Injury scanner", active: true },
-    { label: "Push notifications", active: true },
-    { label: "Live momentum AI", active: false, requiredTier: "elite" },
-    { label: "Odds discrepancy scanner", active: false, requiredTier: "elite" },
-    { label: "Voice AI", active: false, requiredTier: "elite" },
-    { label: "All 5 models", active: false, requiredTier: "elite" },
-  ],
-  elite: [
-    { label: "Everything in Pro", active: true },
-    { label: "StatIQ model", active: true },
-    { label: "PatternAI model", active: true },
-    { label: "PulseAI model", active: true },
-    { label: "SharpIQ model", active: true },
-    { label: "ContextAI model", active: true },
-    { label: "Full model breakdown", active: true },
-    { label: "Live momentum AI", active: true },
-    { label: "Goal probability tracker", active: true },
-    { label: "Arbitrage scanner", active: true },
-    { label: "CLV tracker", active: true },
-    { label: "Referee analysis", active: true },
-    { label: "Fatigue scoring", active: true },
-    { label: "Voice AI assistant", active: true },
-    { label: "Unlimited AI chat", active: true },
-    { label: "Unlimited slip reviews", active: true },
-    { label: "Syndicate room", active: true },
-    { label: "WhatsApp alerts", active: true },
-    { label: "PDF exports", active: true },
-    { label: "API access", active: true },
+  premium: [
+    { label: "Unlimited picks all sports & leagues", active: true },
+    { label: "Full AI reasoning + risk badges", active: true },
+    { label: "ARB Scanner (40+ bookmakers)", active: true },
+    { label: "Slip Analyzer (unlimited)", active: true },
+    { label: "Unlimited Oracle AI", active: true },
+    { label: "Full match detail, H2H & stats", active: true },
+    { label: "Kelly Criterion calculator", active: true },
+    { label: "Performance charts & ROI", active: true },
+    { label: "World Cup 2026 full coverage", active: true },
+    { label: "All notification types", active: true },
+    { label: "Community access + tipsters", active: true },
+    { label: "Priority support", active: true },
   ],
 };
 
@@ -223,7 +183,8 @@ export default function SettingsScreen() {
     ]);
   }
 
-  const currentTier = (user?.tier ?? "free") as Tier;
+  const rawTier = user?.tier ?? "free";
+  const currentTier: Tier = (rawTier === "pro" || rawTier === "elite" || rawTier === "premium") ? "premium" : "free";
   const currentCard = TIER_CARDS.find((t) => t.key === currentTier)!;
   const activeFeatures = TIER_ACTIVE_FEATURES[currentTier];
 
@@ -311,7 +272,7 @@ export default function SettingsScreen() {
               >
                 <Text style={[styles.toggleBtnText, { color: annualMode ? colors.background : colors.textSecondary }]}>Annual</Text>
                 <View style={[styles.savePill, { backgroundColor: annualMode ? "rgba(0,0,0,0.15)" : "rgba(0,255,148,0.15)" }]}>
-                  <Text style={[styles.savePillText, { color: annualMode ? colors.background : "#00FF94" }]}>Save up to 45%</Text>
+                  <Text style={[styles.savePillText, { color: annualMode ? colors.background : "#00FF94" }]}>Save ~10%</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -328,7 +289,7 @@ export default function SettingsScreen() {
                       styles.tierCard,
                       {
                         backgroundColor: isActive ? `${tier.color}10` : colors.card,
-                        borderColor: isActive ? tier.color : tier.key === "free" ? "#94A3B8" : tier.key === "pro" ? "#00E5FF" : "#FFD700",
+                        borderColor: isActive ? tier.color : tier.key === "free" ? "#94A3B8" : "#FFD700",
                         borderWidth: isActive ? 2 : 1,
                         opacity: isChangingTier && !isActive ? 0.6 : 1,
                       },
@@ -341,7 +302,7 @@ export default function SettingsScreen() {
                       <Text style={[styles.tierCardLabel, { color: isActive ? tier.color : colors.text }]}>{tier.label}</Text>
                       <View style={styles.cardHeaderRight}>
                         {tier.badge && (
-                          <View style={[styles.popularBadge, { backgroundColor: tier.key === "pro" ? "rgba(0,229,255,0.15)" : "rgba(255,215,0,0.15)", borderColor: tier.color }]}>
+                          <View style={[styles.popularBadge, { backgroundColor: "rgba(255,215,0,0.15)", borderColor: tier.color }]}>
                             {tier.badgeIcon === "star" && <Star size={9} color={tier.color} />}
                             {tier.badgeIcon === "crown" && <Crown size={9} color={tier.color} />}
                             <Text style={[styles.popularBadgeText, { color: tier.color }]}>{tier.badge}</Text>
@@ -356,11 +317,8 @@ export default function SettingsScreen() {
                     </View>
                     <Text style={[styles.tierCardPrice, { color: isActive ? tier.color : colors.text }]}>{priceLabel(tier.key)}</Text>
                     {save && <Text style={[styles.annualSave, { color: "#00FF94" }]}>{save}</Text>}
-                    {tier.key === "pro" && !annualMode && (
-                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$99/year — save 45%</Text>
-                    )}
-                    {tier.key === "elite" && !annualMode && (
-                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$299/year — save 38%</Text>
+                    {tier.key === "premium" && !annualMode && (
+                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$433/year — save ~10%</Text>
                     )}
                     <View style={styles.tierFeatures}>
                       {tier.cardFeatures.map((f, i) => (
@@ -390,8 +348,8 @@ export default function SettingsScreen() {
               <Text style={[styles.activeFeatureText, { color: item.active ? colors.text : colors.textMuted }]}>
                 {item.label}
                 {!item.active && item.requiredTier ? (
-                  <Text style={{ color: item.requiredTier === "elite" ? "#FFD700" : "#00E5FF" }}>
-                    {" "}({item.requiredTier === "elite" ? `Upgrade to Elite — $39.99/mo` : `Upgrade to Pro — $14.99/mo`})
+                  <Text style={{ color: "#FFD700" }}>
+                    {" "}(Upgrade to Premium — $39.99/mo)
                   </Text>
                 ) : null}
               </Text>
@@ -399,36 +357,15 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        {/* Upgrade CTAs for non-elite users */}
+        {/* Upgrade CTA for free users */}
         {currentTier === "free" && (
-          <View style={styles.upgradeRow}>
-            <TouchableOpacity
-              style={[styles.upgradeBtn, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: "#00E5FF" }]}
-              onPress={() => handleSetTier("pro")}
-              activeOpacity={0.8}
-            >
-              <Zap size={15} color="#00E5FF" />
-              <Text style={[styles.upgradeBtnText, { color: "#00E5FF" }]}>🔒 Advanced Analytics — $14.99/mo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.upgradeBtn, { backgroundColor: "rgba(255,215,0,0.08)", borderColor: "#FFD700" }]}
-              onPress={() => handleSetTier("elite")}
-              activeOpacity={0.8}
-            >
-              <Crown size={15} color="#FFD700" />
-              <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>🔒 Professional Intelligence — $39.99/mo</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {currentTier === "pro" && (
           <TouchableOpacity
-            style={[styles.upgradeBtn, { backgroundColor: "rgba(255,215,0,0.08)", borderColor: "#FFD700" }]}
-            onPress={() => handleSetTier("elite")}
+            style={[styles.upgradeBtn, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "#FFD700" }]}
+            onPress={() => handleSetTier("premium")}
             activeOpacity={0.8}
           >
-            <Crown size={15} color="#FFD700" />
-            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>👑 Professional Intelligence — $39.99/mo</Text>
+            <Star size={15} color="#FFD700" fill="#FFD700" />
+            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>⭐ Upgrade to Premium — $39.99/mo</Text>
           </TouchableOpacity>
         )}
 

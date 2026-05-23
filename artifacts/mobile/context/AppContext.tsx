@@ -37,8 +37,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [bankrollEntries, setBankrollEntries] = useState<BankrollEntry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Normalize legacy tiers: pro/elite → premium
+  const rawTier = user?.tier ?? "free";
+  const normalizedTier: Tier = (rawTier === "pro" || rawTier === "elite" || rawTier === "premium")
+    ? "premium"
+    : "free";
+
   const profile: UserProfile = {
-    tier: (user?.tier ?? "free") as Tier,
+    tier: normalizedTier,
     bankroll: user?.bankroll ?? 0,
     dailyLossLimit: user?.dailyLossLimit ?? 200,
     username: user?.username ?? "Bettor",

@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { TierGate } from "@/components/TierGate";
 import {
   api,
   type FDWCMatch,
@@ -602,17 +603,19 @@ export default function WorldCupScreen() {
 
         {/* ── FIXTURES TAB ──────────────────────────────────────────────────── */}
         {activeTab === "fixtures" && (
-          <>
-            <View style={[styles.fixturesHeader, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
-              <Zap size={14} color={colors.cyan} />
-              <Text style={[styles.fixturesHeaderText, { color: colors.textSecondary }]}>
-                Tap <Text style={{ color: colors.cyan }}>"Get AI Prediction"</Text> on any match to generate a PrediQs AI specialist analysis.
-              </Text>
-            </View>
-            {(fixtures.length > 0 ? fixtures : DEFAULT_FIXTURES).map((f) => (
-              <FixtureCard key={f.id} fixture={f} token={token ?? ""} />
-            ))}
-          </>
+          <TierGate requiredTier="premium" customMessage="World Cup AI Picks require Premium">
+            <>
+              <View style={[styles.fixturesHeader, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
+                <Zap size={14} color={colors.cyan} />
+                <Text style={[styles.fixturesHeaderText, { color: colors.textSecondary }]}>
+                  Tap <Text style={{ color: colors.cyan }}>"Get AI Prediction"</Text> on any match to generate a PrediQs AI specialist analysis.
+                </Text>
+              </View>
+              {(fixtures.length > 0 ? fixtures : DEFAULT_FIXTURES).map((f) => (
+                <FixtureCard key={f.id} fixture={f} token={token ?? ""} />
+              ))}
+            </>
+          </TierGate>
         )}
 
         {/* ── AFRICA TAB ────────────────────────────────────────────────────── */}
@@ -667,6 +670,7 @@ export default function WorldCupScreen() {
 
         {/* ── ARB TAB ───────────────────────────────────────────────────────── */}
         {activeTab === "arb" && (
+          <TierGate requiredTier="premium" customMessage="World Cup ARB scanner requires Premium">
           <>
             <View style={[styles.arbInfoBanner, { backgroundColor: "rgba(0,255,148,0.06)", borderColor: "rgba(0,255,148,0.25)" }]}>
               <TrendingUp size={14} color="#00FF94" />
@@ -718,6 +722,7 @@ export default function WorldCupScreen() {
               </Text>
             </View>
           </>
+          </TierGate>
         )}
       </ScrollView>
     </View>

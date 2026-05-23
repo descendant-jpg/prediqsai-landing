@@ -182,7 +182,7 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
         </View>
       </TierGate>
 
-      <TierGate requiredTier={prediction.tierRequired === "free" ? "free" : "pro"}>
+      <TierGate requiredTier={prediction.tierRequired === "free" ? "free" : "premium"}>
         <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Key Factors</Text>
           {prediction.keyFactors.map((f, i) => (
@@ -195,7 +195,7 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
       </TierGate>
 
       {prediction.againstFactors?.length > 0 && (
-        <TierGate requiredTier={prediction.tierRequired === "free" ? "free" : "pro"}>
+        <TierGate requiredTier={prediction.tierRequired === "free" ? "free" : "premium"}>
           <View style={[tabs.section, { backgroundColor: "rgba(255,165,0,0.05)", borderColor: "rgba(255,165,0,0.3)" }]}>
             <Text style={[tabs.sectionTitle, { color: "#FFA500" }]}>Risks & Against Factors</Text>
             {prediction.againstFactors.map((f, i) => (
@@ -244,7 +244,7 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
       )}
 
       {prediction.publicBacking && (
-        <TierGate requiredTier="pro">
+        <TierGate requiredTier="premium">
           <CrowdSentimentBar
             backing={prediction.publicBacking}
             prediction={prediction.prediction}
@@ -255,13 +255,13 @@ function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors:
       )}
 
       {prediction.agentScores && (
-        <TierGate requiredTier="pro">
+        <TierGate requiredTier="premium">
           <AgentScorecard scores={prediction.agentScores} />
         </TierGate>
       )}
 
       {prediction.simulationData && (
-        <TierGate requiredTier="elite">
+        <TierGate requiredTier="premium">
           <SimulationPanel
             data={prediction.simulationData}
             homeTeam={prediction.homeTeam}
@@ -519,7 +519,7 @@ function PrematchTab({
       </View>
 
       {/* ── Odds Comparison ── */}
-      <TierGate requiredTier="pro">
+      <TierGate requiredTier="premium">
         <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={tabs.oddsHeader}>
             <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Odds Comparison</Text>
@@ -827,7 +827,7 @@ function ScoreTab({ prediction, colors }: { prediction: Prediction; colors: Colo
         </Text>
       </View>
 
-      <TierGate requiredTier="elite">
+      <TierGate requiredTier="premium">
         <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Score Probability Grid</Text>
           <View style={tabs.scoreGrid}>
