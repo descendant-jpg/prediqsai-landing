@@ -1,0 +1,44 @@
+Railway deployment failed — Build Error
+
+Regenerate the pnpm lockfile by running "pnpm install" locally and committing the updated pnpm-lock.yaml. The build failed because a Replit Agent commit manually edited pnpm-lock.yaml to add @replit/connectors-sdk instead of running pnpm install, leaving the lockfile's overrides metadata out of sync with pnpm-workspace.yaml. Railpack runs pnpm install with --frozen-lockfile, which requires the lockfile to exactly match the current workspace configuration.
+
+Repository: https://github.com/descendant-jpg/prediqsai-landing
+Branch: main · Commit: 36983e2 — Add GitHub integration for repository management
+
+Install and configure the GitHub connector SDK, updating package.json and pnpm-lock.yaml to include @replit/connectors-sdk.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: aebede2a-d960-4bdd-b230-25310c5aada8
+Replit-Commit-Checkpoint-Type: full_checkpoint
+Replit-Commit-Event-Id: 7b5afb44-c9bc-4acf-a707-0eb96289cc66
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/cd79b9e9-2d1e-4d25-9fdc-c826abde734b/aebede2a-d960-4bdd-b230-25310c5aada8/iPZjmpb
+Replit-Helium-Checkpoint-Created: true
+Deployment ID: afa472f2-be53-4725-bb5f-6fc218336a81
+Service ID: 821e87e2-1da3-4760-ac76-24cd52262c0f
+Environment ID: fe57a9a4-5e63-4748-b57f-ce71268cafa8
+
+---
+
+## Problem
+The @workspace/website service fails during the BUILD stage with:
+```
+ERR_PNPM_LOCKFILE_CONFIG_MISMATCH  Cannot proceed with the frozen installation. The current "overrides" configuration doesn't match the value found in the lockfile
+```
+Railpack runs `pnpm install --frozen-lockfile --prefer-offline`, which requires the lockfile to exactly match the current workspace configuration. The SNAPSHOT stage succeeded; BUILD failed immediately during dependency installation.
+
+## Diagnosis
+The commit 36983e2 (by Replit Agent) added `@replit/connectors-sdk` to the root `package.json` and directly edited `pnpm-lock.yaml` to include the new dependency entries. However, directly editing the lockfile does not update the internal overrides metadata hash that pnpm uses to verify consistency. The `pnpm-workspace.yaml` defines extensive overrides for esbuild, lightningcss, rollup, tailwindcss/oxide, and expo/ngrok platform-specific packages. The lockfile's stored overrides configuration no longer matches what pnpm computes from `pnpm-workspace.yaml`, causing the `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` error.
+
+## Fix
+This fix cannot be auto-applied because it requires running `pnpm install` to regenerate the lockfile — a code agent can only edit text files, not execute commands.
+
+1. **File:** `pnpm-lock.yaml` (repo root)
+2. **Action:** Run `pnpm install` in the repo root to regenerate the lockfile
+3. **Commands to run locally or in Replit shell:**
+   ```bash
+   pnpm install
+   git add pnpm-lock.yaml
+   git commit -m "Regenerate pnpm-lock.yaml to fix overrides mismatch"
+   git push
+   ```
+4. **Why this fixes it:** Running `pnpm install` regenerates the lockfile from scratch, ensuring the overrides metadata hash matches the current `pnpm-workspace.yaml` configuration. The subsequent Railway build will then pass `pnpm install --frozen-lockfile` successfully.
