@@ -175,7 +175,7 @@ function Hero() {
         borderRadius: 999, padding: "6px 16px", marginBottom: 24,
       }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: CYAN, display: "inline-block", boxShadow: `0 0 8px ${CYAN}` }} />
-        <span style={{ color: CYAN, fontSize: 13, fontWeight: 600 }}>Powered by Claude AI</span>
+        <span style={{ color: CYAN, fontSize: 13, fontWeight: 600 }}>Powered by PrediQs AI</span>
       </div>
 
       <h1 style={{
@@ -299,6 +299,12 @@ const features = [
     title: "Performance Tracker",
     desc: "Win rate, ROI by sport, and confidence accuracy breakdowns. Know exactly which predictions are making you money.",
     color: "#EC4899",
+  },
+  {
+    icon: "🔄",
+    title: "Arbitrage Scanner",
+    desc: "Automatically detects arbitrage opportunities across 10+ bookmakers in real time. Lock in guaranteed profit regardless of match outcome.",
+    color: "#00E5FF",
   },
 ];
 
@@ -427,9 +433,9 @@ function Pricing() {
     },
     {
       name: "Premium",
-      price: "$29.99",
+      price: "$39.99",
       period: "per month",
-      annualNote: "$319/yr (save 11%)",
+      annualNote: "$455/yr (save 5%)",
       lifetimeNote: "or $299 lifetime",
       color: CYAN,
       features: [
@@ -441,6 +447,14 @@ function Pricing() {
         "Win rate & ROI analytics",
         "World Cup 2026 coverage",
         "Priority AI assistant access",
+        "Arbitrage Scanner (10+ bookmakers)",
+        "Live in-play betting alerts",
+        "Early line movement detection",
+        "Multi-sport parlay optimizer",
+        "Dedicated AI betting assistant (24/7)",
+        "Exclusive World Cup 2026 prop bets",
+        "Export reports to PDF/CSV",
+        "VIP Discord community access",
       ],
       cta: "Start Premium",
       highlight: true,
