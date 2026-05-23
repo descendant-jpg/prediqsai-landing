@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 
 import adminRouter from "./admin";
 import arbitrageRouter from "./arbitrage";
+import footballDataRouter from "./football-data";
 import worldcupRouter from "./worldcup";
 import authRouter from "./auth";
 import bankrollRouter from "./bankroll";
@@ -32,6 +33,7 @@ router.use(soccerRouter);
 router.use(slipRouter);
 router.use(arbitrageRouter);
 router.use(worldcupRouter);
+router.use(footballDataRouter);
 router.use(adminRouter);
 
 export default router;

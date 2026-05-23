@@ -21,7 +21,7 @@ import { SportBadge } from "@/components/SportBadge";
 import { TierGate } from "@/components/TierGate";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { api, type MatchDetailData } from "@/lib/api";
+import { api, type FDH2HSummary, type MatchDetailData } from "@/lib/api";
 import { matchDetailStore } from "@/lib/matchDetailStore";
 import type { Prediction, PredictionType } from "@/types";
 
@@ -286,12 +286,16 @@ function PrematchTab({
   matchDetail,
   preview,
   previewLoading,
+  fdH2H,
+  fdH2HLoading,
   colors,
 }: {
   prediction: Prediction;
   matchDetail: MatchDetailData | null;
   preview: string | null;
   previewLoading: boolean;
+  fdH2H: FDH2HSummary | null;
+  fdH2HLoading: boolean;
   colors: Colors;
 }) {
   const [homeFormScore, awayFormScore] = getTeamFormScores(prediction);
@@ -408,6 +412,57 @@ function PrematchTab({
           ))
         ) : null}
       </View>
+
+      {/* ── H2H History (Football-Data) ── */}
+      {fdH2HLoading && (
+        <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Head To Head</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6 }}>
+            <ActivityIndicator size="small" color={colors.cyan} />
+            <Text style={[tabs.sectionText, { color: colors.textMuted }]}>Fetching H2H data…</Text>
+          </View>
+        </View>
+      )}
+      {fdH2H && fdH2H.meetings.length > 0 && (
+        <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Head To Head</Text>
+            <Text style={[tabs.h2hPowered, { color: colors.textMuted }]}>Last 5 meetings</Text>
+          </View>
+          {fdH2H.meetings.map((m, i) => {
+            const homeWon = m.winner === "home";
+            const awayWon = m.winner === "away";
+            const resultColor = homeWon ? colors.green : awayWon ? colors.red : colors.gold;
+            const resultLabel = m.winner === "draw" ? "D" : homeWon ? "H" : "A";
+            return (
+              <View key={i} style={[tabs.h2hRow, { borderBottomColor: colors.border }]}>
+                <Text style={[tabs.h2hDate, { color: colors.textMuted }]}>{m.date.slice(0, 7)}</Text>
+                <Text style={[tabs.h2hTeam, { color: colors.text }]} numberOfLines={1}>{m.homeTeam}</Text>
+                <Text style={[tabs.h2hScore, { color: colors.text }]}>{m.homeScore}–{m.awayScore}</Text>
+                <Text style={[tabs.h2hTeamAway, { color: colors.textSecondary }]} numberOfLines={1}>{m.awayTeam}</Text>
+                <View style={[tabs.h2hBadge, { backgroundColor: `${resultColor}20`, borderColor: resultColor }]}>
+                  <Text style={[tabs.h2hBadgeText, { color: resultColor }]}>{resultLabel}</Text>
+                </View>
+              </View>
+            );
+          })}
+          <View style={[tabs.h2hSummary, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={tabs.h2hSummaryItem}>
+              <Text style={[tabs.h2hSummaryNum, { color: colors.green }]}>{fdH2H.homeTeamWins}</Text>
+              <Text style={[tabs.h2hSummaryLabel, { color: colors.textMuted }]}>{prediction.homeTeam.split(" ")[0]}</Text>
+            </View>
+            <View style={tabs.h2hSummaryItem}>
+              <Text style={[tabs.h2hSummaryNum, { color: colors.gold }]}>{fdH2H.draws}</Text>
+              <Text style={[tabs.h2hSummaryLabel, { color: colors.textMuted }]}>Draws</Text>
+            </View>
+            <View style={tabs.h2hSummaryItem}>
+              <Text style={[tabs.h2hSummaryNum, { color: colors.red }]}>{fdH2H.awayTeamWins}</Text>
+              <Text style={[tabs.h2hSummaryLabel, { color: colors.textMuted }]}>{prediction.awayTeam.split(" ")[0]}</Text>
+            </View>
+          </View>
+          <Text style={[tabs.h2hPowered, { color: colors.textMuted, textAlign: "right" }]}>Powered by football-data.org</Text>
+        </View>
+      )}
 
       {/* ── Similar Match Insights ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -681,14 +736,14 @@ function StatsTab({
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Head to Head</Text>
         {hasH2H ? (
           matchDetail!.h2h.map((m, i) => (
-            <View key={i} style={[tabs.h2hRow, { borderBottomColor: colors.border }]}>
-              <Text style={[tabs.h2hTeam, { color: colors.textSecondary }]} numberOfLines={1}>{m.homeTeam}</Text>
-              <View style={[tabs.h2hScore, { backgroundColor: colors.background }]}>
-                <Text style={[tabs.h2hScoreText, { color: colors.text }]}>{m.homeScore} – {m.awayScore}</Text>
+            <View key={i} style={[tabs.legacyH2hRow, { borderBottomColor: colors.border }]}>
+              <Text style={[tabs.legacyH2hTeam, { color: colors.textSecondary }]} numberOfLines={1}>{m.homeTeam}</Text>
+              <View style={[tabs.legacyH2hScore, { backgroundColor: colors.background }]}>
+                <Text style={[tabs.legacyH2hScoreText, { color: colors.text }]}>{m.homeScore} – {m.awayScore}</Text>
               </View>
-              <Text style={[tabs.h2hTeam, { color: colors.textSecondary, textAlign: "right" }]} numberOfLines={1}>{m.awayTeam}</Text>
+              <Text style={[tabs.legacyH2hTeam, { color: colors.textSecondary, textAlign: "right" }]} numberOfLines={1}>{m.awayTeam}</Text>
               {m.date ? (
-                <Text style={[tabs.h2hDate, { color: colors.textMuted }]}>
+                <Text style={[tabs.legacyH2hDate, { color: colors.textMuted }]}>
                   {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </Text>
               ) : null}
@@ -818,6 +873,9 @@ export default function MatchDetailScreen() {
   const [detailLoading,  setDetailLoading]  = useState(false);
   const [preview,        setPreview]        = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [fdH2H,          setFdH2H]          = useState<FDH2HSummary | null>(null);
+  const [fdH2HLoading,   setFdH2HLoading]   = useState(false);
+  const [fdH2HFetched,   setFdH2HFetched]   = useState(false);
 
   const { prediction, soccerFixtureId } = matchDetailStore.get();
 
@@ -830,6 +888,29 @@ export default function MatchDetailScreen() {
       .catch(() => {})
       .finally(() => setDetailLoading(false));
   }, [soccerFixtureId, token]);
+
+  // Lazy-load H2H from Football-Data when Prematch tab is opened (soccer only)
+  useEffect(() => {
+    if (
+      activeTab !== "Prematch" ||
+      !prediction ||
+      !token ||
+      fdH2HFetched ||
+      prediction.sport !== "soccer"
+    ) return;
+    setFdH2HFetched(true);
+    setFdH2HLoading(true);
+    api.footballData
+      .h2h(token, {
+        homeTeam:  prediction.homeTeam,
+        awayTeam:  prediction.awayTeam,
+        league:    prediction.league,
+        matchDate: prediction.matchDate,
+      })
+      .then((data) => setFdH2H(data))
+      .catch(() => {})
+      .finally(() => setFdH2HLoading(false));
+  }, [activeTab, prediction, token, fdH2HFetched]);
 
   useEffect(() => {
     if (!prediction || !token) return;
@@ -931,6 +1012,8 @@ export default function MatchDetailScreen() {
             matchDetail={matchDetail}
             preview={preview}
             previewLoading={previewLoading}
+            fdH2H={fdH2H}
+            fdH2HLoading={fdH2HLoading}
             colors={colors}
           />
         )}
@@ -1048,6 +1131,19 @@ const tabs = StyleSheet.create({
   standTeam:      { flex: 1, fontSize: 12, fontFamily: "Inter_500Medium" },
   standStat:      { width: 22, fontSize: 11, textAlign: "center", fontFamily: "Inter_400Regular" },
   standPts:       { width: 28, fontSize: 12, fontFamily: "Inter_700Bold", textAlign: "center" },
+  // H2H
+  h2hRow:          { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, gap: 5 },
+  h2hDate:         { width: 44, fontSize: 10, fontFamily: "Inter_400Regular" },
+  h2hTeam:         { flex: 1, fontSize: 11, fontFamily: "Inter_500Medium" },
+  h2hTeamAway:     { flex: 1, fontSize: 11, fontFamily: "Inter_500Medium", textAlign: "right" },
+  h2hScore:        { fontSize: 14, fontFamily: "Inter_700Bold", paddingHorizontal: 6, minWidth: 40, textAlign: "center" },
+  h2hBadge:        { width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  h2hBadgeText:    { fontSize: 9, fontFamily: "Inter_700Bold" },
+  h2hSummary:      { flexDirection: "row", justifyContent: "space-around", borderRadius: 10, padding: 10, marginTop: 6, borderWidth: 1 },
+  h2hSummaryItem:  { alignItems: "center", gap: 2 },
+  h2hSummaryNum:   { fontSize: 22, fontFamily: "Inter_700Bold" },
+  h2hSummaryLabel: { fontSize: 10, fontFamily: "Inter_400Regular" },
+  h2hPowered:      { fontSize: 9, fontFamily: "Inter_400Regular", marginTop: 4 },
   // xG Tracker
   xgTitleRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   xgSubtitle:  { fontSize: 11, fontFamily: "Inter_400Regular" },
@@ -1060,12 +1156,12 @@ const tabs = StyleSheet.create({
   xgLabel:     { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
   xgNote:      { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 4 },
   xgNoteText:  { flex: 1, fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 },
-  // Stats
-  h2hRow:       { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, gap: 6 },
-  h2hTeam:      { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular" },
-  h2hScore:     { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
-  h2hScoreText: { fontSize: 13, fontFamily: "Inter_700Bold" },
-  h2hDate:      { fontSize: 10, fontFamily: "Inter_400Regular", width: 40, textAlign: "right" },
+  // Stats (legacy H2H from API-Sports stats tab)
+  legacyH2hRow:       { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, gap: 6 },
+  legacyH2hTeam:      { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular" },
+  legacyH2hScore:     { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 6 },
+  legacyH2hScoreText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  legacyH2hDate:      { fontSize: 10, fontFamily: "Inter_400Regular", width: 40, textAlign: "right" },
   statRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1 },
   statLabel:    { fontSize: 13, fontFamily: "Inter_400Regular" },
   statValue:    { fontSize: 13, fontFamily: "Inter_600SemiBold" },

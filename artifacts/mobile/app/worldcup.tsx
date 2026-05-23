@@ -12,6 +12,7 @@ import {
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Linking,
   Platform,
@@ -28,6 +29,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import {
   api,
+  type FDWCMatch,
   type WCAfricanTeam,
   type WCFixture,
   type WCOverview,
@@ -39,10 +41,11 @@ import {
 const WC_START_MS = new Date("2026-06-11T21:00:00Z").getTime();
 const WC_TOTAL_MS = new Date("2026-06-19T21:00:00Z").getTime(); // approx end
 const TABS = [
-  { id: "overview",  label: "Overview"  },
-  { id: "fixtures",  label: "Fixtures"  },
-  { id: "africa",    label: "🌍 Africa" },
-  { id: "arb",       label: "⚡ ARB"    },
+  { id: "overview",  label: "Overview"   },
+  { id: "schedule",  label: "📅 Schedule" },
+  { id: "fixtures",  label: "AI Picks"   },
+  { id: "africa",    label: "🌍 Africa"  },
+  { id: "arb",       label: "⚡ ARB"     },
 ] as const;
 type Tab = typeof TABS[number]["id"];
 
@@ -296,12 +299,14 @@ export default function WorldCupScreen() {
   const { token, user } = useAuth();
   const countdown = useCountdown();
 
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [overview, setOverview]   = useState<WCOverview | null>(null);
-  const [fixtures, setFixtures]   = useState<WCFixture[]>([]);
-  const [allAfrican, setAllAfrican] = useState<WCAfricanTeam[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab]       = useState<Tab>("overview");
+  const [overview, setOverview]         = useState<WCOverview | null>(null);
+  const [fixtures, setFixtures]         = useState<WCFixture[]>([]);
+  const [allAfrican, setAllAfrican]     = useState<WCAfricanTeam[]>([]);
+  const [fdWCMatches, setFdWCMatches]   = useState<FDWCMatch[]>([]);
+  const [fdLoading, setFdLoading]       = useState(false);
+  const [loading, setLoading]           = useState(true);
+  const [refreshing, setRefreshing]     = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const topPad = insets.top + (Platform.OS === "web" ? 67 : 0);
@@ -336,6 +341,18 @@ export default function WorldCupScreen() {
     } catch { /* ignore */ }
   }, [token]);
 
+  // Load real WC matches from Football-Data
+  const loadFDMatches = useCallback(async () => {
+    if (!token || fdWCMatches.length > 0) return;
+    setFdLoading(true);
+    try {
+      const { matches } = await api.footballData.wcMatches(token);
+      setFdWCMatches(matches);
+    } catch { /* ignore */ } finally {
+      setFdLoading(false);
+    }
+  }, [token, fdWCMatches.length]);
+
   // Load African teams (auth)
   const loadAfricanTeams = useCallback(async () => {
     if (!token) return;
@@ -348,9 +365,10 @@ export default function WorldCupScreen() {
   useEffect(() => { loadOverview(); }, [loadOverview]);
 
   useEffect(() => {
-    if (activeTab === "fixtures" && fixtures.length === 0) loadFixtures();
-    if (activeTab === "africa"   && allAfrican.length === 0) loadAfricanTeams();
-  }, [activeTab, fixtures.length, allAfrican.length, loadFixtures, loadAfricanTeams]);
+    if (activeTab === "fixtures"  && fixtures.length === 0)    loadFixtures();
+    if (activeTab === "africa"    && allAfrican.length === 0)  loadAfricanTeams();
+    if (activeTab === "schedule"  && fdWCMatches.length === 0) loadFDMatches();
+  }, [activeTab, fixtures.length, allAfrican.length, fdWCMatches.length, loadFixtures, loadAfricanTeams, loadFDMatches]);
 
   const daysProgress = countdown.started ? 100 : Math.max(0, Math.min(100, 100 - (countdown.days / 23) * 100));
 
@@ -490,6 +508,95 @@ export default function WorldCupScreen() {
               </View>
               <ChevronRight size={18} color="#00FF94" />
             </TouchableOpacity>
+          </>
+        )}
+
+        {/* ── SCHEDULE TAB (Football-Data real WC matches) ─────────────────── */}
+        {activeTab === "schedule" && (
+          <>
+            {fdLoading && (
+              <View style={{ alignItems: "center", paddingVertical: 40, gap: 12 }}>
+                <ActivityIndicator size="large" color={colors.cyan} />
+                <Text style={[styles.sectionNote, { color: colors.textMuted, textAlign: "center" }]}>
+                  Loading official WC 2026 schedule…
+                </Text>
+              </View>
+            )}
+            {!fdLoading && fdWCMatches.length === 0 && (
+              <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, alignItems: "center", paddingVertical: 32 }]}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>📅</Text>
+                <Text style={[styles.sectionCardTitle, { color: colors.text, textAlign: "center" }]}>
+                  Schedule not yet available
+                </Text>
+                <Text style={[styles.sectionNote, { color: colors.textMuted, textAlign: "center", marginTop: 4 }]}>
+                  FIFA World Cup 2026 fixtures will appear here once Football-Data.org publishes the official schedule. Check back closer to the tournament.
+                </Text>
+              </View>
+            )}
+            {!fdLoading && fdWCMatches.length > 0 && (() => {
+              const byStage: Record<string, FDWCMatch[]> = {};
+              for (const m of fdWCMatches) {
+                const key = m.stage.replace(/_/g, " ");
+                if (!byStage[key]) byStage[key] = [];
+                byStage[key].push(m);
+              }
+              return Object.entries(byStage).map(([stage, matches]) => (
+                <View key={stage} style={{ gap: 6 }}>
+                  <Text style={[styles.sectionLabel, { color: colors.textMuted, marginTop: 8 }]}>
+                    {stage.toUpperCase()}
+                  </Text>
+                  {matches.map((m) => {
+                    const d = new Date(m.utcDate);
+                    const dateStr = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+                    const timeStr = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                    const isLive = m.status === "IN_PLAY" || m.status === "PAUSED";
+                    const isFinished = m.status === "FINISHED";
+                    const scoreStr = (m.homeScore !== null && m.awayScore !== null)
+                      ? `${m.homeScore} – ${m.awayScore}`
+                      : null;
+                    return (
+                      <View key={m.id} style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: isLive ? colors.cyan : colors.cardBorder, padding: 12, gap: 6 }]}>
+                        {/* Date / Status row */}
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                          <Text style={[styles.sectionNote, { color: colors.textMuted, fontSize: 11 }]}>
+                            {dateStr} · {timeStr} UTC{m.group ? `  ·  ${m.group}` : ""}
+                          </Text>
+                          {isLive && (
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.cyan }} />
+                              <Text style={{ fontSize: 10, fontFamily: "Inter_700Bold", color: colors.cyan }}>LIVE</Text>
+                            </View>
+                          )}
+                          {isFinished && (
+                            <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: colors.textMuted }}>FT</Text>
+                          )}
+                        </View>
+                        {/* Teams + Score */}
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                          <Text style={{ fontSize: 22 }}>{m.homeCrest}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text }} numberOfLines={1}>{m.homeTeam}</Text>
+                          </View>
+                          <Text style={{ fontSize: 16, fontFamily: "Inter_700Bold", color: scoreStr ? colors.text : colors.textMuted, minWidth: 52, textAlign: "center" }}>
+                            {scoreStr ?? "vs"}
+                          </Text>
+                          <View style={{ flex: 1, alignItems: "flex-end" }}>
+                            <Text style={{ fontSize: 13, fontFamily: "Inter_600SemiBold", color: colors.text }} numberOfLines={1}>{m.awayTeam}</Text>
+                          </View>
+                          <Text style={{ fontSize: 22 }}>{m.awayCrest}</Text>
+                        </View>
+                        {m.venue && (
+                          <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: colors.textMuted }}>📍 {m.venue}</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ));
+            })()}
+            <Text style={[styles.sectionNote, { color: colors.textMuted, textAlign: "center", marginTop: 8 }]}>
+              Powered by football-data.org
+            </Text>
           </>
         )}
 

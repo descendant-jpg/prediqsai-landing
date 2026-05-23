@@ -499,6 +499,72 @@ export interface ArbScanResponse {
   disclaimer?: string;
 }
 
+// ─── Football-Data types ──────────────────────────────────────────────────────
+
+export interface FDH2HMeeting {
+  date: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  competition: string;
+  winner: "home" | "away" | "draw";
+}
+
+export interface FDH2HSummary {
+  homeTeamWins: number;
+  awayTeamWins: number;
+  draws: number;
+  meetings: FDH2HMeeting[];
+}
+
+export interface FDStandingRow {
+  position: number;
+  team: string;
+  crest: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  points: number;
+  goalDiff: number;
+  form: string | null;
+}
+
+export interface FDSquadPlayer {
+  name: string;
+  position: string | null;
+  nationality: string | null;
+  shirtNumber: number | null;
+}
+
+export interface FDTeamInfo {
+  id: number;
+  name: string;
+  crest: string;
+  venue: string;
+  founded: number | null;
+  clubColors: string | null;
+  coach: string | null;
+  squad: FDSquadPlayer[];
+}
+
+export interface FDWCMatch {
+  id: number;
+  utcDate: string;
+  status: string;
+  stage: string;
+  group: string | null;
+  homeTeam: string;
+  homeCrest: string;
+  awayTeam: string;
+  awayCrest: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  venue?: string;
+  area?: string;
+}
+
 export interface ArbCalcResult {
   arb: ArbOpportunity;
   stakes: Array<{ selection: string; bookmaker: string; stake: number; returns: number }>;
@@ -659,6 +725,23 @@ export const api = {
       }),
     africanTeams: (token: string) =>
       apiFetch<{ teams: WCAfricanTeam[] }>("/worldcup/african-teams", { token }),
+  },
+  footballData: {
+    status: () =>
+      apiFetch<{ configured: boolean }>("/football-data/status"),
+    wcMatches: (token: string) =>
+      apiFetch<{ matches: FDWCMatch[] }>("/football-data/wc-matches", { token }),
+    h2h: (
+      token: string,
+      params: { homeTeam: string; awayTeam: string; league: string; matchDate: string },
+    ) => {
+      const qs = new URLSearchParams(params as Record<string, string>).toString();
+      return apiFetch<FDH2HSummary>(`/football-data/h2h?${qs}`, { token });
+    },
+    standings: (token: string, code: string) =>
+      apiFetch<{ standings: FDStandingRow[] }>(`/football-data/standings/${code}`, { token }),
+    team: (token: string, teamId: number) =>
+      apiFetch<FDTeamInfo>(`/football-data/team/${teamId}`, { token }),
   },
   admin: {
     stats: (token: string) =>
