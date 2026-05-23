@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nodejs_24"]
+nixPkgs = ["nodejs_22"]
 
 [phases.install]
 cmds = [
@@ -12,4 +12,4 @@ cmds = [
 cmds = ["cd .. && pnpm --filter @workspace/website run build"]
 
 [start]
-cmd = "node -e \"require('child_process').spawn('npx',['serve','../artifacts/website/dist/public','-s','-l',process.env.PORT||'3000'],{stdio:'inherit'})\""
+cmd = "npx serve ../artifacts/website/dist/public -s -l ${PORT:-3000}"
