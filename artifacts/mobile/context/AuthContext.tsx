@@ -12,6 +12,8 @@ interface AuthContextValue {
   user: UserData | null;
   token: string | null;
   isLoading: boolean;
+  pendingOnboarding: boolean;
+  setPendingOnboarding: (v: boolean) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -24,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingOnboarding, setPendingOnboarding] = useState(false);
 
   useEffect(() => {
     async function restoreSession() {
@@ -59,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       await tokenStorage.set(t);
       setToken(t);
+      setPendingOnboarding(true);
       setUser(u);
     },
     [],
@@ -80,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, login, register, logout, refreshUser }}
+      value={{ user, token, isLoading, pendingOnboarding, setPendingOnboarding, login, register, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

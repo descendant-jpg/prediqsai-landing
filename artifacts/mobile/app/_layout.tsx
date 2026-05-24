@@ -1,9 +1,8 @@
 import { setBaseUrl } from "@workspace/api-client-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -21,48 +20,31 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-const ONBOARDING_KEY = "prediqsai_onboarding_done";
-
 function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, pendingOnboarding, setPendingOnboarding } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const prevUserRef = useRef<typeof user>(undefined);
 
   useEffect(() => {
     if (isLoading) return;
 
-    async function navigate() {
-      const inAuthGroup = segments[0] === "(auth)";
-      const inOnboarding = segments[0] === "onboarding";
+    const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = segments[0] === "onboarding";
 
-      if (!user) {
-        if (!inAuthGroup) router.replace("/(auth)/login");
-        return;
-      }
-
-      if (inAuthGroup || inOnboarding) {
-        const done = await AsyncStorage.getItem(ONBOARDING_KEY);
-        if (!done) {
-          router.replace("/onboarding");
-        } else {
-          router.replace("/(tabs)");
-        }
-        return;
-      }
-
-      if (prevUserRef.current === null && user) {
-        const done = await AsyncStorage.getItem(ONBOARDING_KEY);
-        if (!done) {
-          router.replace("/onboarding");
-          return;
-        }
-      }
+    if (!user) {
+      if (!inAuthGroup) router.replace("/(auth)/login");
+      return;
     }
 
-    navigate();
-    prevUserRef.current = user;
-  }, [user, isLoading, segments]);
+    if (inAuthGroup || inOnboarding) {
+      if (pendingOnboarding) {
+        setPendingOnboarding(false);
+        router.replace("/onboarding");
+      } else {
+        router.replace("/(tabs)");
+      }
+    }
+  }, [user, isLoading, segments, pendingOnboarding]);
 
   return (
     <Stack screenOptions={{ headerBackTitle: "Back", headerShown: false }}>

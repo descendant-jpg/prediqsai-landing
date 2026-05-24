@@ -351,8 +351,11 @@ export default function OnboardingScreen() {
     }
   }, [canContinue]);
 
-  function goToStep(next: number) {
+  async function goToStep(next: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (step === 0 && next === 1) {
+      await AsyncStorage.setItem("onboardingComplete", "true");
+    }
     setStep(next);
     flatListRef.current?.scrollToIndex({ index: next, animated: true });
     Animated.timing(progress, { toValue: (next + 1) / TOTAL_STEPS, duration: 300, useNativeDriver: false }).start();
@@ -364,7 +367,7 @@ export default function OnboardingScreen() {
 
   async function finish() {
     try { await updateBankroll(0); } catch {}
-    await AsyncStorage.setItem("prediqsai_onboarding_done", "true");
+    await AsyncStorage.setItem("onboardingComplete", "true");
     router.replace("/(tabs)");
   }
 
