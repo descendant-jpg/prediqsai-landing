@@ -31,8 +31,8 @@ function getEffectiveTier(user: {
 } | undefined): string {
   if (!user) return "free";
   if (user.manualTierOverride) return user.manualTierOverride;
-  if (user.freeTrialUntil && new Date(user.freeTrialUntil) > new Date()) return "pro";
-  return user.tier;
+  if (user.freeTrialUntil && new Date(user.freeTrialUntil) > new Date()) return "premium";
+  return user.tier === "pro" || user.tier === "elite" ? "premium" : user.tier;
 }
 
 // GET /api/arbitrage — scan for current opportunities (tier-gated)
@@ -44,12 +44,10 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
 
     const all = await scanByRegion(region);
 
-    // Tier gating based on effective tier (respects admin overrides & free trials)
+    // Tier gating: premium gets everything, free gets a locked teaser
     let opportunities;
-    if (effectiveTier === "elite") {
+    if (effectiveTier === "premium") {
       opportunities = all;
-    } else if (effectiveTier === "pro" || effectiveTier === "premium") {
-      opportunities = all.filter((o) => o.marketType === "2way").slice(0, 3);
     } else {
       opportunities = all.slice(0, 1).map((o) => ({ ...o, legs: [] as typeof o.legs }));
     }
@@ -74,8 +72,8 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
 router.post("/arbitrage/scan", requireAuth, async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    if (getEffectiveTier(user) !== "elite") {
-      res.status(403).json({ error: "Real-time scanning requires Elite tier" });
+    if (getEffectiveTier(user) !== "premium") {
+      res.status(403).json({ error: "Real-time scanning requires Premium tier" });
       return;
     }
     const region = parseRegion((req.body as Record<string, unknown>)?.["region"]);

@@ -113,8 +113,7 @@ export default function AdminOverviewScreen() {
             <View style={s.statsGrid}>
               <StatCard label="Total Users" value={stats.totalUsers} color={colors.cyan} />
               <StatCard label="Today's Signups" value={stats.todaySignups} color="#00FF94" />
-              <StatCard label="Pro" value={stats.tierBreakdown.pro} color={colors.cyan} />
-              <StatCard label="Elite" value={stats.tierBreakdown.elite} color="#FFD700" />
+              <StatCard label="Premium" value={stats.tierBreakdown.premium} color="#FFD700" />
               <StatCard label="Free" value={stats.tierBreakdown.free} color={colors.textMuted} />
               <StatCard label="Banned" value={stats.banned} color="#FF4D4D" sub={stats.suspended > 0 ? `${stats.suspended} suspended` : undefined} />
             </View>

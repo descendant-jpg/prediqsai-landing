@@ -20,11 +20,12 @@ const loginSchema = z.object({
 });
 
 function publicUser(u: typeof users.$inferSelect) {
+  const tier = (u.tier === "pro" || u.tier === "elite") ? "premium" : (u.tier ?? "free");
   return {
     id: u.id,
     username: u.username,
     email: u.email,
-    tier: u.tier,
+    tier,
     bankroll: u.bankroll,
     dailyLossLimit: u.dailyLossLimit,
     isAdmin: u.isAdmin ?? false,
@@ -53,7 +54,7 @@ router.post("/auth/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 12);
   const [user] = await db
     .insert(users)
-    .values({ username, email: email.toLowerCase(), passwordHash, tier: "pro" })
+    .values({ username, email: email.toLowerCase(), passwordHash, tier: "free" })
     .returning();
 
   const token = signToken(user.id);

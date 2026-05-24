@@ -9,10 +9,10 @@ import { useColors } from "@/hooks/useColors";
 
 type RevenueData = {
   totalUsers: number; newToday: number; newWeek: number; newMonth: number;
-  tierBreakdown: { free: number; pro: number; elite: number };
+  tierBreakdown: { free: number; premium: number };
   mrr: number; arr: number; totalDeposits: number; depositCount: number;
   recentDeposits: number; conversionRate: number;
-  prices: { pro: number; elite: number };
+  prices: { premium: number };
 };
 
 function MetricCard({ label, value, sub, color, prefix }: { label: string; value: string | number; sub?: string; color: string; prefix?: string }) {
@@ -26,7 +26,7 @@ function MetricCard({ label, value, sub, color, prefix }: { label: string; value
   );
 }
 
-function TierBar({ free, pro, elite, total }: { free: number; pro: number; elite: number; total: number }) {
+function TierBar({ free, premium, total }: { free: number; premium: number; total: number }) {
   const colors = useColors();
   if (total === 0) return null;
   return (
@@ -34,13 +34,11 @@ function TierBar({ free, pro, elite, total }: { free: number; pro: number; elite
       <Text style={[s.sectionLabel, { color: colors.textMuted }]}>USER TIER BREAKDOWN</Text>
       <View style={s.tierBarRow}>
         {free > 0 && <View style={[s.tierSeg, { flex: free, backgroundColor: "#94A3B860" }]} />}
-        {pro > 0 && <View style={[s.tierSeg, { flex: pro, backgroundColor: "#00E5FF60" }]} />}
-        {elite > 0 && <View style={[s.tierSeg, { flex: elite, backgroundColor: "#FFD70080" }]} />}
+        {premium > 0 && <View style={[s.tierSeg, { flex: premium, backgroundColor: "#FFD70080" }]} />}
       </View>
       <View style={s.tierLegend}>
         <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: "#94A3B8" }]} /><Text style={[s.legendText, { color: colors.textMuted }]}>Free {free}</Text></View>
-        <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: "#00E5FF" }]} /><Text style={[s.legendText, { color: colors.textMuted }]}>Pro {pro}</Text></View>
-        <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: "#FFD700" }]} /><Text style={[s.legendText, { color: colors.textMuted }]}>Elite {elite}</Text></View>
+        <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: "#FFD700" }]} /><Text style={[s.legendText, { color: colors.textMuted }]}>Premium {premium}</Text></View>
       </View>
     </View>
   );
@@ -96,17 +94,11 @@ export default function AdminRevenueScreen() {
           <View style={[s.infoCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={[s.infoTitle, { color: colors.text }]}>💳 Pricing</Text>
             <View style={s.pricingRow}>
-              <View style={[s.pricingItem, { borderColor: "#00E5FF44" }]}>
-                <Text style={[s.pricingTier, { color: "#00E5FF" }]}>PRO</Text>
-                <Text style={[s.pricingAmount, { color: colors.text }]}>${data.prices.pro}/mo</Text>
-                <Text style={[s.pricingCount, { color: colors.textMuted }]}>{data.tierBreakdown.pro} users</Text>
-                <Text style={[s.pricingTotal, { color: "#00E5FF" }]}>${(data.prices.pro * data.tierBreakdown.pro).toFixed(2)}/mo</Text>
-              </View>
               <View style={[s.pricingItem, { borderColor: "#FFD70044" }]}>
-                <Text style={[s.pricingTier, { color: "#FFD700" }]}>ELITE</Text>
-                <Text style={[s.pricingAmount, { color: colors.text }]}>${data.prices.elite}/mo</Text>
-                <Text style={[s.pricingCount, { color: colors.textMuted }]}>{data.tierBreakdown.elite} users</Text>
-                <Text style={[s.pricingTotal, { color: "#FFD700" }]}>${(data.prices.elite * data.tierBreakdown.elite).toFixed(2)}/mo</Text>
+                <Text style={[s.pricingTier, { color: "#FFD700" }]}>PREMIUM</Text>
+                <Text style={[s.pricingAmount, { color: colors.text }]}>${data.prices.premium}/mo</Text>
+                <Text style={[s.pricingCount, { color: colors.textMuted }]}>{data.tierBreakdown.premium} users</Text>
+                <Text style={[s.pricingTotal, { color: "#FFD700" }]}>${(data.prices.premium * data.tierBreakdown.premium).toFixed(2)}/mo</Text>
               </View>
             </View>
           </View>
@@ -124,14 +116,13 @@ export default function AdminRevenueScreen() {
           <Text style={[s.sectionLabel, { color: colors.textMuted }]}>CONVERSION</Text>
           <View style={s.metricsGrid}>
             <MetricCard label="Conversion Rate" value={`${data.conversionRate}%`} color={data.conversionRate > 10 ? "#00FF94" : data.conversionRate > 5 ? "#FFD700" : "#FF4D4D"} sub="Free → Paid" />
-            <MetricCard label="Paying Users" value={data.tierBreakdown.pro + data.tierBreakdown.elite} color="#FFD700" />
+            <MetricCard label="Paying Users" value={data.tierBreakdown.premium} color="#FFD700" />
           </View>
 
           {/* Tier breakdown */}
           <TierBar
             free={data.tierBreakdown.free}
-            pro={data.tierBreakdown.pro}
-            elite={data.tierBreakdown.elite}
+            premium={data.tierBreakdown.premium}
             total={data.totalUsers}
           />
 

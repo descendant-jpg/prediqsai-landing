@@ -53,7 +53,7 @@ export interface UserData {
   id: number;
   username: string;
   email: string;
-  tier: "free" | "pro" | "elite" | "premium";
+  tier: "free" | "premium";
   bankroll: number;
   dailyLossLimit: number;
   isAdmin?: boolean;
@@ -80,7 +80,7 @@ export interface AdminUser {
 export interface AdminStats {
   totalUsers: number;
   todaySignups: number;
-  tierBreakdown: { free: number; pro: number; elite: number };
+  tierBreakdown: { free: number; premium: number };
   banned: number;
   suspended: number;
 }
@@ -672,7 +672,7 @@ export const api = {
   subscription: {
     status: (token: string) =>
       apiFetch<{ tier: string }>("/subscription/status", { token }),
-    setTier: (token: string, tier: "free" | "pro" | "elite" | "premium") =>
+    setTier: (token: string, tier: "free" | "premium") =>
       apiFetch<{ tier: string }>("/subscription/tier", {
         method: "PUT",
         body: JSON.stringify({ tier }),

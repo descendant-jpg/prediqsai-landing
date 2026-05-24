@@ -36,7 +36,7 @@ export default function OracleChatScreen() {
   const { language } = useLanguage();
   const { user } = useAuth();
 
-  const isFree = !user || (user.tier !== "premium" && user.tier !== "pro" && user.tier !== "elite");
+  const isFree = !user || user.tier !== "premium";
 
   const [messages,    setMessages]    = useState<ChatMessage[]>([]);
   const [input,       setInput]       = useState("");

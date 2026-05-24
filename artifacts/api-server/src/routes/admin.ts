@@ -37,8 +37,8 @@ async function writeLog(adminEmail: string, action: string, targetUserId: number
 
 function effectiveTier(u: typeof users.$inferSelect): string {
   if (u.manualTierOverride) return u.manualTierOverride;
-  if (u.freeTrialUntil && new Date(u.freeTrialUntil) > new Date()) return "pro";
-  return u.tier;
+  if (u.freeTrialUntil && new Date(u.freeTrialUntil) > new Date()) return "premium";
+  return u.tier === "pro" || u.tier === "elite" ? "premium" : u.tier;
 }
 
 function safeUser(u: typeof users.$inferSelect) {
@@ -80,14 +80,10 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
     const tierMap: Record<string, number> = {};
     for (const row of byTier) tierMap[row.tier] = row.count;
 
-    const [proOverrideCount] = await db
+    const [premiumOverrideCount] = await db
       .select({ count: count() })
       .from(users)
-      .where(eq(users.manualTierOverride, "pro"));
-    const [eliteOverrideCount] = await db
-      .select({ count: count() })
-      .from(users)
-      .where(eq(users.manualTierOverride, "elite"));
+      .where(eq(users.manualTierOverride, "premium"));
     const [bannedCount] = await db
       .select({ count: count() })
       .from(users)
@@ -102,8 +98,7 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       todaySignups: todayCount[0]?.count ?? 0,
       tierBreakdown: {
         free: tierMap["free"] ?? 0,
-        pro: (tierMap["pro"] ?? 0) + (proOverrideCount?.count ?? 0),
-        elite: (tierMap["elite"] ?? 0) + (eliteOverrideCount?.count ?? 0),
+        premium: (tierMap["premium"] ?? 0) + (tierMap["pro"] ?? 0) + (tierMap["elite"] ?? 0) + (premiumOverrideCount?.count ?? 0),
       },
       banned: bannedCount?.count ?? 0,
       suspended: suspendedCount?.count ?? 0,
@@ -132,10 +127,8 @@ router.get("/admin/users", requireAdmin, async (req, res) => {
       query = query.where(eq(users.isBanned, true));
     } else if (filter === "suspended") {
       query = query.where(eq(users.isSuspended, true));
-    } else if (filter === "pro") {
-      query = query.where(eq(users.tier, "pro"));
-    } else if (filter === "elite") {
-      query = query.where(eq(users.tier, "elite"));
+    } else if (filter === "premium") {
+      query = query.where(eq(users.tier, "premium"));
     } else if (filter === "free") {
       query = query.where(eq(users.tier, "free"));
     }
@@ -165,7 +158,7 @@ const updateUserSchema = z.object({
   isSuspended: z.boolean().optional(),
   manualTierOverride: z.string().nullable().optional(),
   freeTrialDays: z.number().int().min(0).max(365).optional(),
-  tier: z.enum(["free", "pro", "elite"]).optional(),
+  tier: z.enum(["free", "premium"]).optional(),
   bankroll: z.number().min(0).optional(),
 });
 
@@ -584,7 +577,7 @@ router.post("/admin/notifications/send", requireAdmin, async (req, res) => {
     } else if (body.target.startsWith("user:")) {
       const userId = body.target.split(":")[1];
       filters.push({ field: "tag", key: "user_id", relation: "=", value: userId });
-    } else if (["free", "pro", "elite"].includes(body.target)) {
+    } else if (["free", "premium"].includes(body.target)) {
       filters.push({ field: "tag", key: "tier", relation: "=", value: body.target });
     } else if (body.target.startsWith("country:")) {
       const country = body.target.split(":")[1];
@@ -654,31 +647,29 @@ router.get("/admin/revenue", requireAdmin, async (_req, res) => {
     .from(bankrollEntries)
     .where(and(eq(bankrollEntries.type, "deposit"), gte(bankrollEntries.createdAt, thirtyDaysAgo)));
 
-  const PRO_PRICE = 9.99;
-  const ELITE_PRICE = 24.99;
-  const proCount = tierCounts.find((t) => t.tier === "pro")?.count ?? 0;
-  const eliteCount = tierCounts.find((t) => t.tier === "elite")?.count ?? 0;
-  const mrr = proCount * PRO_PRICE + eliteCount * ELITE_PRICE;
+  const PREMIUM_PRICE = 9.99;
+  const premiumCount =
+    (tierCounts.find((t) => t.tier === "premium")?.count ?? 0) +
+    (tierCounts.find((t) => t.tier === "pro")?.count ?? 0) +
+    (tierCounts.find((t) => t.tier === "elite")?.count ?? 0);
+  const freeCount = tierCounts.find((t) => t.tier === "free")?.count ?? 0;
+  const mrr = premiumCount * PREMIUM_PRICE;
 
   res.json({
     totalUsers: allUsers?.total ?? 0,
     newToday: newToday?.count ?? 0,
     newWeek: newWeek?.count ?? 0,
     newMonth: newMonth?.count ?? 0,
-    tierBreakdown: {
-      free: tierCounts.find((t) => t.tier === "free")?.count ?? 0,
-      pro: proCount,
-      elite: eliteCount,
-    },
+    tierBreakdown: { free: freeCount, premium: premiumCount },
     mrr: parseFloat(mrr.toFixed(2)),
     arr: parseFloat((mrr * 12).toFixed(2)),
     totalDeposits: parseFloat((deposits[0]?.total ?? 0).toFixed(2)),
     depositCount: deposits[0]?.count ?? 0,
     recentDeposits: parseFloat((recentDeposits[0]?.total ?? 0).toFixed(2)),
     conversionRate: (allUsers?.total ?? 0) > 0
-      ? parseFloat((((proCount + eliteCount) / (allUsers?.total ?? 1)) * 100).toFixed(1))
+      ? parseFloat(((premiumCount / (allUsers?.total ?? 1)) * 100).toFixed(1))
       : 0,
-    prices: { pro: PRO_PRICE, elite: ELITE_PRICE },
+    prices: { premium: PREMIUM_PRICE },
   });
 });
 

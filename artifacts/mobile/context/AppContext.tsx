@@ -39,9 +39,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Normalize legacy tiers: pro/elite → premium
   const rawTier = user?.tier ?? "free";
-  const normalizedTier: Tier = (rawTier === "pro" || rawTier === "elite" || rawTier === "premium")
-    ? "premium"
-    : "free";
+  const normalizedTier: Tier = rawTier === "premium" ? "premium" : "free";
 
   const profile: UserProfile = {
     tier: normalizedTier,

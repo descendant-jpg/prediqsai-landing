@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type AdminUser } from "@/lib/api";
 
-const TIER_OPTIONS = ["free", "pro", "elite"] as const;
+const TIER_OPTIONS = ["free", "premium"] as const;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const colors = useColors();
@@ -118,7 +118,7 @@ export default function AdminUserDetailScreen() {
     );
   }
 
-  const tierColor = user.effectiveTier === "elite" ? "#FFD700" : user.effectiveTier === "pro" ? "#00E5FF" : "#94A3B8";
+  const tierColor = user.effectiveTier === "premium" ? "#FFD700" : "#94A3B8";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -212,7 +212,7 @@ export default function AdminUserDetailScreen() {
         <Section title="TIER OVERRIDE">
           <View style={styles.tierGrid}>
             {TIER_OPTIONS.map((t) => {
-              const tColor = t === "elite" ? "#FFD700" : t === "pro" ? "#00E5FF" : "#94A3B8";
+              const tColor = t === "premium" ? "#FFD700" : "#94A3B8";
               const isActive = user.manualTierOverride === t;
               return (
                 <TouchableOpacity
@@ -231,7 +231,7 @@ export default function AdminUserDetailScreen() {
                   disabled={saving}
                   activeOpacity={0.8}
                 >
-                  {t === "elite" && <Crown size={14} color={tColor} />}
+                  {t === "premium" && <Crown size={14} color={tColor} />}
                   <Text style={[styles.tierBtnText, { color: isActive ? tColor : colors.text }]}>
                     {t.toUpperCase()}{isActive ? " ✓" : ""}
                   </Text>

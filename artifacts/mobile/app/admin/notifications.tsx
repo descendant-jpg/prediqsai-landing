@@ -7,10 +7,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 const TARGETS = [
-  { id: "all",   label: "All Users",     emoji: "📢" },
-  { id: "free",  label: "Free only",     emoji: "🆓" },
-  { id: "pro",   label: "Pro only",      emoji: "⭐" },
-  { id: "elite", label: "Elite only",    emoji: "👑" },
+  { id: "all",     label: "All Users",     emoji: "📢" },
+  { id: "free",    label: "Free only",     emoji: "🆓" },
+  { id: "premium", label: "Premium only",  emoji: "👑" },
 ];
 
 const LINKS = [

@@ -11,16 +11,14 @@ import { api, type AdminUser } from "@/lib/api";
 
 const FILTERS = [
   { id: "all",       label: "All" },
-  { id: "elite",     label: "Elite" },
-  { id: "pro",       label: "Pro" },
+  { id: "premium",   label: "Premium" },
   { id: "free",      label: "Free" },
   { id: "banned",    label: "Banned" },
   { id: "suspended", label: "Susp." },
 ];
 
 function tierColor(tier: string) {
-  if (tier === "elite") return "#FFD700";
-  if (tier === "pro") return "#00E5FF";
+  if (tier === "premium" || tier === "elite" || tier === "pro") return "#FFD700";
   return "#94A3B8";
 }
 

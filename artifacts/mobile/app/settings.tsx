@@ -184,7 +184,7 @@ export default function SettingsScreen() {
   }
 
   const rawTier = user?.tier ?? "free";
-  const currentTier: Tier = (rawTier === "pro" || rawTier === "elite" || rawTier === "premium") ? "premium" : "free";
+  const currentTier: Tier = rawTier === "premium" ? "premium" : "free";
   const currentCard = TIER_CARDS.find((t) => t.key === currentTier)!;
   const activeFeatures = TIER_ACTIVE_FEATURES[currentTier];
 

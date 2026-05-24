@@ -159,7 +159,7 @@ export default function ProfileScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.upgradeBtnText, { color: colors.cyan }]}>
-                {tier === "elite" ? "Manage Plan" : "Upgrade"}
+                {tier === "premium" ? "Manage Plan" : "Upgrade"}
               </Text>
             </TouchableOpacity>
           </View>

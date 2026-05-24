@@ -56,9 +56,8 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
   res.json({ tier });
 });
 
-// Tier switcher — accepts "premium" as well as legacy "pro"/"elite"
 const setTierSchema = z.object({
-  tier: z.enum(["free", "premium", "pro", "elite"]),
+  tier: z.enum(["free", "premium"]),
 });
 
 router.put("/subscription/tier", requireAuth, async (req, res) => {
@@ -68,10 +67,7 @@ router.put("/subscription/tier", requireAuth, async (req, res) => {
     return;
   }
 
-  // Normalize "pro"/"elite" → "premium" on write
-  const dbTier = (body.data.tier === "pro" || body.data.tier === "elite")
-    ? "premium"
-    : body.data.tier;
+  const dbTier = body.data.tier;
 
   const [updated] = await db
     .update(users)
