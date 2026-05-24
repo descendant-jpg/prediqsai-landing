@@ -479,6 +479,7 @@ export interface ArbScanResponse {
   lastScanned: string;
   hasApiKey: boolean;
   tier: string;
+  effectiveTier?: string;
   region?: ArbRegion;
   disclaimer?: string;
 }

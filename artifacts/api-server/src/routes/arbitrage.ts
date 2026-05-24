@@ -20,20 +20,35 @@ function parseRegion(raw: unknown): ArbRegion {
   return valid.includes(raw as ArbRegion) ? (raw as ArbRegion) : "global";
 }
 
+/**
+ * Returns the user's effective tier, considering admin overrides and active free trials.
+ * This mirrors the logic in the admin panel and frontend.
+ */
+function getEffectiveTier(user: {
+  tier: string;
+  manualTierOverride: string | null;
+  freeTrialUntil: Date | null;
+} | undefined): string {
+  if (!user) return "free";
+  if (user.manualTierOverride) return user.manualTierOverride;
+  if (user.freeTrialUntil && new Date(user.freeTrialUntil) > new Date()) return "pro";
+  return user.tier;
+}
+
 // GET /api/arbitrage — scan for current opportunities (tier-gated)
 router.get("/arbitrage", requireAuth, async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    const tier = user?.tier ?? "free";
+    const effectiveTier = getEffectiveTier(user);
     const region = parseRegion(req.query["region"]);
 
     const all = await scanByRegion(region);
 
-    // Tier gating
+    // Tier gating based on effective tier (respects admin overrides & free trials)
     let opportunities;
-    if (tier === "elite") {
+    if (effectiveTier === "elite") {
       opportunities = all;
-    } else if (tier === "pro") {
+    } else if (effectiveTier === "pro" || effectiveTier === "premium") {
       opportunities = all.filter((o) => o.marketType === "2way").slice(0, 3);
     } else {
       opportunities = all.slice(0, 1).map((o) => ({ ...o, legs: [] as typeof o.legs }));
@@ -44,7 +59,8 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
       totalFound: all.length,
       lastScanned: new Date().toISOString(),
       hasApiKey: !!process.env["ODDS_API_KEY"],
-      tier,
+      tier: user?.tier ?? "free",
+      effectiveTier,
       region,
       disclaimer: REGION_DISCLAIMERS[region] ?? REGION_DISCLAIMERS["global"],
     });
@@ -58,7 +74,7 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
 router.post("/arbitrage/scan", requireAuth, async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    if (user?.tier !== "elite") {
+    if (getEffectiveTier(user) !== "elite") {
       res.status(403).json({ error: "Real-time scanning requires Elite tier" });
       return;
     }

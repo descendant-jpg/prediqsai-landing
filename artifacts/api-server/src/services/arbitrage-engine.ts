@@ -324,10 +324,13 @@ export async function scanByRegion(
   const bookmakerStr = REGION_BOOKMAKERS[region] ?? "";
 
   try {
+    let anyDataFetched = false;
+
     const [sportResults, africanArbs] = await Promise.all([
       Promise.allSettled(
         sports.map(async (s) => {
           const games = await fetchOddsForSport(s.key, bookmakerStr);
+          if (games.length > 0) anyDataFetched = true;
           return games.map((g) => ({ game: g, sport: s.sport, league: s.league }));
         }),
       ),
@@ -338,12 +341,21 @@ export async function scanByRegion(
     ]);
 
     const opportunities: ArbOpportunity[] = [...africanArbs];
+    if (africanArbs.length > 0) anyDataFetched = true;
+
     for (const result of sportResults) {
       if (result.status !== "fulfilled") continue;
       for (const { game, sport, league } of result.value) {
         const arb = detectArb(game, sport, league, region);
         if (arb) opportunities.push(arb);
       }
+    }
+
+    // If the API key is set but every request failed (invalid key, quota exceeded, etc.)
+    // fall back to demo data so the screen isn't empty during development/testing.
+    if (!anyDataFetched) {
+      logger.warn({ region }, "Odds API key present but no data returned — using demo arbs");
+      return getDemoArbs(region);
     }
 
     opportunities.sort((a, b) => b.profitPercent - a.profitPercent);

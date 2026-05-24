@@ -431,7 +431,10 @@ export default function ArbitrageScreen() {
 
   const scanAnim = useRef(new Animated.Value(0)).current;
 
-  const isPremium = user?.tier === "premium" || user?.tier === "pro" || user?.tier === "elite";
+  // Use the effective tier from the API response (respects admin overrides & free trials).
+  // Falls back to user.tier from the auth token while data is still loading.
+  const effectiveTier = data?.effectiveTier ?? data?.tier ?? user?.tier ?? "free";
+  const isPremium = effectiveTier === "premium" || effectiveTier === "pro" || effectiveTier === "elite";
 
   const topPadding = insets.top + (Platform.OS === "web" ? 67 : 0);
 
@@ -481,6 +484,17 @@ export default function ArbitrageScreen() {
   const disclaimer = data?.disclaimer ?? (selectedRegion === "africa"
     ? "Verify your local bookmaker holds a valid gaming license. 1xBet and Melbet operate with limited regulation — use with caution. 18+ only."
     : "Odds comparison data is shown for educational purposes only. PrediQs AI does not facilitate placing of any bets or wagers. 18+ only.");
+
+  // While data is still loading we can't know the effective tier yet (admin overrides
+  // come from the API response). Show a spinner so the gate doesn't flash incorrectly.
+  if (!isPremium && isLoading && !data) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
+        <Text style={{ fontSize: 36 }}>🔄</Text>
+        <Text style={[styles.loadingTitle, { color: colors.text, marginTop: 12 }]}>Checking access…</Text>
+      </View>
+    );
+  }
 
   if (!isPremium) {
     return (
@@ -645,9 +659,16 @@ export default function ArbitrageScreen() {
                 <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                   Bookmakers have closed the gaps. Refresh to keep scanning — odds discrepancies typically last 2–15 minutes.
                 </Text>
-                <TouchableOpacity style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => load(true)} activeOpacity={0.8}>
-                  <RefreshCw size={14} color={colors.cyan} />
-                  <Text style={[styles.retryText, { color: colors.cyan }]}>Scan Now</Text>
+                <TouchableOpacity
+                  style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border, opacity: isRefreshing ? 0.6 : 1 }]}
+                  onPress={() => load(true)}
+                  disabled={isRefreshing}
+                  activeOpacity={0.8}
+                >
+                  <RefreshCw size={14} color={isRefreshing ? colors.textMuted : colors.cyan} />
+                  <Text style={[styles.retryText, { color: isRefreshing ? colors.textMuted : colors.cyan }]}>
+                    {isRefreshing ? "Scanning…" : "Scan Now"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
