@@ -121,9 +121,14 @@ const styles = StyleSheet.create({
     width: 4, height: 4, borderRadius: 2,
     backgroundColor: CYAN,
     marginTop: 2,
-    shadowColor: CYAN,
-    shadowOpacity: 0.9,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 0 },
+    ...Platform.select({
+      web: { boxShadow: `0 0 4px ${CYAN}` } as any,
+      default: {
+        shadowColor: CYAN,
+        shadowOpacity: 0.9,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 0 },
+      },
+    }),
   },
 });

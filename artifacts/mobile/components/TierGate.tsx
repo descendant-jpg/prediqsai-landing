@@ -35,7 +35,7 @@ export function TierGate({ requiredTier, children, customMessage }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.blur, { pointerEvents: "none" } as any]}>
+      <View style={[styles.blur, { pointerEvents: "none" as const }]}>
         {children}
       </View>
       <View style={[styles.overlay, { backgroundColor: "rgba(7,11,18,0.92)" }]}>

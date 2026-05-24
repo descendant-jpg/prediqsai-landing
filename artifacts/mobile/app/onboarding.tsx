@@ -337,13 +337,13 @@ export default function OnboardingScreen() {
     if (canContinue) {
       Animated.spring(btnScale, {
         toValue: 1.04,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
         tension: 200,
         friction: 8,
       }).start(() => {
         Animated.spring(btnScale, {
           toValue: 1,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
           tension: 200,
           friction: 8,
         }).start();
@@ -534,11 +534,16 @@ const styles = StyleSheet.create({
   // Button
   btnShadowWrap:    { borderRadius: 14 },
   btnGlow:          {
-    shadowColor: "#00E5FF",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 12,
-    elevation: 10,
+    ...Platform.select({
+      web: { boxShadow: "0 0 12px rgba(0,229,255,0.55)" } as any,
+      default: {
+        shadowColor: "#00E5FF",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.55,
+        shadowRadius: 12,
+        elevation: 10,
+      },
+    }),
   },
   nextBtn:          { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14 },
   nextBtnText:      { fontSize: 14, fontFamily: "Inter_600SemiBold" },

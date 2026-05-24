@@ -155,7 +155,7 @@ export default function ProfileScreen() {
             </View>
             <TouchableOpacity
               style={[styles.upgradeBtn, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: "rgba(0,229,255,0.25)" }]}
-              onPress={() => router.push("/subscription" as any)}
+              onPress={() => router.push("/settings" as any)}
               activeOpacity={0.8}
             >
               <Text style={[styles.upgradeBtnText, { color: colors.cyan }]}>

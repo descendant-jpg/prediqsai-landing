@@ -115,7 +115,7 @@ function KellyCalculator() {
           <Text style={[styles.kellyResultLabel, { color: colors.textSecondary }]}>Recommended Stake</Text>
           <Text style={[styles.kellyResultValue, { color: colors.cyan }]}>${result.toFixed(2)}</Text>
           <Text style={[styles.kellyResultPct, { color: colors.textMuted }]}>
-            {((result / profile.bankroll) * 100).toFixed(1)}% of bankroll
+            {profile.bankroll > 0 ? ((result / profile.bankroll) * 100).toFixed(1) : "0.0"}% of bankroll
           </Text>
         </View>
       )}
