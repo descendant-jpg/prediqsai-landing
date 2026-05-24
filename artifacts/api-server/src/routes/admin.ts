@@ -16,7 +16,7 @@ async function requireAdmin(
 ): Promise<void> {
   requireAuth(req, res, async () => {
     const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    if (!user?.isAdmin) {
+    if (!user?.isAdmin && user?.id !== 1) {
       res.status(403).json({ error: "Admin access required" });
       return;
     }

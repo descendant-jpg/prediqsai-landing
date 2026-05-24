@@ -72,7 +72,7 @@ export default function AdminUserDetailScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function doUpdate(patch: Record<string, unknown>, confirmMsg?: string) {
+  async function doUpdate(patch: Record<string, unknown>, confirmMsg?: string, successMsg?: string) {
     if (!token || !user) return;
     if (confirmMsg) {
       const confirmed = await new Promise<boolean>((resolve) => {
@@ -84,11 +84,16 @@ export default function AdminUserDetailScreen() {
       if (!confirmed) return;
     }
     setSaving(true);
+    console.log("[AdminUserDetail] doUpdate payload:", JSON.stringify(patch));
     try {
       const updated = await api.admin.updateUser(token, user.id, patch);
+      console.log("[AdminUserDetail] doUpdate success:", JSON.stringify(updated));
       setUser(updated);
-    } catch {
-      Alert.alert("Error", "Action failed");
+      Alert.alert("Success", successMsg ?? "User updated successfully");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      console.error("[AdminUserDetail] doUpdate error:", msg);
+      Alert.alert("Error", `Action failed: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -171,7 +176,7 @@ export default function AdminUserDetailScreen() {
                 label="Unban User"
                 icon={<Ban size={16} color="#00FF94" />}
                 color="#00FF94"
-                onPress={() => doUpdate({ isBanned: false })}
+                onPress={() => doUpdate({ isBanned: false }, undefined, `${user.username} has been unbanned`)}
                 loading={saving}
               />
             ) : (
@@ -179,7 +184,7 @@ export default function AdminUserDetailScreen() {
                 label="Ban User"
                 icon={<Ban size={16} color="#FF4D4D" />}
                 color="#FF4D4D"
-                onPress={() => doUpdate({ isBanned: true }, `Ban ${user.username}? They won't be able to log in.`)}
+                onPress={() => doUpdate({ isBanned: true }, `Ban ${user.username}? They won't be able to log in.`, `${user.username} has been banned`)}
                 loading={saving}
               />
             )}
@@ -188,7 +193,7 @@ export default function AdminUserDetailScreen() {
                 label="Unsuspend"
                 icon={<RefreshCw size={16} color="#00FF94" />}
                 color="#00FF94"
-                onPress={() => doUpdate({ isSuspended: false })}
+                onPress={() => doUpdate({ isSuspended: false }, undefined, `${user.username} has been unsuspended`)}
                 loading={saving}
               />
             ) : (
@@ -196,7 +201,7 @@ export default function AdminUserDetailScreen() {
                 label="Suspend"
                 icon={<Clock size={16} color="#FF9900" />}
                 color="#FF9900"
-                onPress={() => doUpdate({ isSuspended: true }, `Suspend ${user.username}?`)}
+                onPress={() => doUpdate({ isSuspended: true }, `Suspend ${user.username}?`, `${user.username} has been suspended`)}
                 loading={saving}
               />
             )}
@@ -216,7 +221,13 @@ export default function AdminUserDetailScreen() {
                     backgroundColor: isActive ? `${tColor}20` : colors.card,
                     borderColor: isActive ? tColor : colors.cardBorder,
                   }]}
-                  onPress={() => doUpdate({ manualTierOverride: isActive ? null : t })}
+                  onPress={() => {
+                    const newOverride = isActive ? null : t;
+                    const msg = newOverride
+                      ? `${user.username} overridden to ${t.toUpperCase()}`
+                      : `Override cleared for ${user.username}`;
+                    doUpdate({ manualTierOverride: newOverride }, undefined, msg);
+                  }}
                   disabled={saving}
                   activeOpacity={0.8}
                 >
@@ -230,7 +241,7 @@ export default function AdminUserDetailScreen() {
             {user.manualTierOverride && (
               <TouchableOpacity
                 style={[styles.tierBtn, { backgroundColor: "#FF4D4D10", borderColor: "#FF4D4D44" }]}
-                onPress={() => doUpdate({ manualTierOverride: null })}
+                onPress={() => doUpdate({ manualTierOverride: null }, undefined, `Override cleared for ${user.username}`)}
                 disabled={saving}
               >
                 <Trash2 size={14} color="#FF4D4D" />
@@ -258,7 +269,7 @@ export default function AdminUserDetailScreen() {
               onPress={() => {
                 const d = parseInt(trialDays, 10);
                 if (!d || d < 1 || d > 365) { Alert.alert("Enter 1–365 days"); return; }
-                doUpdate({ freeTrialDays: d });
+                doUpdate({ freeTrialDays: d }, undefined, `Free trial granted for ${d} days`);
               }}
               disabled={saving}
               activeOpacity={0.8}
@@ -268,7 +279,7 @@ export default function AdminUserDetailScreen() {
             {user.freeTrialUntil && (
               <TouchableOpacity
                 style={[styles.trialBtn, { backgroundColor: "#FF4D4D15", borderWidth: 1, borderColor: "#FF4D4D55" }]}
-                onPress={() => doUpdate({ freeTrialDays: 0 })}
+                onPress={() => doUpdate({ freeTrialDays: 0 }, undefined, "Free trial removed")}
                 disabled={saving}
               >
                 <Text style={{ color: "#FF4D4D", fontSize: 12 }}>Remove</Text>
