@@ -95,9 +95,8 @@ router.post("/arbitrage/scan", requireAuth, async (req, res) => {
 router.post("/arbitrage/calculate", requireAuth, async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    const tier = user?.tier ?? "free";
-    if (tier === "free") {
-      res.status(403).json({ error: "Stake calculator requires Pro or Elite" });
+    if (getEffectiveTier(user) !== "premium") {
+      res.status(403).json({ error: "Stake calculator requires Premium tier" });
       return;
     }
 

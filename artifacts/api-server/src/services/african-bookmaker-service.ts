@@ -111,92 +111,155 @@ function detectAfricanArb(game: AfricanOddsGame, region: ArbRegion): ArbOpportun
   };
 }
 
+// ─── Demo data helpers ────────────────────────────────────────────────────────
+
+const DEMO_ROTATION_MS = 5 * 60_000; // rotate every 5 min
+
+function v(base: number, jitter: number): number {
+  const seed = Math.floor(Date.now() / DEMO_ROTATION_MS);
+  const pr = ((seed * 2654435761) >>> 0) / 0xffffffff;
+  return parseFloat((base + (pr - 0.5) * jitter * 2).toFixed(3));
+}
+
+function ct(minsFromNow: number): string {
+  const jitter = Math.floor(Date.now() / DEMO_ROTATION_MS) % 7;
+  return new Date(Date.now() + (minsFromNow + jitter) * 60_000).toISOString();
+}
+
 // ─── Enhanced demo data (used when BET_API_KEY not configured) ────────────────
 //
-// Represents realistic cross-bookmaker arbs between African bookmakers and
-// European counterparts that appear during normal match days.
+// 13 realistic cross-bookmaker arbs — African local leagues + major tournaments.
+// Time-rotated via ct()/v() so countdowns and odds look live.
 
-function getAfricanDemoArbs(includeEnhanced = true): ArbOpportunity[] {
-  const now = Date.now();
-  const base: ArbOpportunity[] = [
+function getAfricanDemoArbs(_includeEnhanced = true): ArbOpportunity[] {
+  const now = new Date().toISOString();
+  return [
     {
       id: "bet-africa-1", sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
-      homeTeam: "Arsenal", awayTeam: "Tottenham",
-      commenceTime: new Date(now + 6 * 60_000).toISOString(),
-      marketType: "2way", profitPercent: 2.4, totalImplied: 0.976,
-      discoveredAt: new Date().toISOString(), region: "africa",
+      homeTeam: "Arsenal", awayTeam: "Tottenham", commenceTime: ct(6), marketType: "2way",
+      profitPercent: v(2.4, 0.35), totalImplied: 0.976, discoveredAt: now, region: "africa",
       legs: [
-        { bookmaker: "Bet9ja",   bookmakerId: "bet9ja",   selection: "Arsenal",   odds: 2.10, impliedProb: 0.476 },
-        { bookmaker: "Pinnacle", bookmakerId: "pinnacle", selection: "Tottenham", odds: 2.30, impliedProb: 0.435 },
+        { bookmaker: "Bet9ja",   bookmakerId: "bet9ja",   selection: "Arsenal",   odds: v(2.10, 0.07), impliedProb: 0.476 },
+        { bookmaker: "Pinnacle", bookmakerId: "pinnacle", selection: "Tottenham", odds: v(2.30, 0.08), impliedProb: 0.435 },
       ],
     },
     {
       id: "bet-africa-2", sport: "Soccer", sportKey: "soccer_nigeria_npfl", league: "NPFL (Nigeria)",
-      homeTeam: "Enyimba FC", awayTeam: "Kano Pillars",
-      commenceTime: new Date(now + 2 * 60_000 + 45_000).toISOString(),
-      marketType: "3way", profitPercent: 5.1, totalImplied: 0.949,
-      discoveredAt: new Date().toISOString(), region: "africa",
+      homeTeam: "Enyimba FC", awayTeam: "Kano Pillars", commenceTime: ct(3), marketType: "3way",
+      profitPercent: v(5.1, 0.6), totalImplied: 0.949, discoveredAt: now, region: "africa",
       legs: [
-        { bookmaker: "Bet9ja",    bookmakerId: "bet9ja",    selection: "Enyimba FC",   odds: 2.70, impliedProb: 0.370 },
-        { bookmaker: "BetKing",   bookmakerId: "betking",   selection: "Kano Pillars", odds: 3.10, impliedProb: 0.323 },
-        { bookmaker: "NairaBet",  bookmakerId: "nairabet",  selection: "Draw",         odds: 3.80, impliedProb: 0.263 },
+        { bookmaker: "Bet9ja",   bookmakerId: "bet9ja",   selection: "Enyimba FC",   odds: v(2.70, 0.10), impliedProb: 0.370 },
+        { bookmaker: "BetKing",  bookmakerId: "betking",  selection: "Kano Pillars", odds: v(3.10, 0.12), impliedProb: 0.323 },
+        { bookmaker: "SportyBet",bookmakerId: "sportybet",selection: "Draw",         odds: v(3.80, 0.14), impliedProb: 0.263 },
       ],
     },
     {
       id: "bet-africa-3", sport: "Soccer", sportKey: "soccer_kenya_premier_league", league: "KPL (Kenya)",
-      homeTeam: "Gor Mahia", awayTeam: "AFC Leopards",
-      commenceTime: new Date(now + 14 * 60_000).toISOString(),
-      marketType: "3way", profitPercent: 6.2, totalImplied: 0.938,
-      discoveredAt: new Date().toISOString(), region: "africa",
+      homeTeam: "Gor Mahia", awayTeam: "AFC Leopards", commenceTime: ct(14), marketType: "3way",
+      profitPercent: v(6.2, 0.7), totalImplied: 0.938, discoveredAt: now, region: "africa",
       legs: [
-        { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Gor Mahia",    odds: 2.40, impliedProb: 0.417 },
-        { bookmaker: "Odibets",   bookmakerId: "odibets",   selection: "AFC Leopards", odds: 3.50, impliedProb: 0.286 },
-        { bookmaker: "Betway",    bookmakerId: "betway",    selection: "Draw",         odds: 4.10, impliedProb: 0.244 },
+        { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Gor Mahia",    odds: v(2.40, 0.09), impliedProb: 0.417 },
+        { bookmaker: "Odibets",   bookmakerId: "odibets",   selection: "AFC Leopards", odds: v(3.50, 0.13), impliedProb: 0.286 },
+        { bookmaker: "Betway",    bookmakerId: "betway",    selection: "Draw",         odds: v(4.10, 0.15), impliedProb: 0.244 },
       ],
     },
     {
       id: "bet-africa-4", sport: "Soccer", sportKey: "soccer_south_africa_premiership", league: "PSL (South Africa)",
-      homeTeam: "Mamelodi Sundowns", awayTeam: "Cape Town City",
-      commenceTime: new Date(now + 22 * 60_000).toISOString(),
-      marketType: "2way", profitPercent: 3.3, totalImplied: 0.967,
-      discoveredAt: new Date().toISOString(), region: "africa",
+      homeTeam: "Mamelodi Sundowns", awayTeam: "Cape Town City", commenceTime: ct(22), marketType: "2way",
+      profitPercent: v(3.3, 0.4), totalImplied: 0.967, discoveredAt: now, region: "africa",
       legs: [
-        { bookmaker: "Hollywoodbets", bookmakerId: "hollywoodbets", selection: "Mamelodi Sundowns", odds: 1.95, impliedProb: 0.513 },
-        { bookmaker: "Betway",        bookmakerId: "betway",        selection: "Cape Town City",    odds: 2.45, impliedProb: 0.408 },
+        { bookmaker: "Hollywoodbets", bookmakerId: "hollywoodbets", selection: "Mamelodi Sundowns", odds: v(1.95, 0.06), impliedProb: 0.513 },
+        { bookmaker: "Betway",        bookmakerId: "betway",        selection: "Cape Town City",    odds: v(2.45, 0.09), impliedProb: 0.408 },
       ],
     },
-  ];
-
-  if (!includeEnhanced) return base;
-
-  // Additional arbs mixing African and European bookmakers
-  const enhanced: ArbOpportunity[] = [
     {
       id: "bet-africa-5", sport: "Soccer", sportKey: "soccer_ghana_premier_league", league: "GPL (Ghana)",
-      homeTeam: "Asante Kotoko", awayTeam: "Hearts of Oak",
-      commenceTime: new Date(now + 9 * 60_000 + 30_000).toISOString(),
-      marketType: "3way", profitPercent: 4.8, totalImplied: 0.952,
-      discoveredAt: new Date().toISOString(), region: "africa",
+      homeTeam: "Asante Kotoko", awayTeam: "Hearts of Oak", commenceTime: ct(10), marketType: "3way",
+      profitPercent: v(4.8, 0.55), totalImplied: 0.952, discoveredAt: now, region: "africa",
       legs: [
-        { bookmaker: "SportyBet",  bookmakerId: "sportybet",  selection: "Asante Kotoko",  odds: 2.20, impliedProb: 0.455 },
-        { bookmaker: "BetKing",    bookmakerId: "betking",    selection: "Hearts of Oak",  odds: 3.60, impliedProb: 0.278 },
-        { bookmaker: "1xBet",      bookmakerId: "1xbet",      selection: "Draw",           odds: 4.50, impliedProb: 0.222 },
+        { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Asante Kotoko", odds: v(2.20, 0.08), impliedProb: 0.455 },
+        { bookmaker: "BetKing",   bookmakerId: "betking",   selection: "Hearts of Oak", odds: v(3.60, 0.14), impliedProb: 0.278 },
+        { bookmaker: "1xBet",     bookmakerId: "1xbet",     selection: "Draw",          odds: v(4.50, 0.17), impliedProb: 0.222 },
       ],
     },
     {
       id: "bet-africa-6", sport: "Soccer", sportKey: "soccer_caf_champions_league", league: "CAF Champions League",
-      homeTeam: "Al Ahly", awayTeam: "Espérance Sportive",
-      commenceTime: new Date(now + 35 * 60_000).toISOString(),
-      marketType: "2way", profitPercent: 3.7, totalImplied: 0.963,
-      discoveredAt: new Date().toISOString(), region: "africa",
+      homeTeam: "Al Ahly", awayTeam: "Espérance Sportive", commenceTime: ct(35), marketType: "2way",
+      profitPercent: v(3.7, 0.45), totalImplied: 0.963, discoveredAt: now, region: "africa",
       legs: [
-        { bookmaker: "Bet9ja",   bookmakerId: "bet9ja",   selection: "Al Ahly",               odds: 1.90, impliedProb: 0.526 },
-        { bookmaker: "Pinnacle", bookmakerId: "pinnacle", selection: "Espérance Sportive",     odds: 2.55, impliedProb: 0.392 },
+        { bookmaker: "Bet9ja",   bookmakerId: "bet9ja",   selection: "Al Ahly",            odds: v(1.90, 0.06), impliedProb: 0.526 },
+        { bookmaker: "Pinnacle", bookmakerId: "pinnacle", selection: "Espérance Sportive", odds: v(2.55, 0.09), impliedProb: 0.392 },
+      ],
+    },
+    {
+      id: "bet-africa-7", sport: "Soccer", sportKey: "soccer_spain_la_liga", league: "La Liga",
+      homeTeam: "Real Madrid", awayTeam: "Barcelona", commenceTime: ct(48), marketType: "3way",
+      profitPercent: v(3.0, 0.38), totalImplied: 0.970, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Bet9ja",    bookmakerId: "bet9ja",    selection: "Real Madrid", odds: v(2.15, 0.08), impliedProb: 0.465 },
+        { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Barcelona",   odds: v(3.15, 0.12), impliedProb: 0.317 },
+        { bookmaker: "22Bet",     bookmakerId: "22bet",     selection: "Draw",        odds: v(4.35, 0.16), impliedProb: 0.230 },
+      ],
+    },
+    {
+      id: "bet-africa-8", sport: "Soccer", sportKey: "soccer_nigeria_npfl", league: "NPFL (Nigeria)",
+      homeTeam: "Rivers United", awayTeam: "Shooting Stars", commenceTime: ct(19), marketType: "2way",
+      profitPercent: v(4.5, 0.5), totalImplied: 0.955, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Bet9ja",  bookmakerId: "bet9ja",  selection: "Rivers United",   odds: v(1.85, 0.06), impliedProb: 0.541 },
+        { bookmaker: "BetKing", bookmakerId: "betking", selection: "Shooting Stars",  odds: v(3.00, 0.11), impliedProb: 0.333 },
+      ],
+    },
+    {
+      id: "bet-africa-9", sport: "Soccer", sportKey: "soccer_south_africa_premiership", league: "PSL (South Africa)",
+      homeTeam: "Kaizer Chiefs", awayTeam: "SuperSport United", commenceTime: ct(41), marketType: "3way",
+      profitPercent: v(5.5, 0.62), totalImplied: 0.945, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Hollywoodbets", bookmakerId: "hollywoodbets", selection: "Kaizer Chiefs",    odds: v(2.60, 0.10), impliedProb: 0.385 },
+        { bookmaker: "Betway",        bookmakerId: "betway",        selection: "SuperSport United", odds: v(3.00, 0.11), impliedProb: 0.333 },
+        { bookmaker: "1xBet",         bookmakerId: "1xbet",         selection: "Draw",             odds: v(4.90, 0.19), impliedProb: 0.204 },
+      ],
+    },
+    {
+      id: "bet-africa-10", sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
+      homeTeam: "Liverpool", awayTeam: "Chelsea", commenceTime: ct(57), marketType: "3way",
+      profitPercent: v(2.8, 0.35), totalImplied: 0.972, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Bet9ja",    bookmakerId: "bet9ja",    selection: "Liverpool", odds: v(1.95, 0.07), impliedProb: 0.513 },
+        { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Chelsea",   odds: v(4.20, 0.16), impliedProb: 0.238 },
+        { bookmaker: "22Bet",     bookmakerId: "22bet",     selection: "Draw",      odds: v(4.40, 0.17), impliedProb: 0.227 },
+      ],
+    },
+    {
+      id: "bet-africa-11", sport: "Soccer", sportKey: "soccer_caf_champions_league", league: "CAF Champions League",
+      homeTeam: "Simba SC", awayTeam: "TP Mazembe", commenceTime: ct(28), marketType: "3way",
+      profitPercent: v(6.8, 0.75), totalImplied: 0.932, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Odibets",  bookmakerId: "odibets",  selection: "Simba SC",    odds: v(2.10, 0.08), impliedProb: 0.476 },
+        { bookmaker: "SportyBet",bookmakerId: "sportybet",selection: "TP Mazembe",  odds: v(4.00, 0.15), impliedProb: 0.250 },
+        { bookmaker: "Melbet",   bookmakerId: "melbet",   selection: "Draw",        odds: v(4.80, 0.18), impliedProb: 0.208 },
+      ],
+    },
+    {
+      id: "bet-africa-12", sport: "Soccer", sportKey: "soccer_kenya_premier_league", league: "KPL (Kenya)",
+      homeTeam: "Tusker FC", awayTeam: "Bandari FC", commenceTime: ct(16), marketType: "2way",
+      profitPercent: v(4.0, 0.48), totalImplied: 0.960, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Odibets", bookmakerId: "odibets", selection: "Tusker FC",  odds: v(2.00, 0.07), impliedProb: 0.500 },
+        { bookmaker: "Betway",  bookmakerId: "betway",  selection: "Bandari FC", odds: v(2.85, 0.11), impliedProb: 0.351 },
+      ],
+    },
+    {
+      id: "bet-africa-13", sport: "Soccer", sportKey: "soccer_germany_bundesliga", league: "Bundesliga",
+      homeTeam: "Bayern Munich", awayTeam: "Borussia Dortmund", commenceTime: ct(63), marketType: "3way",
+      profitPercent: v(3.4, 0.42), totalImplied: 0.966, discoveredAt: now, region: "africa",
+      legs: [
+        { bookmaker: "Bet9ja",    bookmakerId: "bet9ja",    selection: "Bayern Munich",      odds: v(1.70, 0.06), impliedProb: 0.588 },
+        { bookmaker: "SportyBet", bookmakerId: "sportybet", selection: "Borussia Dortmund",  odds: v(5.50, 0.21), impliedProb: 0.182 },
+        { bookmaker: "22Bet",     bookmakerId: "22bet",     selection: "Draw",               odds: v(4.90, 0.19), impliedProb: 0.204 },
       ],
     },
   ];
-
-  return [...base, ...enhanced];
 }
 
 // ─── Main export ───────────────────────────────────────────────────────────────
