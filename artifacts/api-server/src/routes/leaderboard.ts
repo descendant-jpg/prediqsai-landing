@@ -98,7 +98,7 @@ export async function syncLeaderboardEntry(userId: number, displayName: string) 
     else if (e.type === "loss") break;
   }
 
-  const badge = winRate >= 75 ? "🏆 Elite" : winRate >= 60 ? "⭐ Sharp" : total >= 20 ? "📈 Active" : null;
+  const badge = winRate >= 75 ? "🏆 Expert" : winRate >= 60 ? "⭐ Sharp" : total >= 20 ? "📈 Active" : null;
 
   const existing = await db
     .select({ id: leaderboard.id })

@@ -60,9 +60,7 @@ function mapPrediction(p: ApiPrediction): Prediction {
     againstFactors: p.againstFactors ?? [], weatherImpact: p.weatherImpact,
     sharpMoneySignal: p.sharpMoneySignal, aiProbability: p.aiProbability,
     bookmakerProbability: p.bookmakerProbability, valueDetected: p.valueDetected,
-    tierRequired: (p.tierRequired === "pro" || p.tierRequired === "elite" || p.tierRequired === "premium")
-      ? "premium"
-      : "free",
+    tierRequired: p.tierRequired === "premium" ? "premium" : "free",
     simulationData: p.simulationData ?? null, agentScores: p.agentScores ?? null,
     publicBacking: p.publicBacking ?? null,
   };

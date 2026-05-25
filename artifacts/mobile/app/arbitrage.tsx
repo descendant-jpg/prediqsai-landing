@@ -434,7 +434,7 @@ export default function ArbitrageScreen() {
   // Use the effective tier from the API response (respects admin overrides & free trials).
   // Falls back to user.tier from the auth token while data is still loading.
   const effectiveTier = data?.effectiveTier ?? data?.tier ?? user?.tier ?? "free";
-  const isPremium = effectiveTier === "premium" || effectiveTier === "pro" || effectiveTier === "elite";
+  const isPremium = effectiveTier === "premium";
 
   const topPadding = insets.top + (Platform.OS === "web" ? 67 : 0);
 

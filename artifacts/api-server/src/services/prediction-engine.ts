@@ -1770,7 +1770,7 @@ ${calibrationSection ? calibrationSection + "\n\n" : ""}CONFIDENCE CALIBRATION (
 90-100%: ALL factors align perfectly + strong historical evidence + market confirms (VERY rare, 1-2% of picks)
 75-89%: Most factors clearly align + historical pattern + some bookmaker value (strongest daily picks)
 60-74%: Enough factors favour this outcome to publish — flag any concerns in againstFactors
-Below 60%: Mark avoidMatch = true, avoidReason = "Insufficient confidence — too much uncertainty across key factors", tierRequired = "elite". Do NOT set this as a normal pick. Still include the prediction field for record-keeping but the pick must NOT be shown to users.
+Below 60%: Mark avoidMatch = true, avoidReason = "Insufficient confidence — too much uncertainty across key factors", tierRequired = "premium". Do NOT set this as a normal pick. Still include the prediction field for record-keeping but the pick must NOT be shown to users.
 
 TRAP GAME DETECTION — flag isTrapGame = true when:
 - Heavy favourite playing minor away game before major cup match
@@ -1871,13 +1871,12 @@ Return a JSON array ONLY — no markdown, no prose, no commentary. Each element:
     "bttsProb": 0-100 (both teams to score probability),
     "over25Prob": 0-100 (over 2.5 goals probability)
   },
-  "tierRequired": "free"|"pro"|"elite"
+  "tierRequired": "free"|"premium"
 }
 
 tierRequired rules:
-- "free"  → public-knowledge picks or avoid picks
-- "pro"   → moderate confidence 55-74 or notable value bets
-- "elite" → high confidence ≥75 or sharp-money value detected`;
+- "free"    → public-knowledge picks or avoid picks
+- "premium" → moderate-to-high confidence ≥55 or notable value bets`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
@@ -1902,7 +1901,9 @@ tierRequired rules:
     const avoidReason = avoidMatch
       ? (p.avoidReason ?? p.trapGameReason ?? (lowConfidence ? "Insufficient confidence — too much uncertainty across key factors" : null))
       : null;
-    const tierRequired = avoidMatch ? "elite" : (p.tierRequired ?? "free");
+    const tierRequired = avoidMatch
+      ? "premium"
+      : (p.tierRequired === "pro" || p.tierRequired === "elite" ? "premium" : (p.tierRequired ?? "free"));
 
     return {
       sport,

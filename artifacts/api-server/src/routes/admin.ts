@@ -38,7 +38,7 @@ async function writeLog(adminEmail: string, action: string, targetUserId: number
 function effectiveTier(u: typeof users.$inferSelect): string {
   if (u.manualTierOverride) return u.manualTierOverride;
   if (u.freeTrialUntil && new Date(u.freeTrialUntil) > new Date()) return "premium";
-  return u.tier === "pro" || u.tier === "elite" ? "premium" : u.tier;
+  return u.tier === "premium" ? "premium" : (u.tier ?? "free");
 }
 
 function safeUser(u: typeof users.$inferSelect) {
@@ -99,7 +99,7 @@ router.get("/admin/stats", requireAdmin, async (req, res) => {
       todaySignups: todayCount[0]?.count ?? 0,
       tierBreakdown: {
         free: tierMap["free"] ?? 0,
-        premium: (tierMap["premium"] ?? 0) + (tierMap["pro"] ?? 0) + (tierMap["elite"] ?? 0) + (premiumOverrideCount?.count ?? 0),
+        premium: (tierMap["premium"] ?? 0) + (premiumOverrideCount?.count ?? 0),
       },
       banned: bannedCount?.count ?? 0,
       suspended: suspendedCount?.count ?? 0,
@@ -560,7 +560,7 @@ router.post("/admin/notifications/send", requireAdmin, async (req, res) => {
   const body = z.object({
     title: z.string().min(1).max(100),
     message: z.string().min(1).max(500),
-    target: z.string(), // 'all' | 'free' | 'pro' | 'elite' | 'user:123' | 'country:NG'
+    target: z.string(), // 'all' | 'free' | 'premium' | 'user:123' | 'country:NG'
     linkTo: z.string().optional(),
   }).parse(req.body);
 
@@ -649,10 +649,7 @@ router.get("/admin/revenue", requireAdmin, async (_req, res) => {
     .where(and(eq(bankrollEntries.type, "deposit"), gte(bankrollEntries.createdAt, thirtyDaysAgo)));
 
   const PREMIUM_PRICE = 9.99;
-  const premiumCount =
-    (tierCounts.find((t) => t.tier === "premium")?.count ?? 0) +
-    (tierCounts.find((t) => t.tier === "pro")?.count ?? 0) +
-    (tierCounts.find((t) => t.tier === "elite")?.count ?? 0);
+  const premiumCount = tierCounts.find((t) => t.tier === "premium")?.count ?? 0;
   const freeCount = tierCounts.find((t) => t.tier === "free")?.count ?? 0;
   const mrr = premiumCount * PREMIUM_PRICE;
 

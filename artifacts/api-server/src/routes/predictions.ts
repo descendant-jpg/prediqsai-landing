@@ -19,7 +19,7 @@ router.get("/predictions", requireAuth, async (req, res) => {
       .limit(1);
 
     const rawTier = user?.tier ?? "free";
-    const isPremium = rawTier === "premium" || rawTier === "pro" || rawTier === "elite";
+    const isPremium = rawTier === "premium";
 
     const preds = await getPredictions();
 

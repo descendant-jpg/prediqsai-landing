@@ -32,7 +32,7 @@ function getEffectiveTier(user: {
   if (!user) return "free";
   if (user.manualTierOverride) return user.manualTierOverride;
   if (user.freeTrialUntil && new Date(user.freeTrialUntil) > new Date()) return "premium";
-  return user.tier === "pro" || user.tier === "elite" ? "premium" : user.tier;
+  return user.tier === "premium" ? "premium" : (user.tier ?? "free");
 }
 
 // GET /api/arbitrage — scan for current opportunities (tier-gated)

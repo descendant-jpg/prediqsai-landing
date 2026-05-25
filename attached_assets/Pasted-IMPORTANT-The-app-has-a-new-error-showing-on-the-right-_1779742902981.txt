@@ -1,0 +1,72 @@
+IMPORTANT: The app has a new error showing on the right 
+side of the screen:
+"Uncaught Error: NitroModules are required by expo 
+prebuild"
+
+Fix this error first before anything else.
+
+Then fix the tier system:
+
+1. REMOVE ELITE TIER COMPLETELY
+The app still has "Elite tier" references everywhere.
+Remove ALL of them:
+
+Search the ENTIRE codebase for these words and fix:
+- "elite" → replace with "premium"
+- "Elite" → replace with "Premium" 
+- "ELITE" → replace with "PREMIUM"
+- "Pro and Elite tiers" → "Premium tier"
+- "Elite tier" → "Premium tier"
+- "available on Elite" → "available on Premium"
+- "requires Elite" → "requires Premium"
+- "pro" tier → "premium" tier (where it means paid tier)
+
+2. FINAL TIER STRUCTURE
+The app now has ONLY TWO tiers:
+- FREE (basic features, limited picks)
+- PREMIUM ($39.99/month, all features unlocked)
+
+There is NO pro tier.
+There is NO elite tier.
+There is ONLY free and premium.
+
+3. TRANSFER ALL ELITE FEATURES TO PREMIUM
+Every feature that was locked behind "Elite" must 
+now be available to "Premium" users:
+- Correct Score Predictor → available to Premium
+- Live Standings → available to Premium
+- H2H Stats → available to Premium
+- Real-time arbitrage scanning → available to Premium
+- Monte Carlo simulation → available to Premium
+- All advanced analytics → available to Premium
+
+4. UPDATE ALL GATE CHECKS
+Find every place in the code that checks:
+if (tier === 'elite') or if (userTier === 'elite')
+Change ALL of them to:
+if (tier === 'premium') or if (userTier === 'premium')
+
+Also find:
+if (tier === 'pro' || tier === 'elite')
+Change to:
+if (tier === 'premium')
+
+5. UPDATE DATABASE
+In Supabase, make sure:
+- Any user with tier 'elite' gets updated to 'premium'
+- Any user with tier 'pro' gets updated to 'premium'
+Run this SQL update:
+UPDATE users SET tier = 'premium' 
+WHERE tier IN ('elite', 'pro');
+
+6. FIX THE NITROMODULES ERROR
+The error "NitroModules are required by expo prebuild"
+means expo-in-app-purchases needs native modules.
+Fix by either:
+a) Running: npx expo prebuild
+b) Or removing expo-in-app-purchases and replacing 
+   with react-native-iap which works with Expo Go:
+   npx expo install react-native-iap
+
+Do the NitroModules fix first so the app stops 
+crashing, then do the tier cleanup.

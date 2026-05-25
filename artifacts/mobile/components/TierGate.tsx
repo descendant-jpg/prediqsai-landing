@@ -6,16 +6,15 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 
-// Accepts both old ("pro","elite") and new ("premium") tier names for backward compatibility
-type RequiredTier = "free" | "premium" | "pro" | "elite";
+type RequiredTier = "free" | "premium";
 
 function isPremiumRequired(requiredTier: RequiredTier): boolean {
-  return requiredTier === "premium" || requiredTier === "pro" || requiredTier === "elite";
+  return requiredTier === "premium";
 }
 
 function hasAccess(userTier: string, requiredTier: RequiredTier): boolean {
   if (!isPremiumRequired(requiredTier)) return true;
-  return userTier === "premium" || userTier === "pro" || userTier === "elite";
+  return userTier === "premium";
 }
 
 interface Props {

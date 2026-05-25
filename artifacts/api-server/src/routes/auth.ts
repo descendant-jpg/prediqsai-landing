@@ -20,7 +20,7 @@ const loginSchema = z.object({
 });
 
 function publicUser(u: typeof users.$inferSelect) {
-  const tier = (u.tier === "pro" || u.tier === "elite") ? "premium" : (u.tier ?? "free");
+  const tier = u.tier === "premium" ? "premium" : (u.tier ?? "free");
   return {
     id: u.id,
     username: u.username,

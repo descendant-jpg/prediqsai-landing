@@ -18,7 +18,7 @@ const FILTERS = [
 ];
 
 function tierColor(tier: string) {
-  if (tier === "premium" || tier === "elite" || tier === "pro") return "#FFD700";
+  if (tier === "premium") return "#FFD700";
   return "#94A3B8";
 }
 
