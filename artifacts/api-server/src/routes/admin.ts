@@ -56,8 +56,9 @@ function safeUser(u: typeof users.$inferSelect) {
     manualTierOverride: u.manualTierOverride,
     freeTrialUntil: u.freeTrialUntil,
     createdAt: u.createdAt,
-    stripeCustomerId: u.stripeCustomerId,
-    stripeSubscriptionId: u.stripeSubscriptionId,
+    iapPlatform: u.iapPlatform,
+    iapTransactionId: u.iapTransactionId,
+    iapExpiresAt: u.iapExpiresAt,
   };
 }
 

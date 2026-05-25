@@ -1,0 +1,92 @@
+The Picks screen is showing "No picks for today" and 
+"No picks for tomorrow" for ALL sports (Soccer, NFL, 
+NBA, MLB). Also multiple other issues found.
+
+Fix ALL of these:
+
+1. PICKS SCREEN - NO DATA SHOWING
+The API_SPORTS_KEY and FOOTBALL_DATA_API_KEY are set 
+as secrets but the app is not using them correctly.
+
+Fix the fixtures fetch for each sport using these 
+FREE ESPN endpoints (no API key needed - use these 
+as primary source):
+
+Soccer today:
+https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard
+
+NFL today:
+https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
+
+NBA today:
+https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard
+
+MLB today:
+https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard
+
+For tomorrow add ?dates=YYYYMMDD with tomorrow's date.
+
+Today's date is May 25, 2026.
+Tomorrow is May 26, 2026.
+
+Fetch these URLs directly from the frontend or 
+backend and display the games.
+
+2. STANDINGS TAB - NOT WORKING
+Shows: "League table is available for soccer fixtures 
+when the API-Sports key is configured"
+
+Fix: The API_SPORTS_KEY is already configured as a 
+secret. Make sure the backend is reading it with 
+process.env.API_SPORTS_KEY and passing it in the 
+API-Sports request header as "x-apisports-key"
+
+API-Sports standings endpoint:
+https://v3.football.api-sports.io/standings?league=39&season=2025
+
+3. STATS TAB - NOT WORKING  
+Shows: "H2H data is available for soccer matches 
+with API-Sports configured"
+Also shows: "Detailed stats are available on Pro 
+and Elite tiers"
+
+Fix:
+- Connect H2H stats using API_SPORTS_KEY
+- Change "Pro and Elite tiers" to "Premium tier"
+  (we only have FREE and PREMIUM now)
+- Make stats visible for Premium users
+
+4. SCORE TAB - WRONG TIER MESSAGE
+Shows: "Scoreline probabilities are available on 
+Elite tier"
+
+Fix: Change "Elite tier" to "Premium tier" 
+everywhere in the app. Elite no longer exists.
+
+5. TOMORROW'S PICKS - EMPTY
+Fetch tomorrow's fixtures using ESPN API with 
+tomorrow's date parameter and generate AI picks
+for them automatically.
+
+6. NFL/NBA SHOWING NO PICKS
+Today is May 25, 2026:
+- NFL is off-season (preseason starts Aug 2026)
+- NBA season may have ended
+- MLB is active right now
+- Soccer leagues are active
+
+For off-season sports, show a message like:
+"NFL preseason starts August 2026 - 
+check back then for picks"
+Instead of just showing empty "No picks for today"
+
+7. AFTER FIXING DATA:
+- Generate AI picks using ANTHROPIC_API_KEY for 
+  all available fixtures
+- Store generated picks in Supabase so they 
+  persist and don't regenerate every time
+- Show picks with confidence percentage and 
+  recommended outcome
+
+Fix the ESPN API connection first as it requires 
+no API key and will immediately show real games.

@@ -10,6 +10,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
+import { IAPProvider } from "@/context/IAPContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 
 if (process.env.EXPO_PUBLIC_DOMAIN) {
@@ -66,6 +67,7 @@ function RootLayoutNav() {
       <Stack.Screen name="match-detail"           options={{ headerShown: false }} />
       <Stack.Screen name="oracle-chat"      options={{ headerShown: false }} />
       <Stack.Screen name="change-password"  options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="subscription"     options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }
@@ -84,7 +86,9 @@ export default function RootLayout() {
               <LanguageProvider>
                 <AuthProvider>
                   <AppProvider>
-                    <RootLayoutNav />
+                    <IAPProvider>
+                      <RootLayoutNav />
+                    </IAPProvider>
                   </AppProvider>
                 </AuthProvider>
               </LanguageProvider>

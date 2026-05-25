@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "expo-secure-store": "^55.0.14",
-    "lucide-react-native": "^1.16.0"
+    "lucide-react-native": "^1.16.0",
+    "react-native-iap": "^15.3.1"
   }
 }

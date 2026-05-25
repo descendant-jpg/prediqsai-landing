@@ -361,7 +361,7 @@ export default function SettingsScreen() {
         {currentTier === "free" && (
           <TouchableOpacity
             style={[styles.upgradeBtn, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "#FFD700" }]}
-            onPress={() => handleSetTier("premium")}
+            onPress={() => router.push("/subscription" as any)}
             activeOpacity={0.8}
           >
             <Star size={15} color="#FFD700" fill="#FFD700" />

@@ -135,8 +135,8 @@ export default function AdminRevenueScreen() {
 
           <View style={[s.stripeNote, { backgroundColor: "#FFD70010", borderColor: "#FFD70033" }]}>
             <Text style={[s.stripeNoteText, { color: "#FFD700" }]}>
-              💡 Connect Stripe to see real revenue. Set{" "}
-              <Text style={{ fontWeight: "700" }}>STRIPE_SECRET_KEY</Text> in API Keys to enable payments.
+              💡 Revenue is generated via Apple App Store and Google Play in-app purchases.
+              MRR is estimated from the Premium user count × $39.99/month.
             </Text>
           </View>
         </ScrollView>

@@ -49,7 +49,7 @@ export function TierGate({ requiredTier, children, customMessage }: Props) {
         <TouchableOpacity
           style={styles.btn}
           activeOpacity={0.8}
-          onPress={() => router.push("/settings" as any)}
+          onPress={() => router.push("/subscription" as any)}
         >
           <Lock size={13} color="#070B12" />
           <Text style={styles.btnText}>Upgrade — $39.99/mo</Text>

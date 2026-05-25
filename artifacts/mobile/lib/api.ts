@@ -73,8 +73,9 @@ export interface AdminUser {
   manualTierOverride: string | null;
   freeTrialUntil: string | null;
   createdAt: string;
-  stripeCustomerId: string | null;
-  stripeSubscriptionId: string | null;
+  iapPlatform: string | null;
+  iapTransactionId: string | null;
+  iapExpiresAt: string | null;
 }
 
 export interface AdminStats {
@@ -684,6 +685,31 @@ export const api = {
         body: JSON.stringify({ tier }),
         token,
       }),
+    verifyIAPPurchase: (
+      token: string,
+      data: {
+        platform: "ios" | "android";
+        productId: string;
+        transactionId: string;
+        purchaseToken?: string;
+        transactionReceipt?: string;
+      },
+    ) =>
+      apiFetch<{ tier: string; success: boolean; expiresAt: string }>(
+        "/subscription/iap/verify",
+        { method: "POST", body: JSON.stringify(data), token },
+      ),
+    restoreIAPPurchases: (
+      token: string,
+      data: {
+        platform: "ios" | "android";
+        purchases: Array<{ productId: string; transactionId: string; purchaseToken?: string }>;
+      },
+    ) =>
+      apiFetch<{ tier: string; restored: boolean }>(
+        "/subscription/iap/restore",
+        { method: "POST", body: JSON.stringify(data), token },
+      ),
   },
   arbitrage: {
     list: (token: string, region?: ArbRegion) =>
