@@ -410,6 +410,57 @@ export interface PerformanceData {
 
 export type ArbRegion = "global" | "us" | "uk" | "africa" | "asia";
 
+export interface EVBet {
+  id: string;
+  sport: string;
+  sportKey: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+  bookmaker: string;
+  bookmakerId: string;
+  selection: string;
+  odds: number;
+  sharpOdds: number;
+  evPercent: number;
+  impliedEdge: number;
+  discoveredAt: string;
+  region?: ArbRegion;
+}
+
+export interface MiddleOpportunity {
+  id: string;
+  sport: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+  book1: { bookmaker: string; bookmakerId: string; selection: string; spread: number; odds: number };
+  book2: { bookmaker: string; bookmakerId: string; selection: string; spread: number; odds: number };
+  window: number;
+  hitProbability: number;
+  worstCase: number;
+  region?: ArbRegion;
+  discoveredAt: string;
+}
+
+export interface EVScanResponse {
+  bets: EVBet[];
+  totalFound: number;
+  lastScanned: string;
+  region?: ArbRegion;
+  disclaimer?: string;
+}
+
+export interface MiddlesScanResponse {
+  middles: MiddleOpportunity[];
+  totalFound: number;
+  lastScanned: string;
+  region?: ArbRegion;
+  disclaimer?: string;
+}
+
 // ─── World Cup types ──────────────────────────────────────────────────────────
 
 export interface WCCountdown {
@@ -729,6 +780,10 @@ export const api = {
       }),
     rates: () =>
       apiFetch<{ rates: Record<string, number>; base: string; source: string; updatedAt: string }>("/arbitrage/rates"),
+    ev: (token: string, region?: ArbRegion, refresh?: boolean) =>
+      apiFetch<EVScanResponse>(`/arbitrage/ev${region ? `?region=${region}` : ""}${refresh ? `${region ? "&" : "?"}refresh=true` : ""}`, { token }),
+    middles: (token: string, region?: ArbRegion, refresh?: boolean) =>
+      apiFetch<MiddlesScanResponse>(`/arbitrage/middles${region ? `?region=${region}` : ""}${refresh ? `${region ? "&" : "?"}refresh=true` : ""}`, { token }),
   },
   worldcup: {
     overview: () =>

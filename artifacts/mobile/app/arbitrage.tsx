@@ -3,8 +3,8 @@ import {
   ArrowLeft,
   Calculator,
   ChevronRight,
-  Crown,
   ExternalLink,
+  Filter,
   RefreshCw,
   Shield,
   ShieldAlert,
@@ -32,9 +32,30 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { api, type ArbCalcResult, type ArbOpportunity, type ArbRegion, type ArbScanResponse } from "@/lib/api";
+import {
+  api,
+  type ArbCalcResult,
+  type ArbOpportunity,
+  type ArbRegion,
+  type ArbScanResponse,
+  type EVBet,
+  type EVScanResponse,
+  type MiddleOpportunity,
+  type MiddlesScanResponse,
+} from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+type ScannerTab = "arbs" | "ev" | "middles" | "live";
+
+const SCANNER_TABS: { id: ScannerTab; label: string; emoji: string }[] = [
+  { id: "arbs",    label: "ARBs",    emoji: "🔄" },
+  { id: "ev",      label: "+EV",     emoji: "📈" },
+  { id: "middles", label: "Middles", emoji: "🎯" },
+  { id: "live",    label: "Live",    emoji: "⚡" },
+];
+
+const SPORT_FILTERS = ["All", "Soccer", "NFL", "NBA", "MLB", "NHL"];
 
 const REGIONS: { id: ArbRegion; label: string; flag: string }[] = [
   { id: "global", label: "Global",  flag: "🌐" },
@@ -48,7 +69,6 @@ const REGION_DEFAULT_CURRENCY: Record<ArbRegion, string> = {
   global: "USD", us: "USD", uk: "GBP", africa: "NGN", asia: "USD",
 };
 
-// Live rate lookup — falls back to static CURRENCIES rate
 function getRate(code: string, liveRates: Record<string, number>): number {
   return liveRates[code] ?? CURRENCIES[code]?.rate ?? 1;
 }
@@ -81,12 +101,17 @@ const BK_META: Record<string, BkMeta> = {
   betmgm:        { trustStars: 5, license: "Licensed US ✅",         mobileMoney: [],                       url: "https://www.betmgm.com" },
   caesars:       { trustStars: 5, license: "Licensed US ✅",         mobileMoney: [],                       url: "https://www.caesarssportsbook.com" },
   espnbet:       { trustStars: 5, license: "Licensed US ✅",         mobileMoney: [],                       url: "https://www.espnbet.com" },
+  pointsbet:     { trustStars: 4, license: "Licensed US ✅",         mobileMoney: [],                       url: "https://www.pointsbet.com" },
+  betrivers:     { trustStars: 4, license: "Licensed US ✅",         mobileMoney: [],                       url: "https://www.betrivers.com" },
   bet365:        { trustStars: 5, license: "Licensed UK GC ✅",      mobileMoney: [],                       url: "https://www.bet365.com" },
   williamhill:   { trustStars: 5, license: "Licensed UK GC ✅",      mobileMoney: [],                       url: "https://www.williamhill.com" },
   betfair:       { trustStars: 5, license: "Licensed UK GC ✅",      mobileMoney: [],                       url: "https://www.betfair.com" },
   unibet:        { trustStars: 5, license: "Licensed Malta ✅",      mobileMoney: [],                       url: "https://www.unibet.com" },
   pinnacle:      { trustStars: 5, license: "Licensed Curacao ✅",    mobileMoney: [],                       url: "https://www.pinnacle.com" },
   paddypower:    { trustStars: 5, license: "Licensed UK GC ✅",      mobileMoney: [],                       url: "https://www.paddypower.com" },
+  bwin:          { trustStars: 4, license: "Licensed Malta ✅",      mobileMoney: [],                       url: "https://www.bwin.com" },
+  skybet:        { trustStars: 5, license: "Licensed UK GC ✅",      mobileMoney: [],                       url: "https://www.skybet.com" },
+  "888sport":    { trustStars: 4, license: "Licensed UK GC ✅",      mobileMoney: [],                       url: "https://www.888sport.com" },
 };
 
 const AFRICA_CURRENCIES = ["NGN", "KES", "GHS", "ZAR", "UGX", "USD"];
@@ -97,27 +122,36 @@ const GLOBAL_CURRENCIES  = ["USD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR"];
 function secondsUntil(iso: string) { return Math.max(0, Math.floor((new Date(iso).getTime() - Date.now()) / 1000)); }
 function formatCountdown(s: number) {
   if (s <= 0) return "EXPIRED";
+  if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 }
 function profitColor(pct: number) { return pct >= 3 ? "#00FF94" : pct >= 1.5 ? "#FFD700" : "#00E5FF"; }
+function evColor(pct: number) { return pct >= 4 ? "#00FF94" : pct >= 2.5 ? "#FFD700" : "#00E5FF"; }
 function toLocal(usd: number, rate: number) { return parseFloat((usd * rate).toFixed(2)); }
 function formatLocal(amount: number, sym: string) {
   if (amount >= 1_000_000) return `${sym}${(amount / 1_000_000).toFixed(2)}M`;
   if (amount >= 1_000) return `${sym}${(amount / 1_000).toFixed(1)}K`;
   return `${sym}${amount.toFixed(2)}`;
 }
+function openUrl(url: string) {
+  Linking.openURL(url).catch(() => {});
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function Countdown({ iso }: { iso: string }) {
+function Countdown({ iso, compact }: { iso: string; compact?: boolean }) {
   const [secs, setSecs] = useState(() => secondsUntil(iso));
   const colors = useColors();
   useEffect(() => { const id = setInterval(() => setSecs(secondsUntil(iso)), 1000); return () => clearInterval(id); }, [iso]);
-  const urgent = secs < 300;
-  return <Text style={[styles.countdown, { color: urgent ? "#FF4D4D" : colors.textMuted }]}>⏱ Window: {formatCountdown(secs)}</Text>;
+  const urgent = secs < 300 && secs > 0;
+  return (
+    <Text style={[styles.countdown, { color: urgent ? "#FF4D4D" : secs === 0 ? colors.textMuted : colors.textMuted }]}>
+      {compact ? "" : "⏱ Window: "}{formatCountdown(secs)}
+    </Text>
+  );
 }
 
-function TrustBadge({ bookmakerId, region }: { bookmakerId: string; region: ArbRegion }) {
+function TrustBadge({ bookmakerId }: { bookmakerId: string }) {
   const colors = useColors();
   const meta = BK_META[bookmakerId];
   if (!meta) return null;
@@ -147,6 +181,156 @@ function MobileMoneyRow({ bookmakerId, region }: { bookmakerId: string; region: 
   );
 }
 
+// ─── EV Bet Card ──────────────────────────────────────────────────────────────
+
+function EVCard({ bet, region }: { bet: EVBet; region: ArbRegion }) {
+  const colors = useColors();
+  const ec = evColor(bet.evPercent);
+  const meta = BK_META[bet.bookmakerId];
+  return (
+    <View style={[styles.arbCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, borderLeftColor: ec, borderLeftWidth: 3 }]}>
+      <View style={styles.arbCardHeader}>
+        <View style={styles.arbCardHeaderLeft}>
+          <View style={[styles.arbTypePill, { backgroundColor: "rgba(0,255,148,0.1)", borderColor: "#00FF94" }]}>
+            <Text style={[styles.arbTypePillText, { color: "#00FF94" }]}>+EV BET 📈</Text>
+          </View>
+          <Text style={[styles.arbLeague, { color: colors.textMuted }]}>{bet.league}</Text>
+        </View>
+        <View style={[styles.profitBadge, { backgroundColor: `${ec}18`, borderColor: `${ec}55` }]}>
+          <TrendingUp size={11} color={ec} />
+          <Text style={[styles.profitBadgeText, { color: ec }]}>+{bet.evPercent}% EV</Text>
+        </View>
+      </View>
+
+      <Text style={[styles.arbMatchup, { color: colors.text }]}>
+        {bet.homeTeam} <Text style={{ color: colors.textMuted }}>vs</Text> {bet.awayTeam}
+      </Text>
+      <Countdown iso={bet.commenceTime} />
+
+      <View style={[styles.evRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.evCol}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Bookmaker</Text>
+          <TouchableOpacity onPress={() => openUrl(meta?.url ?? `https://google.com/search?q=${bet.bookmaker}`)}>
+            <Text style={[styles.evVal, { color: colors.cyan }]}>{bet.bookmaker} ↗</Text>
+          </TouchableOpacity>
+          <TrustBadge bookmakerId={bet.bookmakerId} />
+          <MobileMoneyRow bookmakerId={bet.bookmakerId} region={region} />
+        </View>
+        <View style={styles.evCol}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Selection</Text>
+          <Text style={[styles.evVal, { color: colors.text }]}>{bet.selection}</Text>
+        </View>
+        <View style={styles.evCol}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Odds</Text>
+          <Text style={[styles.evVal, { color: ec }]}>{bet.odds}</Text>
+          <Text style={{ fontSize: 9, color: colors.textMuted }}>Sharp: {bet.sharpOdds}</Text>
+        </View>
+      </View>
+
+      <View style={[styles.evSummaryRow, { backgroundColor: "rgba(0,255,148,0.06)", borderColor: "rgba(0,255,148,0.2)" }]}>
+        <View style={styles.evSummaryItem}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Edge vs Sharp</Text>
+          <Text style={[styles.evSummaryVal, { color: "#00FF94" }]}>+{(bet.impliedEdge * 100).toFixed(1)}%</Text>
+        </View>
+        <View style={[styles.evSummaryDivider, { backgroundColor: "rgba(0,255,148,0.2)" }]} />
+        <View style={styles.evSummaryItem}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>EV on $100</Text>
+          <Text style={[styles.evSummaryVal, { color: "#00FF94" }]}>+${(bet.evPercent).toFixed(2)}</Text>
+        </View>
+        <View style={[styles.evSummaryDivider, { backgroundColor: "rgba(0,255,148,0.2)" }]} />
+        <View style={styles.evSummaryItem}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Model</Text>
+          <Text style={[styles.evSummaryVal, { color: colors.textSecondary }]}>Sharp Line</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.calcArbBtn, { backgroundColor: "rgba(0,255,148,0.1)", borderColor: "#00FF94" }]}
+        onPress={() => openUrl(meta?.url ?? `https://google.com/search?q=${bet.bookmaker}+sports+betting`)}
+        activeOpacity={0.8}
+      >
+        <ExternalLink size={14} color="#00FF94" />
+        <Text style={[styles.calcArbBtnText, { color: "#00FF94" }]}>Open {bet.bookmaker}</Text>
+        <ChevronRight size={14} color="#00FF94" />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ─── Middle Card ──────────────────────────────────────────────────────────────
+
+function MiddleCard({ middle, region }: { middle: MiddleOpportunity; region: ArbRegion }) {
+  const colors = useColors();
+  const hitColor = middle.hitProbability >= 25 ? "#00FF94" : middle.hitProbability >= 15 ? "#FFD700" : "#00E5FF";
+  const meta1 = BK_META[middle.book1.bookmakerId];
+  const meta2 = BK_META[middle.book2.bookmakerId];
+  return (
+    <View style={[styles.arbCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, borderLeftColor: hitColor, borderLeftWidth: 3 }]}>
+      <View style={styles.arbCardHeader}>
+        <View style={styles.arbCardHeaderLeft}>
+          <View style={[styles.arbTypePill, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "#FFD700" }]}>
+            <Text style={[styles.arbTypePillText, { color: "#FFD700" }]}>MIDDLE 🎯</Text>
+          </View>
+          <Text style={[styles.arbLeague, { color: colors.textMuted }]}>{middle.league}</Text>
+        </View>
+        <View style={[styles.profitBadge, { backgroundColor: `${hitColor}18`, borderColor: `${hitColor}55` }]}>
+          <Text style={[styles.profitBadgeText, { color: hitColor }]}>{middle.hitProbability}% hit</Text>
+        </View>
+      </View>
+
+      <Text style={[styles.arbMatchup, { color: colors.text }]}>
+        {middle.homeTeam} <Text style={{ color: colors.textMuted }}>vs</Text> {middle.awayTeam}
+      </Text>
+      <Countdown iso={middle.commenceTime} />
+
+      <View style={[styles.middleBooksRow, { borderColor: colors.border }]}>
+        {[{ book: middle.book1, meta: meta1 }, { book: middle.book2, meta: meta2 }].map(({ book, meta }, i) => (
+          <View key={i} style={[styles.middleBookCol, i === 0 && { borderRightColor: colors.border, borderRightWidth: 1 }]}>
+            <Text style={[styles.evLabel, { color: colors.textMuted }]}>BET {i + 1}</Text>
+            <TouchableOpacity onPress={() => openUrl(meta?.url ?? `https://google.com/search?q=${book.bookmaker}`)}>
+              <Text style={[{ fontSize: 12, color: colors.cyan, marginBottom: 2 }]}>{book.bookmaker} ↗</Text>
+            </TouchableOpacity>
+            <Text style={[{ fontSize: 13, color: colors.text }]}>{book.selection}</Text>
+            <Text style={[{ fontSize: 12, color: "#FFD700", marginTop: 2 }]}>{book.odds}</Text>
+            <TrustBadge bookmakerId={book.bookmakerId} />
+          </View>
+        ))}
+      </View>
+
+      <View style={[styles.evSummaryRow, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.2)" }]}>
+        <View style={styles.evSummaryItem}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Window</Text>
+          <Text style={[styles.evSummaryVal, { color: "#FFD700" }]}>{middle.window} pts</Text>
+        </View>
+        <View style={[styles.evSummaryDivider, { backgroundColor: "rgba(255,215,0,0.2)" }]} />
+        <View style={styles.evSummaryItem}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Hit Prob</Text>
+          <Text style={[styles.evSummaryVal, { color: hitColor }]}>{middle.hitProbability}%</Text>
+        </View>
+        <View style={[styles.evSummaryDivider, { backgroundColor: "rgba(255,215,0,0.2)" }]} />
+        <View style={styles.evSummaryItem}>
+          <Text style={[styles.evLabel, { color: colors.textMuted }]}>Worst Case</Text>
+          <Text style={[styles.evSummaryVal, { color: colors.textSecondary }]}>{middle.worstCase}%</Text>
+        </View>
+      </View>
+
+      <View style={styles.openBooksRow}>
+        {[{ book: middle.book1, meta: meta1 }, { book: middle.book2, meta: meta2 }].map(({ book, meta }, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[styles.openBkFullBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={() => openUrl(meta?.url ?? `https://google.com/search?q=${book.bookmaker}`)}
+            activeOpacity={0.8}
+          >
+            <ExternalLink size={13} color={colors.cyan} />
+            <Text style={[styles.openBkFullText, { color: colors.cyan }]}>Open {book.bookmaker}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // ─── Stake Calculator Modal ───────────────────────────────────────────────────
 
 function CalcModal({
@@ -167,7 +351,6 @@ function CalcModal({
   const [result, setResult] = useState<ArbCalcResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Reset currency when region changes
   useEffect(() => { setCurrency(REGION_DEFAULT_CURRENCY[region]); }, [region]);
 
   const currencyList = region === "africa" ? AFRICA_CURRENCIES : GLOBAL_CURRENCIES;
@@ -208,7 +391,6 @@ function CalcModal({
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.modalBody, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
-          {/* Currency selector */}
           <View style={{ gap: 6 }}>
             <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Currency</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -234,7 +416,6 @@ function CalcModal({
             </ScrollView>
           </View>
 
-          {/* Budget input */}
           <View style={[styles.budgetRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Total Budget</Text>
             <View style={styles.budgetInputRow}>
@@ -281,7 +462,7 @@ function CalcModal({
                       <Text style={[styles.stakeNum, { color: colors.cyan }]}>BET {i + 1}</Text>
                       <TouchableOpacity
                         style={styles.openBkBtn}
-                        onPress={() => Linking.openURL(meta?.url ?? `https://google.com/search?q=${stake.bookmaker}`).catch(() => {})}
+                        onPress={() => openUrl(meta?.url ?? `https://google.com/search?q=${stake.bookmaker}`)}
                         activeOpacity={0.8}
                       >
                         <ExternalLink size={11} color={colors.textMuted} />
@@ -289,7 +470,7 @@ function CalcModal({
                       </TouchableOpacity>
                     </View>
                     <Text style={[styles.stakeSelection, { color: colors.text }]}>{stake.selection}</Text>
-                    {meta && <TrustBadge bookmakerId={leg?.bookmakerId ?? ""} region={region} />}
+                    {meta && <TrustBadge bookmakerId={leg?.bookmakerId ?? ""} />}
                     {leg && <MobileMoneyRow bookmakerId={leg.bookmakerId} region={region} />}
                     <View style={styles.stakeDetailRow}>
                       <View style={styles.stakeDetailItem}>
@@ -309,7 +490,6 @@ function CalcModal({
                 );
               })}
 
-              {/* Profit summary */}
               <View style={[styles.profitCard, { backgroundColor: "rgba(0,255,148,0.08)", borderColor: "rgba(0,255,148,0.3)" }]}>
                 {[
                   ["Guaranteed Return", formatLocal(toLocal(result.guaranteedReturn, currInfo.rate), currInfo.symbol)],
@@ -324,13 +504,12 @@ function CalcModal({
                 ))}
               </View>
 
-              {/* Open bookmaker buttons */}
               <View style={styles.openBooksRow}>
                 {arb.legs.map((leg, i) => (
                   <TouchableOpacity
                     key={i}
                     style={[styles.openBkFullBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-                    onPress={() => Linking.openURL(BK_META[leg.bookmakerId]?.url ?? `https://google.com/search?q=${leg.bookmaker}`).catch(() => {})}
+                    onPress={() => openUrl(BK_META[leg.bookmakerId]?.url ?? `https://google.com/search?q=${leg.bookmaker}`)}
                     activeOpacity={0.8}
                   >
                     <ExternalLink size={13} color={colors.cyan} />
@@ -346,20 +525,124 @@ function CalcModal({
   );
 }
 
+// ─── Filter Modal ──────────────────────────────────────────────────────────────
+
+function FilterModal({
+  visible, onClose, minProfit, setMinProfit, sportFilter, setSportFilter,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  minProfit: number;
+  setMinProfit: (v: number) => void;
+  sportFilter: string;
+  setSportFilter: (v: string) => void;
+}) {
+  const colors = useColors();
+  const PROFIT_OPTIONS = [0, 1, 1.5, 2, 3, 5];
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
+      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>Filters</Text>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={{ color: colors.cyan, fontSize: 14 }}>Done</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={[styles.modalBody, { gap: 24 }]} showsVerticalScrollIndicator={false}>
+          <View style={{ gap: 10 }}>
+            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Min Profit %</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {PROFIT_OPTIONS.map((v) => {
+                const active = minProfit === v;
+                return (
+                  <TouchableOpacity
+                    key={v}
+                    style={[styles.filterPill, {
+                      backgroundColor: active ? colors.cyan : colors.card,
+                      borderColor: active ? colors.cyan : colors.border,
+                    }]}
+                    onPress={() => setMinProfit(v)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ fontSize: 13, color: active ? colors.background : colors.text }}>
+                      {v === 0 ? "Any" : `≥${v}%`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={{ gap: 10 }}>
+            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Sport</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {SPORT_FILTERS.map((s) => {
+                const active = sportFilter === s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.filterPill, {
+                      backgroundColor: active ? "#FFD700" : colors.card,
+                      borderColor: active ? "#FFD700" : colors.border,
+                    }]}
+                    onPress={() => setSportFilter(s)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ fontSize: 13, color: active ? "#000" : colors.text }}>{s}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.calcBtn, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+            onPress={() => { setMinProfit(0); setSportFilter("All"); }}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>Reset Filters</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Arb Opportunity Card ─────────────────────────────────────────────────────
 
-function ArbCard({ arb, region, liveRates, onCalculate }: { arb: ArbOpportunity; region: ArbRegion; liveRates: Record<string, number>; onCalculate: (a: ArbOpportunity) => void }) {
+function ArbCard({
+  arb, region, liveRates, onCalculate, showLivePulse,
+}: {
+  arb: ArbOpportunity;
+  region: ArbRegion;
+  liveRates: Record<string, number>;
+  onCalculate: (a: ArbOpportunity) => void;
+  showLivePulse?: boolean;
+}) {
   const colors = useColors();
   const pColor = profitColor(arb.profitPercent);
   const defCurrency = REGION_DEFAULT_CURRENCY[region] ?? "USD";
   const currSymbol  = CURRENCIES[defCurrency]?.symbol ?? "$";
   const currRate    = getRate(defCurrency, liveRates);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!showLivePulse) return;
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, [showLivePulse, pulseAnim]);
 
   return (
     <View style={[styles.arbCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, borderLeftColor: pColor, borderLeftWidth: 3 }]}>
-      {/* Header row */}
       <View style={styles.arbCardHeader}>
         <View style={styles.arbCardHeaderLeft}>
+          {showLivePulse && (
+            <Animated.View style={[styles.liveDot, { backgroundColor: "#FF4D4D", opacity: pulseAnim, marginRight: 4 }]} />
+          )}
           <View style={[styles.arbTypePill, { backgroundColor: arb.marketType === "3way" ? "rgba(255,215,0,0.12)" : "rgba(0,229,255,0.1)", borderColor: arb.marketType === "3way" ? "#FFD700" : colors.cyan }]}>
             <Text style={[styles.arbTypePillText, { color: arb.marketType === "3way" ? "#FFD700" : colors.cyan }]}>{arb.marketType === "3way" ? "3-WAY ⚡" : "2-WAY 🔄"}</Text>
           </View>
@@ -371,11 +654,9 @@ function ArbCard({ arb, region, liveRates, onCalculate }: { arb: ArbOpportunity;
         </View>
       </View>
 
-      {/* Matchup */}
       <Text style={[styles.arbMatchup, { color: colors.text }]}>{arb.homeTeam} <Text style={{ color: colors.textMuted }}>vs</Text> {arb.awayTeam}</Text>
       <Countdown iso={arb.commenceTime} />
 
-      {/* Legs table */}
       <View style={[styles.legsTable, { borderColor: colors.border }]}>
         <View style={[styles.legsHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.legHeaderText, { color: colors.textMuted, flex: 2 }]}>Bookmaker</Text>
@@ -385,29 +666,46 @@ function ArbCard({ arb, region, liveRates, onCalculate }: { arb: ArbOpportunity;
         {arb.legs.map((leg, i) => (
           <View key={i} style={[styles.legRowContainer, i < arb.legs.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
             <View style={styles.legRow}>
-              <Text style={[styles.legCell, { color: colors.textSecondary, flex: 2 }]} numberOfLines={1}>{leg.bookmaker}</Text>
+              <TouchableOpacity style={{ flex: 2 }} onPress={() => openUrl(BK_META[leg.bookmakerId]?.url ?? `https://google.com/search?q=${leg.bookmaker}`)}>
+                <Text style={[styles.legCell, { color: colors.cyan }]} numberOfLines={1}>{leg.bookmaker} ↗</Text>
+              </TouchableOpacity>
               <Text style={[styles.legCell, { color: colors.text, flex: 2 }]} numberOfLines={1}>{leg.selection}</Text>
               <Text style={[styles.legCell, { color: pColor, flex: 1, textAlign: "right" }]}>{leg.odds}</Text>
             </View>
             <View style={{ paddingHorizontal: 10, paddingBottom: 6 }}>
-              <TrustBadge bookmakerId={leg.bookmakerId} region={region} />
+              <TrustBadge bookmakerId={leg.bookmakerId} />
               <MobileMoneyRow bookmakerId={leg.bookmakerId} region={region} />
             </View>
           </View>
         ))}
       </View>
 
-      {/* Profit hint */}
       <Text style={[styles.profitHint, { color: colors.textMuted }]}>
         On {formatLocal(1000 * currRate, currSymbol)} stake: +{formatLocal(arb.profitPercent / 100 * 1000 * currRate, currSymbol)} guaranteed
       </Text>
 
-      {/* CTA */}
-      <TouchableOpacity style={[styles.calcArbBtn, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan }]} onPress={() => onCalculate(arb)} activeOpacity={0.8}>
-        <Calculator size={14} color={colors.cyan} />
-        <Text style={[styles.calcArbBtnText, { color: colors.cyan }]}>Calculate Stakes</Text>
-        <ChevronRight size={14} color={colors.cyan} />
-      </TouchableOpacity>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <TouchableOpacity
+          style={[styles.calcArbBtn, { flex: 1, backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan }]}
+          onPress={() => onCalculate(arb)}
+          activeOpacity={0.8}
+        >
+          <Calculator size={14} color={colors.cyan} />
+          <Text style={[styles.calcArbBtnText, { color: colors.cyan }]}>Calculate</Text>
+        </TouchableOpacity>
+        {arb.legs.length >= 2 && (
+          <TouchableOpacity
+            style={[styles.calcArbBtn, { flex: 1, backgroundColor: "rgba(0,255,148,0.08)", borderColor: "rgba(0,255,148,0.4)" }]}
+            onPress={() => {
+              arb.legs.forEach((leg) => openUrl(BK_META[leg.bookmakerId]?.url ?? `https://google.com/search?q=${leg.bookmaker}`));
+            }}
+            activeOpacity={0.8}
+          >
+            <ExternalLink size={14} color="#00FF94" />
+            <Text style={[styles.calcArbBtnText, { color: "#00FF94" }]}>Open Bookies</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -421,22 +719,28 @@ export default function ArbitrageScreen() {
   const { token, user } = useAuth();
 
   const [selectedRegion, setSelectedRegion] = useState<ArbRegion>("global");
-  const [data, setData]           = useState<ArbScanResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState<ScannerTab>("arbs");
+  const [data, setData]               = useState<ArbScanResponse | null>(null);
+  const [evData, setEvData]           = useState<EVScanResponse | null>(null);
+  const [middlesData, setMiddlesData] = useState<MiddlesScanResponse | null>(null);
+  const [isLoading, setIsLoading]     = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [liveRates, setLiveRates] = useState<Record<string, number>>({});
-  const [error, setError]         = useState("");
+  const [liveRates, setLiveRates]     = useState<Record<string, number>>({});
+  const [error, setError]             = useState("");
   const [selectedArb, setSelectedArb] = useState<ArbOpportunity | null>(null);
   const [calcVisible, setCalcVisible] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [minProfit, setMinProfit]     = useState(0);
+  const [sportFilter, setSportFilter] = useState("All");
 
   const scanAnim = useRef(new Animated.Value(0)).current;
+  const liveRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Use the effective tier from the API response (respects admin overrides & free trials).
-  // Falls back to user.tier from the auth token while data is still loading.
   const effectiveTier = data?.effectiveTier ?? data?.tier ?? user?.tier ?? "free";
   const isPremium = effectiveTier === "premium";
-
   const topPadding = insets.top + (Platform.OS === "web" ? 67 : 0);
+
+  const hasActiveFilters = minProfit > 0 || sportFilter !== "All";
 
   useEffect(() => {
     if (!isPremium) return;
@@ -465,28 +769,80 @@ export default function ArbitrageScreen() {
     }
   }, [token, isPremium, selectedRegion]);
 
-  // Fetch live exchange rates on mount (public endpoint — no auth needed)
+  const loadEV = useCallback(async (force = false) => {
+    if (!token || !isPremium) return;
+    try {
+      const result = await api.arbitrage.ev(token, selectedRegion, force);
+      setEvData(result);
+    } catch { /* silent */ }
+  }, [token, isPremium, selectedRegion]);
+
+  const loadMiddles = useCallback(async (force = false) => {
+    if (!token || !isPremium) return;
+    try {
+      const result = await api.arbitrage.middles(token, selectedRegion, force);
+      setMiddlesData(result);
+    } catch { /* silent */ }
+  }, [token, isPremium, selectedRegion]);
+
   useEffect(() => {
     api.arbitrage.rates().then((r) => { if (r.rates) setLiveRates(r.rates); }).catch(() => {});
   }, []);
 
-  // Reload when region changes
-  useEffect(() => { setData(null); load(); }, [selectedRegion]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setData(null); setEvData(null); setMiddlesData(null);
+    load();
+  }, [selectedRegion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Premium: auto-refresh every 30s
+  useEffect(() => {
+    if (selectedTab === "ev" && !evData) loadEV();
+    if (selectedTab === "middles" && !middlesData) loadMiddles();
+  }, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Premium ARBs: auto-refresh every 30s
   useEffect(() => {
     if (!isPremium) return;
     const id = setInterval(() => load(true), 30_000);
     return () => clearInterval(id);
   }, [isPremium, load]);
 
-  const opps = data?.opportunities ?? [];
-  const disclaimer = data?.disclaimer ?? (selectedRegion === "africa"
-    ? "Verify your local bookmaker holds a valid gaming license. 1xBet and Melbet operate with limited regulation — use with caution. 18+ only."
-    : "Odds comparison data is shown for educational purposes only. PrediQs AI does not facilitate placing of any bets or wagers. 18+ only.");
+  // Live tab: 10s auto-refresh
+  useEffect(() => {
+    if (selectedTab !== "live" || !isPremium) {
+      if (liveRefreshRef.current) { clearInterval(liveRefreshRef.current); liveRefreshRef.current = null; }
+      return;
+    }
+    liveRefreshRef.current = setInterval(() => load(true), 10_000);
+    return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
+  }, [selectedTab, isPremium, load]);
 
-  // While data is still loading we can't know the effective tier yet (admin overrides
-  // come from the API response). Show a spinner so the gate doesn't flash incorrectly.
+  const allOpps = data?.opportunities ?? [];
+
+  const opps = allOpps.filter((o) => {
+    if (minProfit > 0 && o.profitPercent < minProfit) return false;
+    if (sportFilter !== "All" && o.sport !== sportFilter) return false;
+    return true;
+  });
+
+  const evBets = (evData?.bets ?? []).filter((b) => {
+    if (minProfit > 0 && b.evPercent < minProfit) return false;
+    if (sportFilter !== "All" && b.sport !== sportFilter) return false;
+    return true;
+  });
+
+  const middles = (middlesData?.middles ?? []).filter((m) => {
+    if (sportFilter !== "All" && m.sport !== sportFilter) return false;
+    return true;
+  });
+
+  // Live = arbs starting within next 3h
+  const liveOpps = allOpps.filter((o) => {
+    const secs = secondsUntil(o.commenceTime);
+    return secs > 0 && secs < 10800;
+  });
+
+  const disclaimer = data?.disclaimer ?? "Odds comparison data is shown for educational purposes only. PrediQs AI does not facilitate placing of any bets or wagers. 18+ only.";
+
   if (!isPremium && isLoading && !data) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
@@ -518,7 +874,16 @@ export default function ArbitrageScreen() {
             Scan 40+ global and African bookmakers for guaranteed profit margins. Real-time odds discrepancy detection with stake calculator.
           </Text>
           <View style={[styles.teaserCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.25)", marginBottom: 20, width: "100%" }]}>
-            {["Real-time auto-refresh every 30s", "40+ global + African bookmakers", "2-way & 3-way arbitrage", "Profit calculator with stake optimizer", "Push alerts for new arbs"].map((f) => (
+            {[
+              "Real-time auto-refresh every 30s",
+              "40+ global + African bookmakers",
+              "2-way & 3-way arbitrage (ARBs tab)",
+              "+EV Bets scanner with sharp line comparison",
+              "Middles detector for spreads & totals",
+              "Live Arbs tab — 10s refresh on active games",
+              "Profit calculator with stake optimizer",
+              "Push alerts for high-value arbs",
+            ].map((f) => (
               <Text key={f} style={[styles.teaserText, { color: colors.textSecondary }]}>✓ {f}</Text>
             ))}
           </View>
@@ -545,7 +910,23 @@ export default function ArbitrageScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>🔄 Odds Comparison</Text>
           <Animated.Text style={[styles.headerSub, { color: "#00FF94", opacity: scanAnim }]}>⚡ LIVE — scanning 40+ bookmakers</Animated.Text>
         </View>
-        <TouchableOpacity style={[styles.refreshBtn, { borderColor: colors.border }]} onPress={() => load(true)} disabled={isRefreshing} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.filterBtn, {
+            borderColor: hasActiveFilters ? colors.cyan : colors.border,
+            backgroundColor: hasActiveFilters ? "rgba(0,229,255,0.1)" : "transparent",
+          }]}
+          onPress={() => setFilterVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Filter size={15} color={hasActiveFilters ? colors.cyan : colors.textMuted} />
+          {hasActiveFilters && <View style={[styles.filterDot, { backgroundColor: colors.cyan }]} />}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.refreshBtn, { borderColor: colors.border, marginLeft: 6 }]}
+          onPress={() => { load(true); loadEV(true); loadMiddles(true); }}
+          disabled={isRefreshing}
+          activeOpacity={0.7}
+        >
           <RefreshCw size={16} color={isRefreshing ? colors.textMuted : colors.cyan} />
         </TouchableOpacity>
       </View>
@@ -577,12 +958,41 @@ export default function ArbitrageScreen() {
         })}
       </ScrollView>
 
+      {/* Scanner type tabs */}
+      <View style={[styles.scannerTabRow, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        {SCANNER_TABS.map((tab) => {
+          const active = selectedTab === tab.id;
+          const isLive = tab.id === "live";
+          const liveCount = isLive ? liveOpps.length : null;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.scannerTab, active && { borderBottomColor: isLive ? "#FF4D4D" : colors.cyan, borderBottomWidth: 2 }]}
+              onPress={() => setSelectedTab(tab.id)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 13 }}>{tab.emoji}</Text>
+              <Text style={[styles.scannerTabText, { color: active ? (isLive ? "#FF4D4D" : colors.cyan) : colors.textMuted }]}>
+                {tab.label}
+              </Text>
+              {liveCount !== null && liveCount > 0 && (
+                <View style={[styles.liveCountBadge, { backgroundColor: "#FF4D4D" }]}>
+                  <Text style={{ fontSize: 9, color: "#fff" }}>{liveCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Stats bar */}
-      {data && (
+      {(selectedTab === "arbs" || selectedTab === "live") && data && (
         <View style={[styles.statsBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <View style={styles.statItem}>
-            <Text style={[styles.statVal, { color: opps.length > 0 ? "#00FF94" : colors.textMuted }]}>{opps.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Live Arbs</Text>
+            <Text style={[styles.statVal, { color: (selectedTab === "live" ? liveOpps : opps).length > 0 ? "#00FF94" : colors.textMuted }]}>
+              {selectedTab === "live" ? liveOpps.length : opps.length}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>{selectedTab === "live" ? "Live Now" : "Arbs"}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
@@ -592,7 +1002,7 @@ export default function ArbitrageScreen() {
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statVal, { color: colors.cyan }]}>
-              {opps.length > 0 ? `+${Math.max(...opps.map((o) => o.profitPercent)).toFixed(1)}%` : "—"}
+              {allOpps.length > 0 ? `+${Math.max(...allOpps.map((o) => o.profitPercent)).toFixed(1)}%` : "—"}
             </Text>
             <Text style={[styles.statLabel, { color: colors.textMuted }]}>Best Margin</Text>
           </View>
@@ -606,22 +1016,67 @@ export default function ArbitrageScreen() {
         </View>
       )}
 
+      {selectedTab === "ev" && evData && (
+        <View style={[styles.statsBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: evBets.length > 0 ? "#00FF94" : colors.textMuted }]}>{evBets.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>+EV Bets</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: evBets.length > 0 ? colors.cyan : colors.textMuted }]}>
+              {evBets.length > 0 ? `+${Math.max(...evBets.map((b) => b.evPercent)).toFixed(1)}%` : "—"}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Best EV</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: colors.textMuted, fontSize: 10 }]}>
+              {evData.lastScanned ? new Date(evData.lastScanned).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Last Scan</Text>
+          </View>
+        </View>
+      )}
+
+      {selectedTab === "middles" && middlesData && (
+        <View style={[styles.statsBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: middles.length > 0 ? "#FFD700" : colors.textMuted }]}>{middles.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Middles</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: middles.length > 0 ? "#FFD700" : colors.textMuted }]}>
+              {middles.length > 0 ? `${Math.max(...middles.map((m) => m.hitProbability))}%` : "—"}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Best Hit %</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: colors.textMuted, fontSize: 10 }]}>
+              {middlesData.lastScanned ? new Date(middlesData.lastScanned).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Last Scan</Text>
+          </View>
+        </View>
+      )}
+
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + (Platform.OS === "web" ? 34 : 0) + 32 }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => load(true)} tintColor={colors.cyan} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { load(true); if (selectedTab === "ev") loadEV(true); if (selectedTab === "middles") loadMiddles(true); }} tintColor={colors.cyan} />}
       >
         {/* Loading */}
         {isLoading && !data && (
           <View style={styles.centered}>
             <Text style={{ fontSize: 32 }}>{selectedRegion === "africa" ? "🌍" : "🔍"}</Text>
-            <Text style={[styles.loadingTitle, { color: colors.text }]}>Scanning {selectedRegion === "africa" ? "African" : ""} bookmakers…</Text>
-            <Text style={[styles.loadingSub, { color: colors.textSecondary }]}>Comparing odds across 40+ bookmakers for guaranteed profit margins</Text>
+            <Text style={[styles.loadingTitle, { color: colors.text }]}>Scanning bookmakers…</Text>
+            <Text style={[styles.loadingSub, { color: colors.textSecondary }]}>Comparing odds across 40+ bookmakers</Text>
           </View>
         )}
 
-        {/* Error */}
         {error && (
           <View style={[styles.errorCard, { backgroundColor: "rgba(255,77,77,0.08)", borderColor: "rgba(255,77,77,0.25)" }]}>
             <AlertTriangle size={16} color={colors.red} />
@@ -629,65 +1084,165 @@ export default function ArbitrageScreen() {
           </View>
         )}
 
-        {/* Africa info banner */}
-        {selectedRegion === "africa" && !isLoading && (
-          <View style={[styles.infoBanner, { backgroundColor: "rgba(255,215,0,0.07)", borderColor: "rgba(255,215,0,0.3)" }]}>
-            <Text style={{ fontSize: 16 }}>🌍</Text>
-            <View style={{ flex: 1, gap: 3 }}>
-              <Text style={[styles.infoBannerTitle, { color: "#FFD700" }]}>African Markets — Bigger Arb Windows</Text>
-              <Text style={[styles.infoBannerSub, { color: colors.textSecondary }]}>
-                African bookmakers often have larger odds differences than global markets — leading to better profit margins. Local bookmakers (Bet9ja, SportyBet, BetKing) are sourced directly.
+        {/* ── ARBs tab ── */}
+        {(selectedTab === "arbs" || selectedTab === "live") && !isLoading && (
+          <>
+            <View style={[styles.eliteBanner, {
+              backgroundColor: selectedTab === "live" ? "rgba(255,77,77,0.08)" : "rgba(0,255,148,0.08)",
+              borderColor: selectedTab === "live" ? "rgba(255,77,77,0.3)" : "rgba(0,255,148,0.3)",
+            }]}>
+              <View style={[styles.liveDot, { backgroundColor: selectedTab === "live" ? "#FF4D4D" : "#00FF94" }]} />
+              <Text style={[styles.eliteBannerText, { color: selectedTab === "live" ? "#FF4D4D" : "#00FF94" }]}>
+                {selectedTab === "live"
+                  ? `LIVE — 10s refresh · ${liveOpps.length} active in next 3h`
+                  : `LIVE — Auto-refresh every 30s · ${opps.length} active ${opps.length === 1 ? "opportunity" : "opportunities"}`}
               </Text>
             </View>
-          </View>
+
+            {selectedRegion === "africa" && (
+              <View style={[styles.infoBanner, { backgroundColor: "rgba(255,215,0,0.07)", borderColor: "rgba(255,215,0,0.3)" }]}>
+                <Text style={{ fontSize: 16 }}>🌍</Text>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={[styles.infoBannerTitle, { color: "#FFD700" }]}>African Markets — Bigger Arb Windows</Text>
+                  <Text style={[styles.infoBannerSub, { color: colors.textSecondary }]}>
+                    Local bookmakers (Bet9ja, SportyBet, BetKing) are sourced directly for larger margin gaps.
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {(() => {
+              const displayOpps = selectedTab === "live" ? liveOpps : opps;
+              if (displayOpps.length === 0) {
+                return (
+                  <View style={styles.emptyState}>
+                    <Text style={{ fontSize: 40 }}>{selectedTab === "live" ? "⚡" : selectedRegion === "africa" ? "🌍" : "📊"}</Text>
+                    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                      {selectedTab === "live" ? "No live games right now" : "No arbs right now"}
+                    </Text>
+                    <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
+                      {selectedTab === "live"
+                        ? "Games starting within 3h will appear here. Check back soon."
+                        : "Bookmakers have closed the gaps. Refresh to keep scanning."}
+                    </Text>
+                    <TouchableOpacity
+                      style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border, opacity: isRefreshing ? 0.6 : 1 }]}
+                      onPress={() => load(true)}
+                      disabled={isRefreshing}
+                      activeOpacity={0.8}
+                    >
+                      <RefreshCw size={14} color={isRefreshing ? colors.textMuted : colors.cyan} />
+                      <Text style={[styles.retryText, { color: isRefreshing ? colors.textMuted : colors.cyan }]}>
+                        {isRefreshing ? "Scanning…" : "Scan Now"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              return displayOpps.map((arb) => (
+                <ArbCard
+                  key={arb.id}
+                  arb={arb}
+                  region={selectedRegion}
+                  liveRates={liveRates}
+                  onCalculate={(a) => { setSelectedArb(a); setCalcVisible(true); }}
+                  showLivePulse={selectedTab === "live"}
+                />
+              ));
+            })()}
+          </>
         )}
 
-        {/* Premium content */}
-        {!isLoading && (
+        {/* ── +EV tab ── */}
+        {selectedTab === "ev" && (
           <>
             <View style={[styles.eliteBanner, { backgroundColor: "rgba(0,255,148,0.08)", borderColor: "rgba(0,255,148,0.3)" }]}>
-              <View style={[styles.liveDot, { backgroundColor: "#00FF94" }]} />
+              <Zap size={12} color="#00FF94" />
               <Text style={[styles.eliteBannerText, { color: "#00FF94" }]}>
-                LIVE — Auto-refresh every 30s · {opps.length} active {opps.length === 1 ? "opportunity" : "opportunities"}
+                +EV Bets — Odds higher than sharp line · Edge vs Pinnacle/market average
               </Text>
             </View>
 
-            {opps.length === 0 && !isLoading && (
+            {!evData && !isLoading && (
+              <View style={styles.centered}>
+                <Text style={{ fontSize: 32 }}>📈</Text>
+                <Text style={[styles.loadingTitle, { color: colors.text }]}>Loading +EV scanner…</Text>
+              </View>
+            )}
+
+            {evBets.length === 0 && evData && (
               <View style={styles.emptyState}>
-                <Text style={{ fontSize: 40 }}>{selectedRegion === "africa" ? "🌍" : "📊"}</Text>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>No arbs right now</Text>
+                <Text style={{ fontSize: 40 }}>📈</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>No +EV bets right now</Text>
                 <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
-                  Bookmakers have closed the gaps. Refresh to keep scanning — odds discrepancies typically last 2–15 minutes.
+                  Sharp lines are aligned. Refresh to check for new opportunities.
                 </Text>
                 <TouchableOpacity
-                  style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border, opacity: isRefreshing ? 0.6 : 1 }]}
-                  onPress={() => load(true)}
-                  disabled={isRefreshing}
+                  style={[styles.retryBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => loadEV(true)}
                   activeOpacity={0.8}
                 >
-                  <RefreshCw size={14} color={isRefreshing ? colors.textMuted : colors.cyan} />
-                  <Text style={[styles.retryText, { color: isRefreshing ? colors.textMuted : colors.cyan }]}>
-                    {isRefreshing ? "Scanning…" : "Scan Now"}
-                  </Text>
+                  <RefreshCw size={14} color={colors.cyan} />
+                  <Text style={[styles.retryText, { color: colors.cyan }]}>Refresh</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            {opps.map((arb) => (
-              <ArbCard key={arb.id} arb={arb} region={selectedRegion} liveRates={liveRates} onCalculate={(a) => { setSelectedArb(a); setCalcVisible(true); }} />
+            {evBets.map((bet) => (
+              <EVCard key={bet.id} bet={bet} region={selectedRegion} />
             ))}
           </>
         )}
 
-        {/* Africa-specific country disclaimers */}
-        {selectedRegion === "africa" && (
+        {/* ── Middles tab ── */}
+        {selectedTab === "middles" && (
+          <>
+            <View style={[styles.eliteBanner, { backgroundColor: "rgba(255,215,0,0.08)", borderColor: "rgba(255,215,0,0.3)" }]}>
+              <Text style={{ fontSize: 12 }}>🎯</Text>
+              <Text style={[styles.eliteBannerText, { color: "#FFD700" }]}>
+                Middles — Spread/total discrepancies where both bets can win
+              </Text>
+            </View>
+
+            <View style={[styles.infoBanner, { backgroundColor: "rgba(255,215,0,0.04)", borderColor: "rgba(255,215,0,0.15)" }]}>
+              <Text style={{ fontSize: 14 }}>💡</Text>
+              <Text style={[styles.infoBannerSub, { color: colors.textSecondary, flex: 1 }]}>
+                A middle wins when the final score falls between two spread positions. Both bets win — you profit on both. Worst case: one bet loses (~4.5% of stake).
+              </Text>
+            </View>
+
+            {!middlesData && (
+              <View style={styles.centered}>
+                <Text style={{ fontSize: 32 }}>🎯</Text>
+                <Text style={[styles.loadingTitle, { color: colors.text }]}>Loading middles scanner…</Text>
+              </View>
+            )}
+
+            {middles.length === 0 && middlesData && (
+              <View style={styles.emptyState}>
+                <Text style={{ fontSize: 40 }}>🎯</Text>
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>No middles right now</Text>
+                <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
+                  No significant spread discrepancies found. Check back when more games are available.
+                </Text>
+              </View>
+            )}
+
+            {middles.map((middle) => (
+              <MiddleCard key={middle.id} middle={middle} region={selectedRegion} />
+            ))}
+          </>
+        )}
+
+        {/* Africa country disclaimers */}
+        {selectedRegion === "africa" && (selectedTab === "arbs" || selectedTab === "live") && (
           <View style={{ gap: 8 }}>
             <Text style={[styles.sectionLabel, { color: colors.textMuted, marginTop: 4 }]}>COUNTRY REGULATIONS</Text>
             {[
-              { flag: "🇳🇬", label: "Nigeria", text: "Regulated by the NLRC. Only use NLRC-licensed operators." },
-              { flag: "🇰🇪", label: "Kenya",   text: "Regulated by BCLB. 20% excise duty applies to winnings." },
+              { flag: "🇳🇬", label: "Nigeria",      text: "Regulated by the NLRC. Only use NLRC-licensed operators." },
+              { flag: "🇰🇪", label: "Kenya",        text: "Regulated by BCLB. 20% excise duty applies to winnings." },
               { flag: "🇿🇦", label: "South Africa", text: "Regulated by the National Gambling Board." },
-              { flag: "🇬🇭", label: "Ghana",   text: "Regulated by the Gaming Commission of Ghana." },
+              { flag: "🇬🇭", label: "Ghana",        text: "Regulated by the Gaming Commission of Ghana." },
             ].map(({ flag, label, text }) => (
               <View key={label} style={[styles.countryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={{ fontSize: 16 }}>{flag}</Text>
@@ -700,7 +1255,6 @@ export default function ArbitrageScreen() {
           </View>
         )}
 
-        {/* Disclaimer */}
         <View style={[styles.disclaimerCard, { backgroundColor: "rgba(255,165,0,0.06)", borderColor: "rgba(255,165,0,0.2)" }]}>
           <AlertTriangle size={14} color="#FFA500" />
           <Text style={[styles.disclaimerText, { color: colors.textSecondary }]}>{disclaimer}</Text>
@@ -709,7 +1263,6 @@ export default function ArbitrageScreen() {
         <DisclaimerFooter />
       </ScrollView>
 
-      {/* Calculator Modal */}
       {token && (
         <CalcModal
           arb={selectedArb}
@@ -720,6 +1273,15 @@ export default function ArbitrageScreen() {
           liveRates={liveRates}
         />
       )}
+
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        minProfit={minProfit}
+        setMinProfit={setMinProfit}
+        sportFilter={sportFilter}
+        setSportFilter={setSportFilter}
+      />
     </View>
   );
 }
@@ -729,65 +1291,59 @@ export default function ArbitrageScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Header
   header: { paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: 1, flexDirection: "row", alignItems: "center" },
   headerTitle: { fontSize: 20, letterSpacing: -0.3 },
   headerSub: { fontSize: 11, marginTop: 1 },
   refreshBtn: { padding: 8, borderRadius: 10, borderWidth: 1 },
+  filterBtn: { padding: 8, borderRadius: 10, borderWidth: 1, position: "relative" },
+  filterDot: { position: "absolute", top: 5, right: 5, width: 6, height: 6, borderRadius: 3 },
 
-  // Region tabs
   regionScroll: { borderBottomWidth: 1, maxHeight: 52 },
   regionContent: { paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", gap: 8, alignItems: "center" },
   regionPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   regionPillText: { fontSize: 12 },
   newBadge: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4, marginLeft: 2 },
 
-  // Stats bar
+  scannerTabRow: { flexDirection: "row", borderBottomWidth: 1 },
+  scannerTab: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 10, paddingHorizontal: 4, borderBottomWidth: 2, borderBottomColor: "transparent" },
+  scannerTabText: { fontSize: 12, letterSpacing: 0.2 },
+  liveCountBadge: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6, minWidth: 16, alignItems: "center" },
+
   statsBar: { flexDirection: "row", paddingVertical: 10, borderBottomWidth: 1 },
   statItem: { flex: 1, alignItems: "center", gap: 2 },
   statVal: { fontSize: 16, letterSpacing: -0.3 },
   statLabel: { fontSize: 9, letterSpacing: 0.4, textTransform: "uppercase" },
   statDivider: { width: 1, marginVertical: 4 },
 
-  // Content
   content: { padding: 16, gap: 14 },
   centered: { alignItems: "center", gap: 12, paddingVertical: 60, paddingHorizontal: 24 },
   loadingTitle: { fontSize: 18, textAlign: "center" },
   loadingSub: { fontSize: 13, textAlign: "center", lineHeight: 19 },
 
-  // Info banner
   infoBanner: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
   infoBannerTitle: { fontSize: 14 },
   infoBannerSub: { fontSize: 11, lineHeight: 16 },
 
-  // Error
   errorCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, borderWidth: 1 },
   errorText: { flex: 1, fontSize: 13 },
 
-  // Gate
-  gateCard: { padding: 20, borderRadius: 18, borderWidth: 2, alignItems: "center", gap: 12 },
   gateTitle: { fontSize: 20, letterSpacing: -0.3 },
   gateSub: { fontSize: 13, textAlign: "center", lineHeight: 19 },
-  teaserCard: { width: "100%", padding: 12, borderRadius: 10, borderWidth: 1, alignItems: "center" },
-  teaserText: { fontSize: 13, textAlign: "center" },
+  teaserCard: { width: "100%", padding: 12, borderRadius: 10, borderWidth: 1 },
+  teaserText: { fontSize: 12, marginVertical: 2 },
   upgradeBtn: { flexDirection: "row", alignItems: "center", gap: 6, width: "100%", justifyContent: "center", padding: 14, borderRadius: 14 },
   upgradeBtnText: { fontSize: 14 },
 
-  // Banners
-  proInfoBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
-  proInfoText: { flex: 1, fontSize: 11 },
   eliteBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   liveDot: { width: 8, height: 8, borderRadius: 4 },
   eliteBannerText: { flex: 1, fontSize: 12 },
 
-  // Empty
   emptyState: { alignItems: "center", gap: 10, paddingVertical: 40 },
   emptyTitle: { fontSize: 18 },
   emptySub: { fontSize: 13, textAlign: "center", lineHeight: 19 },
   retryBtn: { flexDirection: "row", alignItems: "center", gap: 6, padding: 12, borderRadius: 10, borderWidth: 1, marginTop: 4 },
   retryText: { fontSize: 13 },
 
-  // Arb card
   arbCard: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 10 },
   arbCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   arbCardHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -798,6 +1354,7 @@ const styles = StyleSheet.create({
   profitBadgeText: { fontSize: 13 },
   arbMatchup: { fontSize: 16, letterSpacing: -0.2 },
   countdown: { fontSize: 11 },
+
   legsTable: { borderRadius: 10, borderWidth: 1, overflow: "hidden" },
   legsHeader: { flexDirection: "row", padding: 8, borderBottomWidth: 1 },
   legHeaderText: { fontSize: 10, letterSpacing: 0.3, textTransform: "uppercase" },
@@ -809,22 +1366,28 @@ const styles = StyleSheet.create({
   calcArbBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   calcArbBtnText: { fontSize: 13 },
 
-  // Elite upgrade nudge
-  eliteUpgradeCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1 },
-  eliteUpgradeTitle: { fontSize: 14 },
-  eliteUpgradeSub: { fontSize: 11, lineHeight: 16 },
+  evRow: { flexDirection: "row", borderRadius: 10, borderWidth: 1, padding: 12, gap: 8 },
+  evCol: { flex: 1, gap: 4 },
+  evLabel: { fontSize: 9, letterSpacing: 0.4, textTransform: "uppercase" },
+  evVal: { fontSize: 13 },
+  evSummaryRow: { flexDirection: "row", borderRadius: 10, borderWidth: 1, padding: 12 },
+  evSummaryItem: { flex: 1, alignItems: "center", gap: 3 },
+  evSummaryVal: { fontSize: 15, letterSpacing: -0.2 },
+  evSummaryDivider: { width: 1, marginVertical: 4 },
 
-  // Country cards
+  middleBooksRow: { flexDirection: "row", borderRadius: 10, borderWidth: 1, overflow: "hidden" },
+  middleBookCol: { flex: 1, padding: 12, gap: 4 },
+
   countryCard: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 12, borderRadius: 10, borderWidth: 1 },
   countryLabel: { fontSize: 13 },
   countryText: { fontSize: 11, lineHeight: 15, marginTop: 1 },
   sectionLabel: { fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase" },
 
-  // Disclaimer
   disclaimerCard: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
   disclaimerText: { flex: 1, fontSize: 11, lineHeight: 16 },
 
-  // Modal
+  filterPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+
   modalContainer: { flex: 1 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, paddingTop: 24, borderBottomWidth: 1 },
   modalTitle: { fontSize: 18 },

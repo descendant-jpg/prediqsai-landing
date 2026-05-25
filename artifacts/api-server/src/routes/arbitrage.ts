@@ -11,6 +11,8 @@ import {
   calculateStakes,
   getLiveExchangeRates,
   scanByRegion,
+  scanForEVBets,
+  scanForMiddles,
 } from "../services/arbitrage-engine";
 
 const router = Router();
@@ -126,6 +128,56 @@ router.post("/arbitrage/calculate", requireAuth, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Arb calculation failed");
     res.status(500).json({ error: "Calculation failed" });
+  }
+});
+
+// GET /api/arbitrage/ev — positive expected value bets
+router.get("/arbitrage/ev", requireAuth, async (req, res) => {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
+    const effectiveTier = getEffectiveTier(user);
+    if (effectiveTier !== "premium") {
+      res.status(403).json({ error: "+EV scanner requires Premium tier" });
+      return;
+    }
+    const region = parseRegion(req.query["region"]);
+    const forceRefresh = req.query["refresh"] === "true";
+    const bets = await scanForEVBets(region, forceRefresh);
+    res.json({
+      bets,
+      totalFound: bets.length,
+      lastScanned: new Date().toISOString(),
+      region,
+      disclaimer: REGION_DISCLAIMERS[region] ?? REGION_DISCLAIMERS["global"],
+    });
+  } catch (err) {
+    req.log.error({ err }, "EV scan failed");
+    res.status(500).json({ error: "EV scan failed" });
+  }
+});
+
+// GET /api/arbitrage/middles — middle opportunities
+router.get("/arbitrage/middles", requireAuth, async (req, res) => {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
+    const effectiveTier = getEffectiveTier(user);
+    if (effectiveTier !== "premium") {
+      res.status(403).json({ error: "Middles scanner requires Premium tier" });
+      return;
+    }
+    const region = parseRegion(req.query["region"]);
+    const forceRefresh = req.query["refresh"] === "true";
+    const middles = await scanForMiddles(region, forceRefresh);
+    res.json({
+      middles,
+      totalFound: middles.length,
+      lastScanned: new Date().toISOString(),
+      region,
+      disclaimer: REGION_DISCLAIMERS[region] ?? REGION_DISCLAIMERS["global"],
+    });
+  } catch (err) {
+    req.log.error({ err }, "Middles scan failed");
+    res.status(500).json({ error: "Middles scan failed" });
   }
 });
 

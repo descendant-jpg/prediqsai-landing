@@ -935,3 +935,297 @@ export function calculateStakes(
     return { selection: leg.selection, bookmaker: leg.bookmaker, stake, returns };
   });
 }
+
+// ─── EV Bet types ──────────────────────────────────────────────────────────────
+
+export interface EVBet {
+  id: string;
+  sport: string;
+  sportKey: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+  bookmaker: string;
+  bookmakerId: string;
+  selection: string;
+  odds: number;
+  sharpOdds: number;
+  evPercent: number;
+  impliedEdge: number;
+  discoveredAt: string;
+  region?: ArbRegion;
+}
+
+// ─── Middle types ──────────────────────────────────────────────────────────────
+
+export interface MiddleOpportunity {
+  id: string;
+  sport: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+  book1: { bookmaker: string; bookmakerId: string; selection: string; spread: number; odds: number };
+  book2: { bookmaker: string; bookmakerId: string; selection: string; spread: number; odds: number };
+  window: number;
+  hitProbability: number;
+  worstCase: number;
+  region?: ArbRegion;
+  discoveredAt: string;
+}
+
+// ─── EV scan from live odds ────────────────────────────────────────────────────
+
+const evCache = new Map<ArbRegion, { bets: EVBet[]; ts: number }>();
+
+function detectEV(
+  game: Record<string, unknown>,
+  sport: string,
+  league: string,
+  region: ArbRegion,
+): EVBet[] {
+  const bookmakers = game["bookmakers"] as Record<string, unknown>[] | undefined;
+  if (!bookmakers || bookmakers.length < 3) return [];
+
+  const allOdds = new Map<string, Array<{ odds: number; bookmaker: string; bookmakerId: string }>>();
+
+  for (const bk of bookmakers) {
+    const markets = bk["markets"] as Record<string, unknown>[] | undefined;
+    const h2h = markets?.find((m) => m["key"] === "h2h");
+    if (!h2h) continue;
+    const outcomes = h2h["outcomes"] as Record<string, unknown>[] | undefined;
+    for (const o of outcomes ?? []) {
+      const name = o["name"] as string;
+      const price = o["price"] as number;
+      if (!price || price <= 1.01) continue;
+      const arr = allOdds.get(name) ?? [];
+      arr.push({ odds: price, bookmaker: bk["title"] as string, bookmakerId: bk["key"] as string });
+      allOdds.set(name, arr);
+    }
+  }
+
+  const results: EVBet[] = [];
+  const homeTeam = game["home_team"] as string;
+  const awayTeam = game["away_team"] as string;
+  const gameId = (game["id"] as string) ?? `ev-${sport}-${homeTeam}`;
+
+  for (const [selection, entries] of allOdds.entries()) {
+    if (entries.length < 2) continue;
+    entries.sort((a, b) => b.odds - a.odds);
+    const best = entries[0]!;
+    // Use average of middle 50% as "sharp" line
+    const mid = entries.slice(1);
+    const avgOdds = mid.reduce((s, e) => s + e.odds, 0) / mid.length;
+    const sharpProb = 1 / avgOdds;
+    const betProb = 1 / best.odds;
+    const edge = sharpProb - betProb;
+    if (edge < 0.015) continue; // require >1.5% edge
+    const evPercent = parseFloat((edge * 100).toFixed(2));
+    results.push({
+      id: `ev-${gameId}-${selection}`,
+      sport, sportKey: (game["sport_key"] as string) ?? "", league,
+      homeTeam, awayTeam,
+      commenceTime: (game["commence_time"] as string) ?? new Date().toISOString(),
+      bookmaker: best.bookmaker, bookmakerId: best.bookmakerId,
+      selection, odds: parseFloat(best.odds.toFixed(3)),
+      sharpOdds: parseFloat(avgOdds.toFixed(3)),
+      evPercent, impliedEdge: parseFloat(edge.toFixed(4)),
+      discoveredAt: new Date().toISOString(), region,
+    });
+  }
+  return results;
+}
+
+export async function scanForEVBets(
+  region: ArbRegion = "global",
+  forceRefresh = false,
+): Promise<EVBet[]> {
+  if (!ODDS_API_KEY) return getDemoEVBets(region);
+
+  const now = Date.now();
+  const cached = evCache.get(region);
+  if (!forceRefresh && cached && now - cached.ts < CACHE_MS) return cached.bets;
+
+  const sports = REGION_SPORTS[region] ?? REGION_SPORTS.global;
+  const apiRegions = REGION_API_REGIONS[region] ?? "us,uk,eu,au";
+
+  try {
+    const results = await Promise.allSettled(
+      sports.map((s) => fetchOddsForSport(s.key, apiRegions).then((games) =>
+        games.flatMap((g) => detectEV(g, s.sport, s.league, region)),
+      )),
+    );
+    const bets: EVBet[] = [];
+    for (const r of results) {
+      if (r.status === "fulfilled") bets.push(...r.value);
+    }
+    if (bets.length === 0) return getDemoEVBets(region);
+    bets.sort((a, b) => b.evPercent - a.evPercent);
+    evCache.set(region, { bets, ts: now });
+    return bets;
+  } catch {
+    return getDemoEVBets(region);
+  }
+}
+
+// ─── Middles scan ─────────────────────────────────────────────────────────────
+
+const middlesCache = new Map<ArbRegion, { middles: MiddleOpportunity[]; ts: number }>();
+
+export async function scanForMiddles(
+  region: ArbRegion = "global",
+  forceRefresh = false,
+): Promise<MiddleOpportunity[]> {
+  const now = Date.now();
+  const cached = middlesCache.get(region);
+  if (!forceRefresh && cached && now - cached.ts < CACHE_MS) return cached.middles;
+  // Middles require spreads/totals markets — use demo data for now
+  const middles = getDemoMiddles(region);
+  middlesCache.set(region, { middles, ts: now });
+  return middles;
+}
+
+// ─── Demo EV bets ──────────────────────────────────────────────────────────────
+
+function getDemoEVBets(region: ArbRegion = "global"): EVBet[] {
+  const now = ct(0);
+  const pool: EVBet[] = [
+    {
+      id: "ev-demo-1", sport: "Soccer", sportKey: "soccer_epl", league: "Premier League",
+      homeTeam: "Arsenal", awayTeam: "Chelsea", commenceTime: ct(4),
+      bookmaker: "Bet365", bookmakerId: "bet365", selection: "Arsenal",
+      odds: v(2.35, 0.08), sharpOdds: v(2.10, 0.05), evPercent: v(3.2, 0.4),
+      impliedEdge: 0.038, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-2", sport: "NBA", sportKey: "basketball_nba", league: "NBA",
+      homeTeam: "Los Angeles Lakers", awayTeam: "Golden State Warriors", commenceTime: ct(12),
+      bookmaker: "DraftKings", bookmakerId: "draftkings", selection: "Los Angeles Lakers",
+      odds: v(2.45, 0.08), sharpOdds: v(2.15, 0.06), evPercent: v(4.1, 0.5),
+      impliedEdge: 0.052, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-3", sport: "NFL", sportKey: "americanfootball_nfl", league: "NFL",
+      homeTeam: "Kansas City Chiefs", awayTeam: "Buffalo Bills", commenceTime: ct(22),
+      bookmaker: "FanDuel", bookmakerId: "fanduel", selection: "Buffalo Bills",
+      odds: v(2.60, 0.10), sharpOdds: v(2.30, 0.07), evPercent: v(5.0, 0.6),
+      impliedEdge: 0.064, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-4", sport: "Soccer", sportKey: "soccer_spain_la_liga", league: "La Liga",
+      homeTeam: "Real Madrid", awayTeam: "Barcelona", commenceTime: ct(38),
+      bookmaker: "Unibet", bookmakerId: "unibet", selection: "Draw",
+      odds: v(4.10, 0.15), sharpOdds: v(3.60, 0.12), evPercent: v(3.8, 0.45),
+      impliedEdge: 0.045, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-5", sport: "MLB", sportKey: "baseball_mlb", league: "MLB",
+      homeTeam: "New York Yankees", awayTeam: "Boston Red Sox", commenceTime: ct(7),
+      bookmaker: "BetMGM", bookmakerId: "betmgm", selection: "Boston Red Sox",
+      odds: v(2.80, 0.10), sharpOdds: v(2.50, 0.08), evPercent: v(2.7, 0.35),
+      impliedEdge: 0.034, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-6", sport: "Soccer", sportKey: "soccer_germany_bundesliga", league: "Bundesliga",
+      homeTeam: "Bayern Munich", awayTeam: "Borussia Dortmund", commenceTime: ct(61),
+      bookmaker: "Pinnacle", bookmakerId: "pinnacle", selection: "Borussia Dortmund",
+      odds: v(5.50, 0.25), sharpOdds: v(4.80, 0.20), evPercent: v(4.4, 0.5),
+      impliedEdge: 0.057, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-7", sport: "Soccer", sportKey: "soccer_italy_serie_a", league: "Serie A",
+      homeTeam: "AC Milan", awayTeam: "Inter Milan", commenceTime: ct(19),
+      bookmaker: "William Hill", bookmakerId: "williamhill", selection: "AC Milan",
+      odds: v(2.90, 0.10), sharpOdds: v(2.55, 0.08), evPercent: v(3.5, 0.4),
+      impliedEdge: 0.043, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-8", sport: "NBA", sportKey: "basketball_nba", league: "NBA",
+      homeTeam: "Miami Heat", awayTeam: "Boston Celtics", commenceTime: ct(33),
+      bookmaker: "Caesars", bookmakerId: "caesars", selection: "Miami Heat",
+      odds: v(2.75, 0.09), sharpOdds: v(2.40, 0.07), evPercent: v(4.8, 0.55),
+      impliedEdge: 0.060, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-9", sport: "Soccer", sportKey: "soccer_france_ligue_one", league: "Ligue 1",
+      homeTeam: "PSG", awayTeam: "Marseille", commenceTime: ct(46),
+      bookmaker: "Paddy Power", bookmakerId: "paddypower", selection: "Marseille",
+      odds: v(7.00, 0.30), sharpOdds: v(6.00, 0.25), evPercent: v(5.5, 0.65),
+      impliedEdge: 0.071, discoveredAt: now, region,
+    },
+    {
+      id: "ev-demo-10", sport: "NFL", sportKey: "americanfootball_nfl", league: "NFL",
+      homeTeam: "San Francisco 49ers", awayTeam: "Dallas Cowboys", commenceTime: ct(88),
+      bookmaker: "BetRivers", bookmakerId: "betrivers", selection: "Dallas Cowboys",
+      odds: v(3.10, 0.12), sharpOdds: v(2.70, 0.09), evPercent: v(4.2, 0.5),
+      impliedEdge: 0.053, discoveredAt: now, region,
+    },
+  ];
+  return pool.sort((a, b) => b.evPercent - a.evPercent);
+}
+
+// ─── Demo Middles ─────────────────────────────────────────────────────────────
+
+function getDemoMiddles(region: ArbRegion = "global"): MiddleOpportunity[] {
+  const now = ct(0);
+  const pool: MiddleOpportunity[] = [
+    {
+      id: "mid-demo-1", sport: "NBA", league: "NBA",
+      homeTeam: "Los Angeles Lakers", awayTeam: "Golden State Warriors", commenceTime: ct(12),
+      book1: { bookmaker: "DraftKings", bookmakerId: "draftkings", selection: "Lakers -3.5", spread: -3.5, odds: 1.91 },
+      book2: { bookmaker: "FanDuel",    bookmakerId: "fanduel",    selection: "Lakers -1.5", spread: -1.5, odds: 1.91 },
+      window: 2, hitProbability: 28, worstCase: -4.5, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-2", sport: "NFL", league: "NFL",
+      homeTeam: "Kansas City Chiefs", awayTeam: "Buffalo Bills", commenceTime: ct(22),
+      book1: { bookmaker: "BetMGM",   bookmakerId: "betmgm",   selection: "Chiefs -6.5", spread: -6.5, odds: 1.91 },
+      book2: { bookmaker: "Caesars",  bookmakerId: "caesars",  selection: "Chiefs -3.5", spread: -3.5, odds: 1.91 },
+      window: 3, hitProbability: 18, worstCase: -4.5, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-3", sport: "NBA", league: "NBA",
+      homeTeam: "Miami Heat", awayTeam: "Boston Celtics", commenceTime: ct(33),
+      book1: { bookmaker: "PointsBet", bookmakerId: "pointsbet", selection: "Over 215.5", spread: 215.5, odds: 1.91 },
+      book2: { bookmaker: "ESPN Bet",  bookmakerId: "espnbet",   selection: "Under 218.5", spread: 218.5, odds: 1.91 },
+      window: 3, hitProbability: 22, worstCase: -4.5, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-4", sport: "Soccer", league: "Premier League",
+      homeTeam: "Arsenal", awayTeam: "Chelsea", commenceTime: ct(4),
+      book1: { bookmaker: "Bet365",    bookmakerId: "bet365",    selection: "Over 2.5", spread: 2.5, odds: 1.85 },
+      book2: { bookmaker: "William Hill", bookmakerId: "williamhill", selection: "Under 3.5", spread: 3.5, odds: 1.85 },
+      window: 1, hitProbability: 34, worstCase: -7.5, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-5", sport: "NFL", league: "NFL",
+      homeTeam: "San Francisco 49ers", awayTeam: "Dallas Cowboys", commenceTime: ct(88),
+      book1: { bookmaker: "BetRivers", bookmakerId: "betrivers", selection: "49ers -4.5", spread: -4.5, odds: 1.95 },
+      book2: { bookmaker: "Unibet",    bookmakerId: "unibet",    selection: "49ers -2.5", spread: -2.5, odds: 1.90 },
+      window: 2, hitProbability: 20, worstCase: -5.0, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-6", sport: "NBA", league: "NBA",
+      homeTeam: "Denver Nuggets", awayTeam: "Phoenix Suns", commenceTime: ct(29),
+      book1: { bookmaker: "Caesars",    bookmakerId: "caesars",    selection: "Over 224.5", spread: 224.5, odds: 1.91 },
+      book2: { bookmaker: "DraftKings", bookmakerId: "draftkings", selection: "Under 227.5", spread: 227.5, odds: 1.91 },
+      window: 3, hitProbability: 25, worstCase: -4.5, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-7", sport: "Soccer", league: "Champions League",
+      homeTeam: "Manchester City", awayTeam: "Real Madrid", commenceTime: ct(73),
+      book1: { bookmaker: "Betfair", bookmakerId: "betfair",  selection: "Over 2.5", spread: 2.5, odds: 1.88 },
+      book2: { bookmaker: "Pinnacle",bookmakerId: "pinnacle", selection: "Under 3.5", spread: 3.5, odds: 1.88 },
+      window: 1, hitProbability: 30, worstCase: -6.0, region, discoveredAt: now,
+    },
+    {
+      id: "mid-demo-8", sport: "MLB", league: "MLB",
+      homeTeam: "New York Yankees", awayTeam: "Boston Red Sox", commenceTime: ct(7),
+      book1: { bookmaker: "FanDuel",  bookmakerId: "fanduel",  selection: "Yankees -1.5", spread: -1.5, odds: 2.10 },
+      book2: { bookmaker: "BetMGM",   bookmakerId: "betmgm",   selection: "Yankees -0.5", spread: -0.5, odds: 1.72 },
+      window: 1, hitProbability: 35, worstCase: -7.0, region, discoveredAt: now,
+    },
+  ];
+  return pool;
+}

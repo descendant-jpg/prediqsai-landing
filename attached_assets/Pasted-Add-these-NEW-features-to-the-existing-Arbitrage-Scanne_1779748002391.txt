@@ -1,0 +1,70 @@
+Add these NEW features to the existing Arbitrage 
+Scanner in PrediQs AI. Do not rebuild what already 
+exists — only ADD what is missing:
+
+1. SCANNER ENGINE IMPROVEMENTS
+   - Currently only shows 3 results — remove the 
+     limit and show ALL arbs found
+   - Connect properly to ODDS_API_KEY to scan 
+     20+ sportsbooks (currently seems to use 
+     mock/limited data)
+   - Add countdown timer on each arb card showing 
+     how long the arb has been live
+
+2. SMART STAKE CALCULATOR (MISSING)
+   The "Calculate Stakes" button exists but needs:
+   - Input field for total bankroll
+   - Auto-calculate stake per book
+   - Show guaranteed profit in dollars
+   - Show profit %
+   - Support 3-way calculations
+   - Save default bankroll to Supabase user profile
+
+3. ONE-CLICK SPORTSBOOK DEEP LINKS (MISSING)
+   Add "Open Both Books" button on each arb card:
+   - DraftKings: https://sportsbook.draftkings.com
+   - FanDuel: https://fanduel.com/sports
+   - BetMGM: https://sports.betmgm.com
+   - Caesars: https://caesars.com/sportsbook
+   - PointsBet: https://pointsbet.com
+   - BetRivers: https://betrivers.com
+   - ESPN Bet: https://espnbet.com
+   Use Linking.openURL() to open in browser
+
+4. FILTERS PANEL (MISSING)
+   Add a filter button that opens a bottom sheet with:
+   - Minimum profit % slider (0% to 10%)
+   - Sport selector (NFL, NBA, MLB, NHL, 
+     Soccer, Tennis, MMA)
+   - Sportsbook multi-select checkboxes
+   - Toggle: Pre-match / Live / Both
+   - Max stake input
+   - Save filters to Supabase (persist between sessions)
+
+5. NEW SCANNER TABS (MISSING)
+   Add 3 new tabs inside Arbitrage screen:
+
+   MIDDLES TAB:
+   - Detect point spread differences between books
+   - Show window range and middle probability
+   - Card: match, spread difference, hit probability
+
+   +EV BETS TAB:
+   - Compare odds vs sharp market line
+   - Calculate edge %
+   - Sort by highest edge first
+   - Green = >3% edge, Yellow = 1-3%, Gray = <1%
+
+   LIVE ARBS TAB:
+   - Separate from existing scanner
+   - Update every 10 seconds
+   - Red pulsing dot when live arbs exist
+   - Urgency badge: "⚡ Act fast"
+   - Bold countdown timer
+
+6. PUSH NOTIFICATIONS (MISSING)
+   Use existing ONESIGNAL_API_KEY to alert when:
+   - New arb above user's minimum % found
+   - Live arb appears
+   - Middle opportunity detected
+   Format: "🎯 +4.2% ARB | Ma
