@@ -93,7 +93,7 @@ function filterBySport(list: Prediction[], sport: SportFilter): Prediction[] {
 
 function filterByStatus(list: Prediction[], status: StatusFilter): Prediction[] {
   switch (status) {
-    case "today":    return list.filter((p) => !p.avoidMatch && isDateMatch(p.matchDate, 0));
+    case "today":    return list.filter((p) => !p.avoidMatch);
     case "tomorrow": return list.filter((p) => !p.avoidMatch && isDateMatch(p.matchDate, 1));
     case "won":      return list.filter((p) => p.valueDetected && !p.avoidMatch).sort((a, b) => b.confidence - a.confidence);
     case "lost":     return list.filter((p) => p.avoidMatch);
@@ -138,14 +138,14 @@ function MultiSportGameCard({
   );
 }
 
-// ── Fixtures view (Today + sport filter) ─────────────────────────────────────
-function FixturesView({ sport, allSports, loading }: { sport: SportFilter; allSports: AllSportsResponse | null; loading: boolean }) {
+// ── Fixtures view (Today / Tomorrow + sport filter) ───────────────────────────
+function FixturesView({ sport, allSports, loading, tomorrow }: { sport: SportFilter; allSports: AllSportsResponse | null; loading: boolean; tomorrow?: boolean }) {
   const colors = useColors();
   if (loading && !allSports) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.cyan} size="large" />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading today's fixtures…</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{tomorrow ? "Loading tomorrow's fixtures…" : "Loading today's fixtures…"}</Text>
       </View>
     );
   }
@@ -203,7 +203,15 @@ function FixturesView({ sport, allSports, loading }: { sport: SportFilter; allSp
             <Text style={[styles.sportSectionCount, { color: colors.textMuted }]}>{nbaGames.length} games</Text>
           </View>
           {nbaGames.length === 0
-            ? <Text style={[styles.noGamesText, { color: colors.textMuted }]}>No NBA games today</Text>
+            ? (
+              <View style={styles.offSeasonBox}>
+                <Text style={[styles.offSeasonIcon]}>🏀</Text>
+                <Text style={[styles.offSeasonTitle, { color: colors.textSecondary }]}>No NBA games scheduled</Text>
+                <Text style={[styles.offSeasonText, { color: colors.textMuted }]}>
+                  The NBA regular season runs October–April, with playoffs through June.
+                </Text>
+              </View>
+            )
             : nbaGames.map((g) => (
                 <MultiSportGameCard key={g.id} homeTeam={g.homeTeam} awayTeam={g.awayTeam}
                   homeScore={g.homeScore} awayScore={g.awayScore} status={g.status}
@@ -221,7 +229,15 @@ function FixturesView({ sport, allSports, loading }: { sport: SportFilter; allSp
             <Text style={[styles.sportSectionCount, { color: colors.textMuted }]}>{nflGames.length} games</Text>
           </View>
           {nflGames.length === 0
-            ? <Text style={[styles.noGamesText, { color: colors.textMuted }]}>No NFL games today</Text>
+            ? (
+              <View style={styles.offSeasonBox}>
+                <Text style={[styles.offSeasonIcon]}>🏈</Text>
+                <Text style={[styles.offSeasonTitle, { color: colors.textSecondary }]}>NFL off-season</Text>
+                <Text style={[styles.offSeasonText, { color: colors.textMuted }]}>
+                  The NFL regular season runs September through February. Check back when the season starts.
+                </Text>
+              </View>
+            )
             : nflGames.map((g) => (
                 <MultiSportGameCard key={g.id} homeTeam={g.homeTeam} awayTeam={g.awayTeam}
                   homeScore={g.homeScore} awayScore={g.awayScore} status={g.status}
@@ -268,8 +284,10 @@ export default function PicksScreen() {
   const [accuracy,     setAccuracy]     = useState<AccuracyStats | null>(null);
   const [liveFixtures, setLiveFixtures] = useState<SoccerFixture[]>([]);
   const [liveLoading,  setLiveLoading]  = useState(false);
-  const [allSports,    setAllSports]    = useState<AllSportsResponse | null>(null);
-  const [sportsLoading, setSportsLoading] = useState(false);
+  const [allSports,      setAllSports]      = useState<AllSportsResponse | null>(null);
+  const [sportsLoading,  setSportsLoading]  = useState(false);
+  const [tomorrowSports, setTomorrowSports] = useState<AllSportsResponse | null>(null);
+  const [tomorrowLoading, setTomorrowLoading] = useState(false);
 
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
@@ -316,6 +334,18 @@ export default function PicksScreen() {
       .finally(() => { if (active) setSportsLoading(false); });
     return () => { active = false; };
   }, [statusFilter, token, allSports]);
+
+  // Load tomorrow's fixtures when Tomorrow is selected
+  useEffect(() => {
+    if (statusFilter !== "tomorrow" || !token || tomorrowSports) return;
+    let active = true;
+    setTomorrowLoading(true);
+    api.sports.tomorrow(token)
+      .then((d) => { if (active) setTomorrowSports(d); })
+      .catch(() => {})
+      .finally(() => { if (active) setTomorrowLoading(false); });
+    return () => { active = false; };
+  }, [statusFilter, token, tomorrowSports]);
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
@@ -490,6 +520,9 @@ export default function PicksScreen() {
       ) : statusFilter === "today" ? (
         /* TODAY ALL: show fixtures across all sports */
         <FixturesView sport={sportFilter} allSports={allSports} loading={sportsLoading} />
+      ) : statusFilter === "tomorrow" ? (
+        /* TOMORROW: show tomorrow's fixture list */
+        <FixturesView sport={sportFilter} allSports={tomorrowSports} loading={tomorrowLoading} tomorrow />
       ) : (
         /* All other statuses: AI predictions list */
         <>
@@ -606,4 +639,9 @@ const styles = StyleSheet.create({
   teamNameAway:        { fontSize: 15, fontFamily: "Inter_400Regular", flex: 1 },
   teamScore:           { fontSize: 18, fontFamily: "Inter_700Bold", marginHorizontal: 6 },
   gameStatus:          { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 6 },
+  // Off-season
+  offSeasonBox:        { paddingVertical: 16, paddingHorizontal: 12, marginBottom: 16, alignItems: "center", gap: 6 },
+  offSeasonIcon:       { fontSize: 28, marginBottom: 2 },
+  offSeasonTitle:      { fontSize: 14, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  offSeasonText:       { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
 });

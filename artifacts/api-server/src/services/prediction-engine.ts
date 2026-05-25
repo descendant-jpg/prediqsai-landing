@@ -1732,10 +1732,13 @@ async function generateForSport(
   const calibration = await computeAccuracyCalibration();
   const calibrationSection = buildCalibrationSection(sport, calibration);
 
+  const todayISO = new Date().toISOString().split("T")[0]; // e.g. "2026-05-25"
+
   const prompt = `You are PrediQs AI, the world's most accurate sports prediction engine.
 You think like a professional sports analyst and sharp bettor combined.
 You are analysing ${league} games.
 
+TODAY'S DATE: ${todayISO}
 DATA SOURCE: ${dataSource}
 ODDS SOURCE: ${odds.length > 0 ? "The Odds API (live)" : "Not available"}
 NEWS SOURCE: ${newsHeadlines.length > 0 ? "NewsAPI (real-time)" : espnNews.length > 0 ? "ESPN headlines" : "Not available"}

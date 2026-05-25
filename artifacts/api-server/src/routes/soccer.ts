@@ -3,7 +3,7 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 import { requireAuth } from "../middleware/auth";
 import { getTodaysFixtures, getLiveFixtures, getFixtureDetail } from "../services/soccer-engine";
-import { getAllSportsToday } from "../services/multi-sport-engine";
+import { getAllSportsToday, getAllSportsTomorrow } from "../services/multi-sport-engine";
 
 const router = Router();
 
@@ -62,6 +62,29 @@ router.get("/sports/today", requireAuth, async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get all sports today");
+    res.status(500).json({ error: "Failed to fetch sports data" });
+  }
+});
+
+router.get("/sports/tomorrow", requireAuth, async (req, res) => {
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    const [soccerData, multiSport] = await Promise.all([
+      getTodaysFixtures(tomorrowStr),
+      getAllSportsTomorrow(),
+    ]);
+    res.json({
+      soccer: soccerData,
+      nba: multiSport.nba,
+      nfl: multiSport.nfl,
+      mlb: multiSport.mlb,
+      hasApiKey: multiSport.hasApiKey,
+      fetchedAt: multiSport.fetchedAt,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get all sports tomorrow");
     res.status(500).json({ error: "Failed to fetch sports data" });
   }
 });

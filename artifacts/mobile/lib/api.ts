@@ -603,6 +603,7 @@ export const api = {
   },
   sports: {
     today: (token: string) => apiFetch<AllSportsResponse>("/sports/today", { token }),
+    tomorrow: (token: string) => apiFetch<AllSportsResponse>("/sports/tomorrow", { token }),
   },
   soccer: {
     fixtures: (token: string) =>

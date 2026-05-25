@@ -778,7 +778,7 @@ function StatsTab({
         ) : null}
         {!simData && !agents && (
           <Text style={[tabs.sectionText, { color: colors.textMuted }]}>
-            Detailed stats are available on Pro and Elite tiers.
+            Detailed stats are available on Premium tier.
           </Text>
         )}
       </View>
@@ -806,7 +806,7 @@ function ScoreTab({ prediction, colors }: { prediction: Prediction; colors: Colo
         <Text style={{ fontSize: 36 }}>🎯</Text>
         <Text style={[tabs.sectionTitle, { color: colors.textSecondary }]}>Correct Score Predictor</Text>
         <Text style={[tabs.sectionText, { color: colors.textMuted, textAlign: "center" }]}>
-          Scoreline probabilities are available on Elite tier with full Monte Carlo simulation data.
+          Scoreline probabilities are available on Premium tier with Monte Carlo simulation data.
         </Text>
       </View>
     );

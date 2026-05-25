@@ -380,17 +380,18 @@ function buildResponse(fixtures: SoccerFixture[], lastUpdated: Date): SoccerFeed
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getTodaysFixtures(): Promise<SoccerFeedResponse> {
+export async function getTodaysFixtures(dateOverride?: string): Promise<SoccerFeedResponse> {
   const now = Date.now();
-  if (cache.fixtures && cache.fixtures.expiresAt > now) {
+  // Only use cache for today's fixtures (no override)
+  if (!dateOverride && cache.fixtures && cache.fixtures.expiresAt > now) {
     return buildResponse(cache.fixtures.data, new Date(cache.fixtures.expiresAt - FIXTURE_TTL));
   }
 
-  const today = new Date().toISOString().split("T")[0];
-  const fixtures = await fetchFromApi(`date=${today}`);
+  const dateStr = dateOverride ?? new Date().toISOString().split("T")[0];
+  const fixtures = await fetchFromApi(`date=${dateStr}`);
 
-  // Enhance tier 1-2 fixtures with Claude AI predictions (30-min cache)
-  if (fixtures.length > 0) {
+  // Enhance tier 1-2 fixtures with Claude AI predictions (30-min cache, today only)
+  if (!dateOverride && fixtures.length > 0) {
     try {
       const claudePreds = await batchSoccerPredictions(fixtures);
       for (const f of fixtures) {
@@ -407,11 +408,13 @@ export async function getTodaysFixtures(): Promise<SoccerFeedResponse> {
     }
   }
 
-  cache.fixtures = { data: fixtures, expiresAt: now + FIXTURE_TTL };
+  if (!dateOverride) {
+    cache.fixtures = { data: fixtures, expiresAt: now + FIXTURE_TTL };
+  }
 
   logger.info(
-    { count: fixtures.length, leagues: new Set(fixtures.map((f) => f.leagueId)).size },
-    "Soccer fixtures fetched, Claude-enhanced, and cached",
+    { count: fixtures.length, leagues: new Set(fixtures.map((f) => f.leagueId)).size, date: dateStr },
+    "Soccer fixtures fetched and cached",
   );
 
   return buildResponse(fixtures, new Date());

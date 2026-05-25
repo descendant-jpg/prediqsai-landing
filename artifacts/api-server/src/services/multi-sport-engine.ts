@@ -192,6 +192,63 @@ function parseNFLGame(raw: Record<string, unknown>): NFLGame | null {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+export async function getAllSportsTomorrow(): Promise<MultiSportResponse> {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dateStr = tomorrow.toISOString().split("T")[0]; // e.g. "2026-05-26"
+  const espnDate = dateStr.replace(/-/g, ""); // e.g. "20260526"
+
+  const [nba, nfl, mlb] = await Promise.all([
+    fetchSports<NBAGame>(NBA_BASE, `/games?date=${dateStr}`, parseNBAGame, "NBA-Tomorrow"),
+    fetchSports<NFLGame>(NFL_BASE, `/games?date=${dateStr}&league=1`, parseNFLGame, "NFL-Tomorrow"),
+    (async (): Promise<MLBGame[]> => {
+      try {
+        const url = `${ESPN_MLB_URL}?dates=${espnDate}`;
+        const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!resp.ok) return [];
+        const data = (await resp.json()) as { events?: unknown[] };
+        const events = (data.events ?? []) as Record<string, unknown>[];
+        return events.map((e) => {
+          const competitions = (e.competitions ?? []) as Record<string, unknown>[];
+          const comp = competitions[0] as Record<string, unknown> | undefined;
+          const competitors = (comp?.competitors ?? []) as Record<string, unknown>[];
+          const home = competitors.find((c) => (c as Record<string, unknown>).homeAway === "home") as Record<string, unknown> | undefined;
+          const away = competitors.find((c) => (c as Record<string, unknown>).homeAway === "away") as Record<string, unknown> | undefined;
+          const homeTeam = home?.team as Record<string, unknown> | undefined;
+          const awayTeam = away?.team as Record<string, unknown> | undefined;
+          const status = comp?.status as Record<string, unknown> | undefined;
+          const statusType = status?.type as Record<string, unknown> | undefined;
+          const venue = comp?.venue as Record<string, unknown> | undefined;
+          return {
+            id: parseInt(String(e.id ?? 0), 10),
+            date: (e.date as string) ?? tomorrow.toISOString(),
+            homeTeam: (homeTeam?.displayName as string) ?? "Home",
+            awayTeam: (awayTeam?.displayName as string) ?? "Away",
+            homeScore: null,
+            awayScore: null,
+            status: (statusType?.description as string) ?? "Scheduled",
+            venue: (venue?.fullName as string) ?? "",
+            season: tomorrow.getFullYear(),
+          } satisfies MLBGame;
+        });
+      } catch (err) {
+        logger.warn({ err }, "ESPN MLB tomorrow fetch failed");
+        return [];
+      }
+    })(),
+  ]);
+
+  logger.info({ nba: nba.length, nfl: nfl.length, mlb: mlb.length, dateStr }, "Multi-sport tomorrow fetch complete");
+
+  return {
+    nba,
+    nfl,
+    mlb,
+    hasApiKey: Boolean(API_SPORTS_KEY),
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 export async function getAllSportsToday(): Promise<MultiSportResponse> {
   const now   = Date.now();
   const today = new Date().toISOString().split("T")[0];
