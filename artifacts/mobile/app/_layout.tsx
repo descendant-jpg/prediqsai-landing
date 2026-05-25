@@ -64,7 +64,8 @@ function RootLayoutNav() {
       <Stack.Screen name="terms-of-service"      options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="responsible-gambling"  options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="match-detail"           options={{ headerShown: false }} />
-      <Stack.Screen name="oracle-chat"           options={{ headerShown: false }} />
+      <Stack.Screen name="oracle-chat"      options={{ headerShown: false }} />
+      <Stack.Screen name="change-password"  options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }

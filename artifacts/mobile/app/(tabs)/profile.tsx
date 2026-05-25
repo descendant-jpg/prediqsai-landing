@@ -33,9 +33,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
 const TIER_COLORS: Record<string, string> = {
-  free:  "#94A3B8",
-  pro:   "#00E5FF",
-  elite: "#FFD700",
+  free:    "#94A3B8",
+  premium: "#FFD700",
+  pro:     "#00E5FF",
+  elite:   "#FFD700",
 };
 
 function SectionHeader({ title }: { title: string }) {

@@ -4,7 +4,7 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { db, users } from "@workspace/db";
-import { signToken } from "../lib/jwt";
+import { signToken, verifyToken } from "../lib/jwt";
 
 const router = Router();
 
@@ -59,6 +59,58 @@ router.post("/auth/register", async (req, res) => {
 
   const token = signToken(user.id);
   res.status(201).json({ token, user: publicUser(user) });
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword:     z.string().min(8),
+});
+
+router.put("/auth/change-password", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  let payload: { userId: number };
+  try {
+    payload = verifyToken(authHeader.slice(7));
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+
+  const body = changePasswordSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "New password must be at least 8 characters" });
+    return;
+  }
+  const { currentPassword, newPassword } = body.data;
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, payload.userId))
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!matches) {
+    res.status(400).json({ error: "Current password is incorrect" });
+    return;
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await db
+    .update(users)
+    .set({ passwordHash: newHash })
+    .where(eq(users.id, user.id));
+
+  res.json({ ok: true });
 });
 
 router.post("/auth/login", async (req, res) => {

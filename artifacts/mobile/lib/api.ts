@@ -570,6 +570,12 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ username, email, password }),
       }),
+    changePassword: (token: string, currentPassword: string, newPassword: string) =>
+      apiFetch<{ ok: boolean }>("/auth/change-password", {
+        method: "PUT",
+        body: JSON.stringify({ currentPassword, newPassword }),
+        token,
+      }),
   },
   user: {
     me: (token: string) => apiFetch<UserData>("/user/me", { token }),

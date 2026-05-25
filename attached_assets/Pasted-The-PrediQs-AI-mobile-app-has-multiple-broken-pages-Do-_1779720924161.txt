@@ -1,0 +1,68 @@
+The PrediQs AI mobile app has multiple broken pages. 
+Do a full audit and fix every broken screen.
+
+Go through EVERY screen one by one and fix:
+
+1. HOME/DASHBOARD SCREEN
+   - Check all widgets load correctly
+   - Fix any API calls that are failing
+   - Make sure Today's Picks loads real data
+   - Fix any blank sections
+
+2. PICKS SCREEN
+   - Connect to ESPN free API for real fixtures:
+     NFL: https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
+     NBA: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard
+     MLB: https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard
+     Soccer: https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard
+   - Show real games happening today
+   - Remove "Unknown/Data Error" entries
+   - Only show HIGH confidence picks
+
+3. ORACLE AI / MATCH PREVIEW SCREEN
+   - Fix match preview generation
+   - Make sure AI analysis loads
+   - Fix any blank screens
+
+4. ARBITRAGE SCANNER
+   - Fix the 3 result limit
+   - Make sure all 4 tabs work (Global, USA, UK/EU, Africa)
+   - Fix scan now button
+
+5. BANKROLL MANAGER
+   - Fix any screens that don't load
+   - Make sure Kelly Calculator works
+   - Fix ROI charts
+
+6. PERFORMANCE TRACKER
+   - Fix win rate display
+   - Fix ROI by sport charts
+   - Make sure history loads
+
+7. PROFILE/ACCOUNT SCREEN
+   - Fix subscription status display
+   - Fix settings page
+   - Make sure logout works
+
+8. PREMIUM/PAYWALL SCREEN
+   - Make sure upgrade button works
+   - Fix any broken payment flow
+
+9. NOTIFICATIONS
+   - Fix notification settings page
+
+10. GENERAL FIXES FOR ALL SCREENS
+    - Add proper loading spinners on every screen
+    - Add proper empty states (not blank white screens)
+    - Add error messages when API fails
+    - Make sure back navigation works on all screens
+    - Fix any screens that crash immediately on open
+    - Make sure all buttons are tappable and responsive
+
+For each broken screen:
+- Identify the exact error
+- Fix the root cause
+- Test that it works
+- Move to the next screen
+
+Do NOT skip any screen. Fix everything.
