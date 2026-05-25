@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
 import type { Purchase, PurchaseError } from "react-native-iap";
@@ -9,12 +10,22 @@ import { api } from "@/lib/api";
 
 export const IAP_PRODUCT_ID = "prediqsai_premium_monthly";
 
-// ─── Safe IAP import (not available on web or bare Expo Go) ──────────────────
+// ─── Environment detection ────────────────────────────────────────────────────
+
+// True when running inside Expo Go (not a custom dev/production native build).
+// Expo Go cannot run NitroModules (required by react-native-iap v15) — attempting
+// to require the module causes a hard crash, so we skip IAP entirely here.
+const IS_EXPO_GO = Constants.appOwnership === "expo";
+
+// Also skip on web — no native modules at all there.
+const IAP_SUPPORTED = Platform.OS !== "web" && !IS_EXPO_GO;
+
+// ─── Safe IAP import ──────────────────────────────────────────────────────────
 
 type IAPModule = typeof import("react-native-iap");
 
 function getIAP(): IAPModule | null {
-  if (Platform.OS === "web") return null;
+  if (!IAP_SUPPORTED) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require("react-native-iap") as IAPModule;
@@ -54,6 +65,7 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
   const connectedRef = useRef(false);
 
   useEffect(() => {
+    // Skip IAP setup entirely in Expo Go / web — no native modules available.
     const iap = getIAP();
     if (!iap || !token) return;
 
@@ -69,7 +81,6 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
 
           try {
             await api.subscription.verifyIAPPurchase(token, {
-              // v15: purchase.platform is IapPlatform ("ios"|"android")
               platform: purchase.platform === "ios" ? "ios" : "android",
               productId: purchase.productId,
               transactionId: purchase.id,
@@ -94,7 +105,7 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
         });
       })
       .catch(() => {
-        // IAP unavailable — simulator, Expo Go without dev client, etc.
+        // IAP unavailable — simulator, old Expo Go, etc. Fail silently.
       });
 
     return () => {
@@ -113,14 +124,15 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
     if (!iap) {
       Alert.alert(
         "Not Available",
-        "In-app purchases require the iOS or Android app. They are not available in a web browser.",
+        IS_EXPO_GO
+          ? "In-app purchases are not available in Expo Go. Install the PrediQs app to subscribe."
+          : "In-app purchases require the iOS or Android app.",
       );
       return;
     }
     setError(null);
     setIsLoading(true);
     try {
-      // v15 API: requestPurchase with platform-specific request objects
       await iap.requestPurchase({
         request: {
           apple: { sku: IAP_PRODUCT_ID },
@@ -128,7 +140,6 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
         },
         type: "subs",
       });
-      // Purchase result handled asynchronously by purchaseUpdatedListener
     } catch (err: unknown) {
       const code = (err as any)?.code as string | undefined;
       if (code !== "E_USER_CANCELLED") {
