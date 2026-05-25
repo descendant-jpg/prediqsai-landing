@@ -1,58 +1,49 @@
 import { Router } from "express";
+import { z } from "zod/v4";
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const router = Router();
 
-const SYSTEM_PROMPT = `You are PrediQs AI, a world-class sports betting intelligence assistant. You analyze NFL, NBA, MLB, and soccer matches, provide data-driven predictions with clear reasoning, explain betting concepts, build smart accumulators, help with bankroll management, and proactively warn users when NOT to bet. Be direct, honest, and data-focused. Keep responses concise and well-structured for mobile reading. Never encourage gambling addiction. Always recommend responsible gambling. If someone shows signs of problem gambling, provide the helpline: 1-800-522-4700.`;
+const SYSTEM_PROMPT = `You are PrediQs AI, a world-class sports betting intelligence assistant. You analyze NFL, NBA, MLB, and soccer matches, provide data-driven predictions with clear reasoning, explain betting concepts, build smart accumulators, help with bankroll management, and proactively warn users when NOT to bet. Be direct, honest, and data-focused. Keep responses concise and well-structured for mobile reading. Use short paragraphs and bullet points where helpful. Never encourage gambling addiction. Always recommend responsible gambling. If someone shows signs of problem gambling, provide the helpline: 1-800-522-4700.`;
+
+const MessageSchema = z.array(
+  z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().max(4000),
+  }),
+).min(1).max(50);
 
 router.post("/chat", async (req, res) => {
-  const { messages, language } = req.body as {
-    messages: Array<{ role: "user" | "assistant"; content: string }>;
-    language?: string;
-  };
-
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    res.status(400).json({ error: "messages array is required" });
+  const parsed = MessageSchema.safeParse(req.body?.messages);
+  if (!parsed.success) {
+    res.status(400).json({ error: "messages array is required and must be valid" });
     return;
   }
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const language: string | undefined = req.body?.language;
+
+  const systemPrompt = language && language !== "Respond in English."
+    ? `${SYSTEM_PROMPT}\n\nIMPORTANT: ${language}`
+    : SYSTEM_PROMPT;
 
   try {
-    const systemPrompt = language && language !== "Respond in English."
-      ? `${SYSTEM_PROMPT}\n\nIMPORTANT: ${language}`
-      : SYSTEM_PROMPT;
-
-    const stream = anthropic.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1024,
       system: systemPrompt,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: parsed.data.map((m) => ({ role: m.role, content: m.content })),
     });
 
-    for await (const event of stream) {
-      if (
-        event.type === "content_block_delta" &&
-        event.delta.type === "text_delta"
-      ) {
-        res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
-      }
-    }
+    const reply = response.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("");
 
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
+    res.json({ reply });
   } catch (err) {
-    req.log.error({ err }, "Chat streaming error");
-    if (!res.headersSent) {
-      res.status(500).json({ error: "AI service error" });
-    } else {
-      res.write(`data: ${JSON.stringify({ error: "AI service error" })}\n\n`);
-      res.end();
-    }
+    req.log.error({ err }, "Chat error");
+    res.status(500).json({ error: "AI service temporarily unavailable. Please try again." });
   }
 });
 

@@ -1,5 +1,4 @@
 import * as Haptics from "expo-haptics";
-import { fetch } from "expo/fetch";
 import { ArrowLeft, Send, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -20,7 +19,7 @@ import { SUGGESTED_PROMPTS } from "@/constants/mockData";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
-import { chatUrl } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/api";
 import type { ChatMessage } from "@/types";
 
 function generateId(): string {
@@ -28,6 +27,7 @@ function generateId(): string {
 }
 
 const FREE_MSG_LIMIT = 3;
+const TIMEOUT_MS = 30_000;
 
 export default function OracleChatScreen() {
   const colors  = useColors();
@@ -42,6 +42,7 @@ export default function OracleChatScreen() {
   const [input,       setInput]       = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const abortRef    = useRef<AbortController | null>(null);
 
   const userMsgCount = messages.filter((m) => m.role === "user").length;
   const hitLimit = isFree && userMsgCount >= FREE_MSG_LIMIT;
@@ -60,8 +61,6 @@ export default function OracleChatScreen() {
       content: content.trim(), createdAt: new Date().toISOString(),
     };
 
-    const newMessages = [userMsg, ...messages];
-    setMessages(newMessages);
     setInput("");
     setIsStreaming(true);
 
@@ -70,55 +69,54 @@ export default function OracleChatScreen() {
       id: assistantId, role: "assistant",
       content: "", createdAt: new Date().toISOString(),
     };
-    setMessages([assistantMsg, userMsg, ...messages]);
+    setMessages((prev) => [assistantMsg, userMsg, ...prev]);
+
+    // Build message history for API (oldest first)
+    const apiMessages = [...messages, userMsg]
+      .slice()
+      .reverse()
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    // Abort controller with 30s timeout
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const apiMessages = [...messages, userMsg]
-        .reverse()
-        .map((m) => ({ role: m.role, content: m.content }));
-
-      const response = await fetch(chatUrl(), {
+      const res = await fetch(`${getApiBaseUrl()}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: apiMessages, language: language.claudeInstruction }),
+        signal: controller.signal,
       });
 
-      if (!response.body) throw new Error("No response body");
-      const reader  = response.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = "";
-      let lineBuffer  = "";
+      clearTimeout(timeoutId);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        lineBuffer += decoder.decode(value, { stream: true });
-        const lines = lineBuffer.split("\n");
-        lineBuffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.content) {
-              accumulated += data.content;
-              const snap = accumulated;
-              setMessages((prev) =>
-                prev.map((m) => m.id === assistantId ? { ...m, content: snap } : m),
-              );
-            }
-          } catch {}
-        }
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(errBody.error ?? `Server error ${res.status}`);
       }
-    } catch {
+
+      const data = await res.json() as { reply?: string; error?: string };
+
+      if (data.error) throw new Error(data.error);
+      if (!data.reply) throw new Error("Empty response from AI");
+
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, content: "PrediQs AI is temporarily unavailable. Try again shortly." }
-            : m,
-        ),
+        prev.map((m) => m.id === assistantId ? { ...m, content: data.reply! } : m),
+      );
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      const isTimeout = (err as any)?.name === "AbortError";
+      const msg = isTimeout
+        ? "Response taking too long. Please try again."
+        : ((err as Error)?.message || "Unable to analyze right now. Please check your connection and try again.");
+      setMessages((prev) =>
+        prev.map((m) => m.id === assistantId ? { ...m, content: msg } : m),
       );
     } finally {
       setIsStreaming(false);
+      abortRef.current = null;
     }
   }
 
