@@ -232,10 +232,9 @@ async function fetchApiSportsGames(
     let url = `${base}${path}?date=${today}`;
 
     if (sport === "soccer") {
-      const now = new Date();
-      const season = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-      const lid = leagueId ?? 39;
-      url = `${base}${path}?date=${today}&league=${lid}&season=${season}`;
+      // Do NOT pass league or season filter — API-Sports free plan blocks specific season
+      // queries for recent seasons. The date-only query returns all available fixtures.
+      url = `${base}${path}?date=${today}`;
     }
 
     const resp = await fetch(url, {

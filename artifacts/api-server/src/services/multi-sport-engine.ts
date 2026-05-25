@@ -3,7 +3,7 @@ import { logger } from "../lib/logger";
 const API_SPORTS_KEY = process.env.API_SPORTS_KEY;
 const NBA_BASE    = "https://v2.nba.api-sports.io";
 const NFL_BASE    = "https://v1.american-football.api-sports.io";
-const MLB_BASE    = "https://v1.baseball.api-sports.io";
+const ESPN_MLB_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard";
 
 const TTL = 30 * 60 * 1000; // 30-minute cache
 
@@ -63,6 +63,44 @@ const cache: {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// ESPN MLB: free, no key required, always returns current-season data
+async function fetchMLBFromESPN(): Promise<MLBGame[]> {
+  try {
+    const resp = await fetch(ESPN_MLB_URL, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) return [];
+    const data = (await resp.json()) as { events?: unknown[] };
+    const events = (data.events ?? []) as Record<string, unknown>[];
+    return events.map((e) => {
+      const competitions = (e.competitions ?? []) as Record<string, unknown>[];
+      const comp = competitions[0] as Record<string, unknown> | undefined;
+      const competitors = (comp?.competitors ?? []) as Record<string, unknown>[];
+      const home = competitors.find((c) => (c as Record<string, unknown>).homeAway === "home") as Record<string, unknown> | undefined;
+      const away = competitors.find((c) => (c as Record<string, unknown>).homeAway === "away") as Record<string, unknown> | undefined;
+      const homeTeam = home?.team as Record<string, unknown> | undefined;
+      const awayTeam = away?.team as Record<string, unknown> | undefined;
+      const homeScoreVal = home?.score as string | undefined;
+      const awayScoreVal = away?.score as string | undefined;
+      const status = comp?.status as Record<string, unknown> | undefined;
+      const statusType = status?.type as Record<string, unknown> | undefined;
+      const venue = comp?.venue as Record<string, unknown> | undefined;
+      return {
+        id: parseInt(String(e.id ?? 0), 10),
+        date: (e.date as string) ?? new Date().toISOString(),
+        homeTeam: (homeTeam?.displayName as string) ?? "Home",
+        awayTeam: (awayTeam?.displayName as string) ?? "Away",
+        homeScore: homeScoreVal != null ? parseInt(homeScoreVal, 10) : null,
+        awayScore: awayScoreVal != null ? parseInt(awayScoreVal, 10) : null,
+        status: (statusType?.description as string) ?? (statusType?.name as string) ?? "Scheduled",
+        venue: (venue?.fullName as string) ?? "",
+        season: new Date().getFullYear(),
+      } satisfies MLBGame;
+    });
+  } catch (err) {
+    logger.warn({ err }, "ESPN MLB fetch failed");
+    return [];
+  }
+}
+
 async function fetchSports<T>(
   baseUrl: string,
   path: string,
@@ -97,22 +135,27 @@ function parseNBAGame(raw: Record<string, unknown>): NBAGame | null {
   const status = raw.status as Record<string, unknown> | undefined;
   const date   = raw.date   as Record<string, unknown> | undefined;
 
-  const home      = teams?.home  as Record<string, unknown> | undefined;
-  const away      = teams?.away  as Record<string, unknown> | undefined;
-  const homeScore = scores?.home as Record<string, unknown> | undefined;
-  const awayScore = scores?.away as Record<string, unknown> | undefined;
+  // API-Sports NBA uses "visitors" for the away team (not "away")
+  const home      = teams?.home     as Record<string, unknown> | undefined;
+  const away      = (teams?.visitors ?? teams?.away) as Record<string, unknown> | undefined;
+  // API-Sports NBA uses "points" for the score total (not "total")
+  const homeScore = scores?.home     as Record<string, unknown> | undefined;
+  const awayScore = (scores?.visitors ?? scores?.away) as Record<string, unknown> | undefined;
 
   if (!home || !away) return null;
+
+  const arenaObj = raw.arena as Record<string, unknown> | undefined;
+  const arenaName = (arenaObj?.name as string) ?? (raw.arena as string) ?? "";
 
   return {
     id:        raw.id as number,
     date:      (date?.start as string) ?? new Date().toISOString(),
     homeTeam:  (home.name  as string) ?? "Home",
     awayTeam:  (away.name  as string) ?? "Away",
-    homeScore: (homeScore?.total as number | null) ?? null,
-    awayScore: (awayScore?.total as number | null) ?? null,
+    homeScore: (homeScore?.points as number | null) ?? (homeScore?.total as number | null) ?? null,
+    awayScore: (awayScore?.points as number | null) ?? (awayScore?.total as number | null) ?? null,
     status:    (status?.long  as string) ?? "Not Started",
-    arena:     (raw.arena as string) ?? "",
+    arena:     arenaName,
     season:    (raw.season as number) ?? 2025,
   };
 }
@@ -147,35 +190,6 @@ function parseNFLGame(raw: Record<string, unknown>): NFLGame | null {
   };
 }
 
-// ─── MLB ──────────────────────────────────────────────────────────────────────
-
-function parseMLBGame(raw: Record<string, unknown>): MLBGame | null {
-  const teams  = raw.teams  as Record<string, unknown> | undefined;
-  const scores = raw.scores as Record<string, unknown> | undefined;
-  const game   = raw.game   as Record<string, unknown> | undefined;
-  const status = raw.status as Record<string, unknown> | undefined;
-
-  const home      = teams?.home  as Record<string, unknown> | undefined;
-  const away      = teams?.away  as Record<string, unknown> | undefined;
-  const homeScore = scores?.home as Record<string, unknown> | undefined;
-  const awayScore = scores?.away as Record<string, unknown> | undefined;
-  const venue     = game?.venue  as Record<string, unknown> | undefined;
-
-  if (!home || !away) return null;
-
-  return {
-    id:        raw.id as number,
-    date:      (raw.date as string) ?? new Date().toISOString(),
-    homeTeam:  (home.name as string) ?? "Home",
-    awayTeam:  (away.name as string) ?? "Away",
-    homeScore: (homeScore?.total as number | null) ?? null,
-    awayScore: (awayScore?.total as number | null) ?? null,
-    status:    (status?.long as string) ?? "Not Started",
-    venue:     (venue?.name as string) ?? "",
-    season:    2025,
-  };
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function getAllSportsToday(): Promise<MultiSportResponse> {
@@ -205,7 +219,7 @@ export async function getAllSportsToday(): Promise<MultiSportResponse> {
       : fetchSports<NFLGame>(NFL_BASE, `/games?date=${today}&league=1`, parseNFLGame, "NFL"),
     mlbFresh
       ? cache.mlb!.data
-      : fetchSports<MLBGame>(MLB_BASE, `/games?date=${today}&league=1&season=2025`, parseMLBGame, "MLB"),
+      : fetchMLBFromESPN(),
   ]);
 
   if (!nbaFresh) cache.nba = { data: nba, expiresAt: now + TTL };

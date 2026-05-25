@@ -328,33 +328,31 @@ function buildGroups(fixtures: SoccerFixture[]): SoccerLeagueGroup[] {
 
 async function fetchFromApi(params: string): Promise<SoccerFixture[]> {
   if (!API_SPORTS_KEY) return [];
-  const allItems: Record<string, unknown>[] = [];
-  let page = 1;
-
-  while (page <= 5) {
-    const url = `${FOOTBALL_BASE}/fixtures?${params}&page=${page}`;
+  try {
+    // Note: API-Sports does NOT support a &page= parameter for /fixtures —
+    // sending it returns an error and 0 results. Fetch without pagination.
+    const url = `${FOOTBALL_BASE}/fixtures?${params}`;
     const resp = await fetch(url, {
       headers: { "x-apisports-key": API_SPORTS_KEY },
       signal: AbortSignal.timeout(12000),
     });
     if (!resp.ok) {
-      logger.warn({ status: resp.status, params, page }, "API-Sports football non-OK");
-      break;
+      logger.warn({ status: resp.status, params }, "API-Sports football non-OK");
+      return [];
     }
-    const data = (await resp.json()) as {
-      response?: unknown[];
-      paging?: { current: number; total: number };
-    };
+    const data = (await resp.json()) as { response?: unknown[]; errors?: unknown };
+    if (data.errors && Object.keys(data.errors as object).length > 0) {
+      logger.warn({ errors: data.errors, params }, "API-Sports football returned errors");
+      return [];
+    }
     const items = (data.response ?? []) as Record<string, unknown>[];
-    allItems.push(...items);
-    const totalPages = data.paging?.total ?? 1;
-    if (page >= totalPages || items.length === 0) break;
-    page++;
+    const parsed = items.map(parseFixture).filter((f): f is SoccerFixture => f !== null);
+    parsed.sort(sortByKickoff);
+    return parsed;
+  } catch (err) {
+    logger.warn({ err, params }, "API-Sports football fetch failed");
+    return [];
   }
-
-  const parsed = allItems.map(parseFixture).filter((f): f is SoccerFixture => f !== null);
-  parsed.sort(sortByKickoff);
-  return parsed;
 }
 
 // ─── Response builder ─────────────────────────────────────────────────────────
