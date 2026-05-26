@@ -27,3 +27,6 @@ export * from "./appConfig";
 export * from "./notificationHistory";
 export * from "./errorLogs";
 export * from "./leaderboard";
+export * from "./affiliatePartners";
+export * from "./affiliateClicks";
+export * from "./affiliatePayouts";

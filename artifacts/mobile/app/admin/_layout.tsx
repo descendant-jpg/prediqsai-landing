@@ -15,6 +15,7 @@ export default function AdminLayout() {
       <Stack.Screen name="errors" />
       <Stack.Screen name="revenue" />
       <Stack.Screen name="worldcup" />
+      <Stack.Screen name="affiliates" />
     </Stack>
   );
 }

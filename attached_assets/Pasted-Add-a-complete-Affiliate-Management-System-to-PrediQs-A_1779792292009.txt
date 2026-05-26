@@ -1,0 +1,318 @@
+Add a complete Affiliate Management System to 
+PrediQs AI with admin controls and earnings tracking.
+
+This has two parts:
+A) User-facing affiliate links in the app
+B) Admin panel to manage links and track earnings
+
+---
+
+## PART A: USER-FACING AFFILIATE FEATURES
+
+### 1. ARB CARD AFFILIATE BANNER
+On each arb card in the Arbitrage Scanner:
+- Check if either sportsbook in the arb matches 
+  our affiliate partners list
+- If match found, show small banner:
+  "🎁 New to [BookName]? Get welcome bonus →"
+- Tapping opens affiliate link via Linking.openURL()
+- Only show banner if user hasn't signed up 
+  via that book before (track in Supabase)
+
+### 2. RECOMMENDED BOOKS SECTION
+Add scrollable section at bottom of Arbitrage screen
+titled "📚 Recommended Sportsbooks"
+
+Each book card shows:
+- Book name and logo (use emoji for now)
+- Welcome bonus text
+- "Sign Up & Get Bonus" button (green)
+- "Already a member" small link (gray)
+
+Default books and bonuses:
+- Bet365 🟢 "Bet £10 Get £30 in Bet Credits"
+- Betway 🔵 "Bet £10 Get £10 Free Bet"  
+- DraftKings 🏈 "Bet $5 Get $200 Bonus Bets"
+- FanDuel 🦅 "Bet $5 Get $150 Bonus Bets"
+- BetMGM 👑 "Bet $10 Get $200 Bonus Bets"
+- Caesars 🏛️ "First Bet up to $1000 Back"
+- 1xBet 🌍 "100% First Deposit Bonus"
+- Betking 🇳🇬 "₦50,000 Welcome Bonus"
+- SportyBet 🇳🇬 "₦100,000 Welcome Bonus"
+
+### 3. FIRST-TIME USER MODAL
+Show once when FREE user opens Arbitrage tab:
+Title: "💰 Maximize Your Arb Profits!"
+Body: "Having accounts at multiple sportsbooks 
+means more opportunities. Sign up to our 
+recommended books:"
+- Show top 3 affiliate cards
+- "Get Started" button
+- "Skip for now" link
+Save shown=true in AsyncStorage so only shows once
+
+### 4. AFFILIATE LINK TRACKING
+Every click logs to Supabase table: affiliate_clicks
+Columns:
+- id (uuid)
+- user_id (from auth)
+- book_name (text)
+- affiliate_url (text)  
+- source (text: 'arb_card'/'recommended'/'modal')
+- clicked_at (timestamp)
+- converted (boolean, default false)
+- commission_earned (decimal, default 0)
+- commission_currency (text)
+- notes (text)
+
+---
+
+## PART B: ADMIN PANEL - AFFILIATE MANAGEMENT
+
+Add new "Affiliates" tab in the admin panel
+(alongside existing Overview, Users, Picks, 
+API Keys, Revenue, Notify tabs)
+
+### AFFILIATE LINKS MANAGER
+
+Show a table/list of all affiliate partners:
+
+Each row shows:
+- Book name and logo
+- Current affiliate URL
+- Welcome bonus text
+- Status toggle (Active/Inactive)
+- Total clicks (from affiliate_clicks table)
+- Total conversions
+- Total earnings
+- Edit button
+- Delete button
+
+"+ Add New Partner" button at top opens a form:
+Fields:
+- Book Name (text input)
+- Logo URL or emoji (text input)  
+- Affiliate URL (text input)
+- Welcome Bonus Text (text input)
+- Commission Type dropdown:
+  * CPA (Cost Per Acquisition - fixed per signup)
+  * Revenue Share (% of user losses monthly)
+  * Hybrid (both)
+- Commission Amount (number input)
+- Commission Currency (USD/GBP/EUR/NGN)
+- Minimum Payout (number input)
+- Payment Schedule dropdown:
+  * Weekly
+  * Monthly
+  * On Request
+- Notes (text area)
+- Status toggle (Active/Inactive)
+- Save button
+
+Store all affiliate partners in Supabase table:
+affiliate_partners
+Columns:
+- id (uuid)
+- book_name (text)
+- logo (text)
+- affiliate_url (text)
+- bonus_text (text)
+- commission_type (text)
+- commission_amount (decimal)
+- commission_currency (text)
+- min_payout (decimal)
+- payment_schedule (text)
+- is_active (boolean)
+- notes (text)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+### EARNINGS DASHBOARD
+
+Add earnings dashboard inside Affiliates tab:
+
+Summary cards at top:
+- Total Clicks (all time)
+- Total Conversions (all time)  
+- Total Earnings (all time)
+- Pending Payout (not yet paid)
+- Conversion Rate %
+- Best Performing Book
+
+Charts section:
+- Bar chart: Clicks per book (last 30 days)
+- Line chart: Earnings over time (last 90 days)
+- Pie chart: Revenue split by book
+
+Detailed earnings table:
+Columns:
+- Date
+- Book Name
+- User ID (anonymized)
+- Click Source
+- Converted (Yes/No)
+- Commission Type
+- Amount Earned
+- Currency
+- Status (Pending/Paid/Rejected)
+- Notes
+
+Filters above table:
+- Date range picker
+- Book name filter
+- Conversion status filter
+- Export CSV button
+
+### MANUAL EARNINGS ENTRY
+Since affiliate conversions are reported manually
+by the sportsbooks, add ability to log earnings:
+
+"Log New Earning" button opens form:
+- Select Partner (dropdown)
+- User Reference (optional)
+- Commission Amount
+- Currency
+- Date Earned
+- Payment Status (Pending/Paid)
+- Notes
+- Save button
+
+This updates affiliate_clicks table:
+set converted=true, commission_earned=amount
+
+### PAYOUT TRACKER
+Section to track what each affiliate owes you:
+
+Table showing:
+- Book name
+- Total earned
+- Total paid out
+- Balance owed
+- Last payment date
+- Next payment date
+- Payment method
+- "Mark as Paid" button (opens form to log payment)
+
+Store payouts in Supabase table: affiliate_payouts
+Columns:
+- id (uuid)
+- partner_id (ref to affiliate_partners)
+- amount (decimal)
+- currency (text)
+- paid_at (timestamp)
+- payment_method (text)
+- reference (text)
+- notes (text)
+
+---
+
+## PART C: DYNAMIC LINK LOADING
+
+The app must load affiliate links from Supabase,
+NOT from hardcoded values or environment variables.
+
+On app startup:
+1. Fetch active affiliate partners from Supabase:
+   SELECT * FROM affiliate_partners 
+   WHERE is_active = true
+   ORDER BY book_name
+
+2. Store in app state/context
+3. Use these dynamic links everywhere in the app
+
+This means when admin adds/edits/removes a partner
+in the admin panel, it updates instantly in the app
+without any code changes or app updates needed.
+
+---
+
+## SUPABASE TABLES TO CREATE
+
+Run these SQL commands in Supabase:
+
+CREATE TABLE affiliate_partners (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  book_name text NOT NULL,
+  logo text,
+  affiliate_url text NOT NULL,
+  bonus_text text,
+  commission_type text,
+  commission_amount decimal,
+  commission_currency text DEFAULT 'USD',
+  min_payout decimal DEFAULT 0,
+  payment_schedule text DEFAULT 'monthly',
+  is_active boolean DEFAULT true,
+  notes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE affiliate_clicks (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id),
+  partner_id uuid REFERENCES affiliate_partners(id),
+  book_name text,
+  affiliate_url text,
+  source text,
+  clicked_at timestamptz DEFAULT now(),
+  converted boolean DEFAULT false,
+  commission_earned decimal DEFAULT 0,
+  commission_currency text DEFAULT 'USD',
+  notes text
+);
+
+CREATE TABLE affiliate_payouts (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  partner_id uuid REFERENCES affiliate_partners(id),
+  amount decimal NOT NULL,
+  currency text DEFAULT 'USD',
+  paid_at timestamptz DEFAULT now(),
+  payment_method text,
+  reference text,
+  notes text
+);
+
+---
+
+## DEFAULT DATA TO INSERT
+
+After creating tables, insert default partners:
+
+INSERT INTO affiliate_partners 
+(book_name, logo, affiliate_url, bonus_text, 
+commission_type, is_active) VALUES
+('Bet365', '🟢', 'https://bet365.com', 
+ 'Bet £10 Get £30 in Bet Credits', 'revenue_share', true),
+('Betway', '🔵', 'https://betway.com', 
+ 'Bet £10 Get £10 Free Bet', 'revenue_share', true),
+('DraftKings', '🏈', 'https://sportsbook.draftkings.com', 
+ 'Bet $5 Get $200 Bonus Bets', 'cpa', true),
+('FanDuel', '🦅', 'https://fanduel.com/sports', 
+ 'Bet $5 Get $150 Bonus Bets', 'cpa', true),
+('BetMGM', '👑', 'https://sports.betmgm.com', 
+ 'Bet $10 Get $200 Bonus Bets', 'cpa', true),
+('1xBet', '🌍', 'https://1xbet.com', 
+ '100% First Deposit Bonus', 'revenue_share', true),
+('SportyBet', '🇳🇬', 'https://sportybet.com', 
+ '₦100,000 Welcome Bonus', 'cpa', true),
+('BetKing', '🇳🇬', 'https://betking.com', 
+ '₦50,000 Welcome Bonus', 'cpa', true);
+
+---
+
+## IMPORTANT RULES
+
+1. Load affiliate links dynamically from Supabase
+   NOT from hardcoded values
+2. Admin can add/edit/delete partners instantly
+3. Changes reflect in app immediately
+4. Keep existing app theme and branding
+5. Keep existing admin panel tabs working
+6. Only FREE and PREMIUM tiers (no elite/pro)
+7. Do not break existing features
+8. Build in this order:
+   a) Create Supabase tables
+   b) Insert default data
+   c) Build admin Affiliates tab
+   d) Build user-facing affiliate features
+   e) Test everything end to end

@@ -95,6 +95,16 @@ export interface AdminLogEntry {
   createdAt: string | null;
 }
 
+export interface AffiliatePartner {
+  id: string;
+  bookName: string;
+  logo: string | null;
+  affiliateUrl: string;
+  bonusText: string | null;
+  commissionType: string | null;
+  isActive: boolean | null;
+}
+
 export interface ApiKeyStatus {
   name: string;
   label: string;
@@ -815,6 +825,19 @@ export const api = {
       apiFetch<{ standings: FDStandingRow[] }>(`/football-data/standings/${code}`, { token }),
     team: (token: string, teamId: number) =>
       apiFetch<FDTeamInfo>(`/football-data/team/${teamId}`, { token }),
+  },
+  affiliate: {
+    partners: () =>
+      apiFetch<{ partners: AffiliatePartner[] }>("/affiliate/partners"),
+    click: (
+      token: string,
+      body: { partnerId?: string; bookName: string; affiliateUrl: string; source: "arb_card" | "recommended" | "modal" },
+    ) =>
+      apiFetch<{ ok: boolean }>("/affiliate/click", {
+        method: "POST",
+        body: JSON.stringify(body),
+        token,
+      }),
   },
   admin: {
     stats: (token: string) =>

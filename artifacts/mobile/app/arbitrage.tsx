@@ -9,8 +9,10 @@ import {
   Shield,
   ShieldAlert,
   TrendingUp,
+  X,
   Zap,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -34,6 +36,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import {
   api,
+  type AffiliatePartner,
   type ArbCalcResult,
   type ArbOpportunity,
   type ArbRegion,
@@ -148,6 +151,44 @@ function Countdown({ iso, compact }: { iso: string; compact?: boolean }) {
     <Text style={[styles.countdown, { color: urgent ? "#FF4D4D" : secs === 0 ? colors.textMuted : colors.textMuted }]}>
       {compact ? "" : "⏱ Window: "}{formatCountdown(secs)}
     </Text>
+  );
+}
+
+// ─── Affiliate Banner ─────────────────────────────────────────────────────────
+
+function AffiliateBanner({ bookmakers, affiliatePartners, token }: { bookmakers: string[]; affiliatePartners: AffiliatePartner[]; token?: string }) {
+  const colors = useColors();
+  const match = affiliatePartners.find((p) =>
+    bookmakers.some((bk) =>
+      bk.toLowerCase().includes(p.bookName.toLowerCase()) ||
+      p.bookName.toLowerCase().includes(bk.toLowerCase())
+    )
+  );
+  if (!match) return null;
+
+  function trackAndOpen() {
+    if (token) {
+      api.affiliate.click(token, {
+        partnerId: match!.id,
+        bookName: match!.bookName,
+        affiliateUrl: match!.affiliateUrl,
+        source: "arb_card",
+      }).catch(() => {});
+    }
+    Linking.openURL(match!.affiliateUrl).catch(() => {});
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.affiliateBanner, { backgroundColor: "rgba(0,255,148,0.06)", borderColor: "rgba(0,255,148,0.25)" }]}
+      onPress={trackAndOpen}
+      activeOpacity={0.8}
+    >
+      <Text style={{ fontSize: 14 }}>🎁</Text>
+      <Text style={[styles.affiliateBannerText, { color: "#00FF94" }]} numberOfLines={1}>
+        New to {match.bookName}? {match.bonusText ?? "Get a welcome bonus"} →
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -611,13 +652,15 @@ function FilterModal({
 // ─── Arb Opportunity Card ─────────────────────────────────────────────────────
 
 function ArbCard({
-  arb, region, liveRates, onCalculate, showLivePulse,
+  arb, region, liveRates, onCalculate, showLivePulse, affiliatePartners, token,
 }: {
   arb: ArbOpportunity;
   region: ArbRegion;
   liveRates: Record<string, number>;
   onCalculate: (a: ArbOpportunity) => void;
   showLivePulse?: boolean;
+  affiliatePartners?: AffiliatePartner[];
+  token?: string;
 }) {
   const colors = useColors();
   const pColor = profitColor(arb.profitPercent);
@@ -706,6 +749,14 @@ function ArbCard({
           </TouchableOpacity>
         )}
       </View>
+
+      {affiliatePartners && affiliatePartners.length > 0 && (
+        <AffiliateBanner
+          bookmakers={arb.legs.map((l) => l.bookmaker)}
+          affiliatePartners={affiliatePartners}
+          token={token}
+        />
+      )}
     </View>
   );
 }
@@ -732,6 +783,8 @@ export default function ArbitrageScreen() {
   const [filterVisible, setFilterVisible] = useState(false);
   const [minProfit, setMinProfit]     = useState(0);
   const [sportFilter, setSportFilter] = useState("All");
+  const [affiliatePartners, setAffiliatePartners] = useState<AffiliatePartner[]>([]);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const scanAnim = useRef(new Animated.Value(0)).current;
   const liveRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -787,6 +840,8 @@ export default function ArbitrageScreen() {
 
   useEffect(() => {
     api.arbitrage.rates().then((r) => { if (r.rates) setLiveRates(r.rates); }).catch(() => {});
+    // Load affiliate partners (public endpoint)
+    api.affiliate.partners().then((r) => setAffiliatePartners(r.partners ?? [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -798,6 +853,15 @@ export default function ArbitrageScreen() {
     if (selectedTab === "ev" && !evData) loadEV();
     if (selectedTab === "middles" && !middlesData) loadMiddles();
   }, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Show first-time welcome modal for free users once
+  useEffect(() => {
+    if (data && affiliatePartners.length > 0 && !isPremium) {
+      AsyncStorage.getItem("arb_welcome_shown").then((v) => {
+        if (!v) setShowWelcomeModal(true);
+      }).catch(() => {});
+    }
+  }, [data, affiliatePartners, isPremium]);
 
   // Premium ARBs: auto-refresh every 30s
   useEffect(() => {
@@ -1147,6 +1211,8 @@ export default function ArbitrageScreen() {
                   liveRates={liveRates}
                   onCalculate={(a) => { setSelectedArb(a); setCalcVisible(true); }}
                   showLivePulse={selectedTab === "live"}
+                  affiliatePartners={affiliatePartners}
+                  token={token ?? undefined}
                 />
               ));
             })()}
@@ -1234,6 +1300,39 @@ export default function ArbitrageScreen() {
           </>
         )}
 
+        {/* ── Recommended Sportsbooks ── */}
+        {affiliatePartners.length > 0 && (selectedTab === "arbs" || selectedTab === "live") && !isLoading && (
+          <View style={{ gap: 10 }}>
+            <Text style={[styles.sectionLabel, { color: colors.textMuted, marginTop: 8 }]}>📚 RECOMMENDED SPORTSBOOKS</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", gap: 10, paddingRight: 4 }}>
+                {affiliatePartners.map((p) => (
+                  <View key={p.id} style={[styles.recBookCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                    <Text style={styles.recBookLogo}>{p.logo ?? "🏦"}</Text>
+                    <Text style={[styles.recBookName, { color: colors.text }]}>{p.bookName}</Text>
+                    <Text style={[styles.recBookBonus, { color: colors.textMuted }]} numberOfLines={2}>{p.bonusText ?? "Welcome bonus"}</Text>
+                    <TouchableOpacity
+                      style={[styles.recBookBtn, { backgroundColor: "#00FF94" }]}
+                      onPress={() => {
+                        if (token) {
+                          api.affiliate.click(token, { partnerId: p.id, bookName: p.bookName, affiliateUrl: p.affiliateUrl, source: "recommended" }).catch(() => {});
+                        }
+                        Linking.openURL(p.affiliateUrl).catch(() => {});
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.recBookBtnText, { color: "#000" }]}>Sign Up & Get Bonus</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {}}>
+                      <Text style={[styles.recBookAlready, { color: colors.textMuted }]}>Already a member</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+
         {/* Africa country disclaimers */}
         {selectedRegion === "africa" && (selectedTab === "arbs" || selectedTab === "live") && (
           <View style={{ gap: 8 }}>
@@ -1282,6 +1381,84 @@ export default function ArbitrageScreen() {
         sportFilter={sportFilter}
         setSportFilter={setSportFilter}
       />
+
+      {/* ── First-time Welcome Modal ── */}
+      <Modal
+        visible={showWelcomeModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => {
+          setShowWelcomeModal(false);
+          AsyncStorage.setItem("arb_welcome_shown", "1").catch(() => {});
+        }}
+      >
+        <View style={styles.welcomeOverlay}>
+          <View style={[styles.welcomeBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <TouchableOpacity
+              style={styles.welcomeClose}
+              onPress={() => {
+                setShowWelcomeModal(false);
+                AsyncStorage.setItem("arb_welcome_shown", "1").catch(() => {});
+              }}
+            >
+              <X size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={[styles.welcomeTitle, { color: colors.text }]}>💰 Maximize Your Arb Profits!</Text>
+            <Text style={[styles.welcomeBody, { color: colors.textMuted }]}>
+              Having accounts at multiple sportsbooks means more opportunities. Sign up to our recommended books:
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              {affiliatePartners.slice(0, 3).map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.welcomePartnerRow, { backgroundColor: colors.background, borderColor: colors.border }]}
+                  onPress={() => {
+                    if (token) {
+                      api.affiliate.click(token, { partnerId: p.id, bookName: p.bookName, affiliateUrl: p.affiliateUrl, source: "modal" }).catch(() => {});
+                    }
+                    Linking.openURL(p.affiliateUrl).catch(() => {});
+                    setShowWelcomeModal(false);
+                    AsyncStorage.setItem("arb_welcome_shown", "1").catch(() => {});
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ fontSize: 20 }}>{p.logo ?? "🏦"}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[{ color: colors.text, fontSize: 14, fontWeight: "700" }]}>{p.bookName}</Text>
+                    <Text style={[{ color: colors.textMuted, fontSize: 11 }]} numberOfLines={1}>{p.bonusText}</Text>
+                  </View>
+                  <View style={[styles.welcomeSignUpBtn, { backgroundColor: "#00FF94" }]}>
+                    <Text style={{ color: "#000", fontSize: 11, fontWeight: "700" }}>Sign Up →</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.welcomeGetStarted, { backgroundColor: colors.cyan }]}
+              onPress={() => {
+                setShowWelcomeModal(false);
+                AsyncStorage.setItem("arb_welcome_shown", "1").catch(() => {});
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={[{ color: colors.background, fontSize: 15, fontWeight: "700" }]}>Get Started</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowWelcomeModal(false);
+                AsyncStorage.setItem("arb_welcome_shown", "1").catch(() => {});
+              }}
+              style={{ alignItems: "center", marginTop: 8 }}
+            >
+              <Text style={[{ color: colors.textMuted, fontSize: 13 }]}>Skip for now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1417,4 +1594,25 @@ const styles = StyleSheet.create({
   openBooksRow: { gap: 8 },
   openBkFullBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, padding: 12, borderRadius: 10, borderWidth: 1 },
   openBkFullText: { fontSize: 13 },
+
+  // Affiliate
+  affiliateBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1 },
+  affiliateBannerText: { flex: 1, fontSize: 12 },
+
+  recBookCard: { width: 160, borderRadius: 14, borderWidth: 1, padding: 12, gap: 8, alignItems: "center" },
+  recBookLogo: { fontSize: 28 },
+  recBookName: { fontSize: 14, fontWeight: "700", textAlign: "center" },
+  recBookBonus: { fontSize: 11, textAlign: "center", lineHeight: 15 },
+  recBookBtn: { width: "100%", paddingVertical: 8, borderRadius: 8, alignItems: "center" },
+  recBookBtnText: { fontSize: 11, fontWeight: "700" },
+  recBookAlready: { fontSize: 10, textDecorationLine: "underline" },
+
+  welcomeOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", padding: 24 },
+  welcomeBox: { width: "100%", borderRadius: 20, borderWidth: 1, padding: 24, gap: 16 },
+  welcomeClose: { position: "absolute", top: 16, right: 16 },
+  welcomeTitle: { fontSize: 20, fontWeight: "700", marginTop: 8 },
+  welcomeBody: { fontSize: 13, lineHeight: 19 },
+  welcomePartnerRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, borderWidth: 1 },
+  welcomeSignUpBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  welcomeGetStarted: { paddingVertical: 14, borderRadius: 14, alignItems: "center" },
 });

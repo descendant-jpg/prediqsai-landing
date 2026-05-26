@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from "expo-router";
-import { BarChart3, FileWarning, Globe, Key, LayoutDashboard, MessageSquare, Target, TrendingUp, Users } from "lucide-react-native";
+import { BarChart3, DollarSign, FileWarning, Globe, Key, LayoutDashboard, MessageSquare, Target, TrendingUp, Users } from "lucide-react-native";
 import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,15 +7,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 const TABS = [
-  { path: "/admin",              icon: LayoutDashboard, label: "Overview" },
-  { path: "/admin/users",        icon: Users,           label: "Users" },
-  { path: "/admin/predictions",  icon: Target,          label: "Picks" },
-  { path: "/admin/api-keys",     icon: Key,             label: "API Keys" },
-  { path: "/admin/revenue",      icon: TrendingUp,      label: "Revenue" },
-  { path: "/admin/notifications",icon: MessageSquare,   label: "Notify" },
-  { path: "/admin/errors",       icon: FileWarning,     label: "Errors" },
-  { path: "/admin/worldcup",     icon: Globe,           label: "World Cup" },
-  { path: "/admin/config",       icon: BarChart3,       label: "Config" },
+  { path: "/admin",               icon: LayoutDashboard, label: "Overview" },
+  { path: "/admin/users",         icon: Users,           label: "Users" },
+  { path: "/admin/predictions",   icon: Target,          label: "Picks" },
+  { path: "/admin/api-keys",      icon: Key,             label: "API Keys" },
+  { path: "/admin/revenue",       icon: TrendingUp,      label: "Revenue" },
+  { path: "/admin/notifications",  icon: MessageSquare,   label: "Notify" },
+  { path: "/admin/affiliates",    icon: DollarSign,      label: "Affiliates" },
+  { path: "/admin/errors",        icon: FileWarning,     label: "Errors" },
+  { path: "/admin/worldcup",      icon: Globe,           label: "World Cup" },
+  { path: "/admin/config",        icon: BarChart3,       label: "Config" },
 ] as const;
 
 export function AdminTabBar() {

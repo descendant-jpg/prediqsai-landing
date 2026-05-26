@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { AlertTriangle, BarChart3, FileText, Globe, Key, LayoutDashboard, MessageSquare, RefreshCw, Shield, Target, TrendingUp, Users } from "lucide-react-native";
+import { AlertTriangle, BarChart3, DollarSign, FileText, Globe, Key, LayoutDashboard, MessageSquare, RefreshCw, Shield, Target, TrendingUp, Users } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -131,6 +131,7 @@ export default function AdminOverviewScreen() {
           <SectionTile icon={<Globe size={22} color="#FFD700" />} label="World Cup" sub="Soccer picks" onPress={() => router.push("/admin/worldcup")} color="#FFD700" />
           <SectionTile icon={<BarChart3 size={22} color="#2ECC71" />} label="Config" sub="Feature flags" onPress={() => router.push("/admin/config")} color="#2ECC71" />
           <SectionTile icon={<LayoutDashboard size={22} color="#3498DB" />} label="API Health" sub="Monitor APIs" onPress={() => router.push("/admin/health")} color="#3498DB" />
+          <SectionTile icon={<DollarSign size={22} color="#00FF94" />} label="Affiliates" sub="Links & earnings" onPress={() => router.push("/admin/affiliates")} color="#00FF94" />
           <SectionTile icon={<FileText size={22} color="#94A3B8" />} label="Audit Logs" sub="All actions" onPress={() => router.push("/admin/logs")} color="#94A3B8" />
         </View>
       </ScrollView>
