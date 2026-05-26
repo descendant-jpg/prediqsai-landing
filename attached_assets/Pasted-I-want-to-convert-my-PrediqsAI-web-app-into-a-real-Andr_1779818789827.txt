@@ -1,0 +1,201 @@
+I want to convert my PrediqsAI web app into a 
+real Android app that I can publish on Google 
+Play Store. I plan to keep modifying it after 
+publishing. Please do the following:
+
+---
+
+## 1. INSTALL CAPACITOR
+
+Run these commands:
+
+npm install @capacitor/core @capacitor/cli
+npm install @capacitor/android
+npx cap init
+
+When cap init asks:
+- App Name: PrediqsAI
+- App Package ID: com.prediqsai.app
+- Web Dir: dist (or build, wherever your 
+  built files go)
+
+---
+
+## 2. UPDATE CAPACITOR CONFIG
+
+Create/update capacitor.config.ts in root:
+
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.prediqsai.app',
+  appName: 'PrediqsAI',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  },
+  android: {
+    allowMixedContent: true,
+    backgroundColor: '#0a0a0a'
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert']
+    },
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#0a0a0a',
+      showSpinner: false
+    }
+  }
+};
+
+export default config;
+
+---
+
+## 3. INSTALL MOBILE PLUGINS
+
+npm install @capacitor/push-notifications
+npm install @capacitor/splash-screen
+npm install @capacitor/status-bar
+npm install @capacitor/app
+npm install @capacitor/network
+npm install @capacitor/haptics
+
+---
+
+## 4. UPDATE STATUS BAR & SPLASH
+
+In the main app entry file (index.js or App.jsx),
+add at the top:
+
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { SplashScreen } from '@capacitor/splash-screen';
+
+// Make status bar dark/transparent for dark theme
+StatusBar.setStyle({ style: Style.Dark });
+StatusBar.setBackgroundColor({ color: '#0a0a0a' });
+
+// Hide splash after app loads
+SplashScreen.hide();
+
+---
+
+## 5. BUILD THE APP
+
+Run:
+npm run build
+npx cap add android
+npx cap sync android
+npx cap copy android
+
+---
+
+## 6. UPDATE ANDROID MANIFEST
+
+In android/app/src/main/AndroidManifest.xml
+make sure these permissions are added:
+
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.VIBRATE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+---
+
+## 7. UPDATE BUILD.GRADLE
+
+In android/app/build.gradle set:
+
+android {
+  compileSdkVersion 34
+  defaultConfig {
+    applicationId "com.prediqsai.app"
+    minSdkVersion 23
+    targetSdkVersion 34
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+---
+
+## 8. CREATE APP ICONS & SPLASH SCREEN
+
+Create these icon sizes and place in:
+android/app/src/main/res/
+
+mipmap-mdpi/ic_launcher.png      → 48x48
+mipmap-hdpi/ic_launcher.png      → 72x72
+mipmap-xhdpi/ic_launcher.png     → 96x96
+mipmap-xxhdpi/ic_launcher.png    → 144x144
+mipmap-xxxhdpi/ic_launcher.png   → 192x192
+
+Use the PrediqsAI logo/branding for these icons.
+Background color: #0a0a0a (dark)
+Foreground: PrediqsAI logo mark
+
+---
+
+## 9. SETUP FOR CONTINUOUS UPDATES
+
+Create this update workflow so I can keep 
+modifying the app after publishing:
+
+In package.json add these scripts:
+
+"scripts": {
+  "build:android": "npm run build && npx cap sync android && npx cap copy android",
+  "open:android": "npx cap open android",
+  "sync": "npx cap sync",
+  "release": "npm run build && npx cap sync android"
+}
+
+---
+
+## 10. GENERATE SIGNED APK INSTRUCTIONS
+
+After setup, tell me exactly how to:
+1. Generate a keystore file for signing
+2. Sign the APK/AAB
+3. Where the final AAB file will be located
+   (usually android/app/build/outputs/bundle/release/)
+
+---
+
+## 11. GITHUB ACTIONS FOR AUTO BUILD (OPTIONAL)
+
+Create .github/workflows/android-build.yml:
+
+name: Android Build
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+---
+
+## IMPORTANT NOTES
+
+- Keep dark theme (#0a0a0a background) throughout
+- App package ID must stay: com.prediqsai.app
+- Never change the package ID after publishing 
+  or it will break Play Store listing
+- Do not break any existing PrediqsAI features
+- Make sure all API calls work over HTTPS not HTTP
