@@ -1,0 +1,361 @@
+Install and configure expo-localization for detecting 
+user's country and region in the PrediQs AI mobile app.
+
+1. INSTALL THE PACKAGE
+Run in the Shell:
+npx expo install expo-localization
+
+2. CREATE A REGION DETECTION UTILITY
+Create a new file: utils/regionDetection.ts
+
+Add this code:
+
+import * as Localization from 'expo-localization';
+
+export type UserRegion = 
+  | 'UK_IRELAND'
+  | 'EUROPE'
+  | 'EUROPE_DE'
+  | 'EUROPE_FR'
+  | 'EUROPE_ES'
+  | 'EUROPE_IT'
+  | 'AFRICA'
+  | 'USA'
+  | 'ASIA'
+  | 'GLOBAL';
+
+export const detectUserRegion = (): UserRegion => {
+  const timezone = Localization.timezone;
+  const locale = Localization.locale;
+  
+  // UK & Ireland
+  if (
+    timezone.startsWith('Europe/London') ||
+    timezone.startsWith('Europe/Dublin') ||
+    locale.startsWith('en-GB') ||
+    locale.startsWith('en-IE')
+  ) return 'UK_IRELAND';
+
+  // Germany
+  if (
+    timezone === 'Europe/Berlin' ||
+    locale.startsWith('de')
+  ) return 'EUROPE_DE';
+
+  // France
+  if (
+    timezone === 'Europe/Paris' ||
+    locale.startsWith('fr')
+  ) return 'EUROPE_FR';
+
+  // Spain
+  if (
+    timezone === 'Europe/Madrid' ||
+    locale.startsWith('es')
+  ) return 'EUROPE_ES';
+
+  // Italy
+  if (
+    timezone === 'Europe/Rome' ||
+    locale.startsWith('it')
+  ) return 'EUROPE_IT';
+
+  // Rest of Europe
+  if (timezone.startsWith('Europe/')) return 'EUROPE';
+
+  // Africa
+  if (
+    timezone.startsWith('Africa/') ||
+    locale.includes('NG') ||
+    locale.includes('GH') ||
+    locale.includes('KE') ||
+    locale.includes('ZA') ||
+    locale.includes('TZ') ||
+    locale.includes('UG') ||
+    locale.includes('ET')
+  ) return 'AFRICA';
+
+  // USA
+  if (
+    timezone.startsWith('America/New_York') ||
+    timezone.startsWith('America/Chicago') ||
+    timezone.startsWith('America/Denver') ||
+    timezone.startsWith('America/Los_Angeles') ||
+    timezone.startsWith('America/Phoenix') ||
+    locale.startsWith('en-US')
+  ) return 'USA';
+
+  // Asia
+  if (
+    timezone.startsWith('Asia/') ||
+    timezone.startsWith('Pacific/')
+  ) return 'ASIA';
+
+  return 'GLOBAL';
+};
+
+export const getRegionFlag = (region: UserRegion): string => {
+  const flags: Record<UserRegion, string> = {
+    UK_IRELAND: '🇬🇧',
+    EUROPE: '🇪🇺',
+    EUROPE_DE: '🇩🇪',
+    EUROPE_FR: '🇫🇷',
+    EUROPE_ES: '🇪🇸',
+    EUROPE_IT: '🇮🇹',
+    AFRICA: '🌍',
+    USA: '🇺🇸',
+    ASIA: '🌏',
+    GLOBAL: '🌐',
+  };
+  return flags[region];
+};
+
+export const getRegionName = (region: UserRegion): string => {
+  const names: Record<UserRegion, string> = {
+    UK_IRELAND: 'UK & Ireland',
+    EUROPE: 'Europe',
+    EUROPE_DE: 'Germany',
+    EUROPE_FR: 'France',
+    EUROPE_ES: 'Spain',
+    EUROPE_IT: 'Italy',
+    AFRICA: 'Africa',
+    USA: 'United States',
+    ASIA: 'Asia',
+    GLOBAL: 'Global',
+  };
+  return names[region];
+};
+
+export const getCurrencyForRegion = (
+  region: UserRegion
+): string => {
+  const currencies: Record<UserRegion, string> = {
+    UK_IRELAND: 'GBP',
+    EUROPE: 'EUR',
+    EUROPE_DE: 'EUR',
+    EUROPE_FR: 'EUR',
+    EUROPE_ES: 'EUR',
+    EUROPE_IT: 'EUR',
+    AFRICA: 'NGN',
+    USA: 'USD',
+    ASIA: 'USD',
+    GLOBAL: 'USD',
+  };
+  return currencies[region];
+};
+
+3. CREATE A REGION CONTEXT
+Create: context/RegionContext.tsx
+
+import React, { 
+  createContext, 
+  useContext, 
+  useState, 
+  useEffect 
+} from 'react';
+import AsyncStorage from 
+  '@react-native-async-storage/async-storage';
+import { 
+  detectUserRegion, 
+  UserRegion,
+  getRegionFlag,
+  getRegionName,
+  getCurrencyForRegion
+} from '../utils/regionDetection';
+
+interface RegionContextType {
+  userRegion: UserRegion;
+  regionFlag: string;
+  regionName: string;
+  currency: string;
+  setUserRegion: (region: UserRegion) => void;
+  isLoading: boolean;
+}
+
+const RegionContext = createContext<RegionContextType>({
+  userRegion: 'GLOBAL',
+  regionFlag: '🌐',
+  regionName: 'Global',
+  currency: 'USD',
+  setUserRegion: () => {},
+  isLoading: true,
+});
+
+export const RegionProvider = ({ children }: any) => {
+  const [userRegion, setUserRegionState] = 
+    useState<UserRegion>('GLOBAL');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadRegion();
+  }, []);
+
+  const loadRegion = async () => {
+    try {
+      // Check if user manually set a region
+      const savedRegion = await AsyncStorage.getItem(
+        'userRegion'
+      );
+      
+      if (savedRegion) {
+        setUserRegionState(savedRegion as UserRegion);
+      } else {
+        // Auto-detect from device
+        const detectedRegion = detectUserRegion();
+        setUserRegionState(detectedRegion);
+        await AsyncStorage.setItem(
+          'userRegion', 
+          detectedRegion
+        );
+      }
+    } catch (error) {
+      console.error('Region detection error:', error);
+      setUserRegionState('GLOBAL');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setUserRegion = async (region: UserRegion) => {
+    setUserRegionState(region);
+    await AsyncStorage.setItem('userRegion', region);
+    
+    // Also save to Supabase user profile
+    try {
+      const { supabase } = require('../lib/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ preferred_region: region })
+          .eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving region:', error);
+    }
+  };
+
+  return (
+    <RegionContext.Provider value={{
+      userRegion,
+      regionFlag: getRegionFlag(userRegion),
+      regionName: getRegionName(userRegion),
+      currency: getCurrencyForRegion(userRegion),
+      setUserRegion,
+      isLoading,
+    }}>
+      {children}
+    </RegionContext.Provider>
+  );
+};
+
+export const useRegion = () => useContext(RegionContext);
+
+4. ADD REGION PROVIDER TO APP ROOT
+In App.tsx or _layout.tsx, wrap the app with 
+RegionProvider:
+
+import { RegionProvider } from './context/RegionContext';
+
+// Wrap existing providers:
+<RegionProvider>
+  {/* existing providers and navigation */}
+</RegionProvider>
+
+5. UPDATE SUPABASE PROFILES TABLE
+Run this SQL in Supabase dashboard:
+
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS preferred_region text 
+DEFAULT 'GLOBAL';
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS detected_region text;
+
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS country_code text;
+
+6. SAVE DETECTED REGION ON LOGIN
+In the auth/login flow, after successful login,
+save the detected region to Supabase:
+
+import { detectUserRegion } from '../utils/regionDetection';
+import * as Localization from 'expo-localization';
+
+const saveUserRegion = async (userId: string) => {
+  const region = detectUserRegion();
+  const locale = Localization.locale;
+  const countryCode = locale.split('-')[1] || 'UNKNOWN';
+  
+  await supabase
+    .from('profiles')
+    .update({
+      detected_region: region,
+      country_code: countryCode,
+    })
+    .eq('id', userId);
+};
+
+7. CREATE REGION SELECTOR COMPONENT
+Create: components/RegionSelector.tsx
+
+A bottom sheet that shows when user taps 
+"Change Region":
+
+import { useRegion } from '../context/RegionContext';
+
+const regions = [
+  { value: 'UK_IRELAND', flag: '🇬🇧', 
+    name: 'UK & Ireland' },
+  { value: 'EUROPE', flag: '🇪🇺', 
+    name: 'Europe' },
+  { value: 'AFRICA', flag: '🌍', 
+    name: 'Africa' },
+  { value: 'USA', flag: '🇺🇸', 
+    name: 'United States' },
+  { value: 'ASIA', flag: '🌏', 
+    name: 'Asia' },
+  { value: 'GLOBAL', flag: '🌐', 
+    name: 'Global (Show All)' },
+];
+
+Show as a list with flag + name.
+Highlight currently selected region.
+Tapping any region calls setUserRegion(region).
+Add a checkmark ✓ next to selected region.
+
+8. USE REGION IN ARBITRAGE SCREEN
+In the Arbitrage Scanner screen, import and use:
+
+import { useRegion } from '../context/RegionContext';
+
+const { userRegion, regionFlag, regionName } = useRegion();
+
+Show at top of Recommended Books section:
+"📍 Showing books for: {regionFlag} {regionName} 
+[Change]"
+
+Filter affiliate partners:
+const relevantBooks = allPartners.filter(book =>
+  book.regions.includes(userRegion) ||
+  book.regions.includes('GLOBAL')
+);
+
+9. TEST REGION DETECTION
+Add a temporary debug display in development:
+
+if (_DEV_) {
+  console.log('Timezone:', Localization.timezone);
+  console.log('Locale:', Localization.locale);
+  console.log('Detected Region:', detectUserRegion());
+}
+
+10. COMMIT AND PUSH TO GITHUB
+After everything is working:
+git add .
+git commit -m "Add expo-localization region detection"
+git push origin main
+
+Do NOT break any existing features.
+Do NOT change existing theme or branding.
+Do NOT touch IAP mock code.

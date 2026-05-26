@@ -35,12 +35,22 @@ async function requireAdmin(
 
 router.get("/affiliate/partners", async (req, res) => {
   try {
+    const region = req.query["region"] as string | undefined;
     const partners = await db
       .select()
       .from(affiliatePartners)
       .where(eq(affiliatePartners.isActive, true))
       .orderBy(affiliatePartners.bookName);
-    res.json({ partners });
+
+    // Filter by region client-side (array contains check)
+    const filtered = region
+      ? partners.filter((p) => {
+          const regions = p.regions ?? ["GLOBAL"];
+          return regions.includes(region) || regions.includes("GLOBAL");
+        })
+      : partners;
+
+    res.json({ partners: filtered });
   } catch {
     res.status(500).json({ error: "Failed to load affiliate partners" });
   }
@@ -54,6 +64,8 @@ const clickSchema = z.object({
   bookName: z.string(),
   affiliateUrl: z.string(),
   source: z.enum(["arb_card", "recommended", "modal"]),
+  userRegion: z.string().optional(),
+  userCountry: z.string().optional(),
 });
 
 router.post("/affiliate/click", requireAuth, async (req, res) => {
@@ -62,7 +74,7 @@ router.post("/affiliate/click", requireAuth, async (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const { partnerId, bookName, affiliateUrl, source } = parsed.data;
+  const { partnerId, bookName, affiliateUrl, source, userRegion, userCountry } = parsed.data;
   try {
     await db.insert(affiliateClicks).values({
       userId: req.userId!,
@@ -70,6 +82,8 @@ router.post("/affiliate/click", requireAuth, async (req, res) => {
       bookName,
       affiliateUrl,
       source,
+      userRegion: userRegion ?? null,
+      userCountry: userCountry ?? null,
     });
     res.json({ ok: true });
   } catch {

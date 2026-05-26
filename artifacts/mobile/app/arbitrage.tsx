@@ -35,6 +35,13 @@ import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import {
+  type AffiliateRegion,
+  filterByRegion,
+  REGION_DISPLAY_OPTIONS,
+  REGION_LABELS,
+  useUserRegion,
+} from "@/hooks/useUserRegion";
+import {
   api,
   type AffiliatePartner,
   type ArbCalcResult,
@@ -785,6 +792,8 @@ export default function ArbitrageScreen() {
   const [sportFilter, setSportFilter] = useState("All");
   const [affiliatePartners, setAffiliatePartners] = useState<AffiliatePartner[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showRegionPicker, setShowRegionPicker] = useState(false);
+  const { region: affiliateRegion, setRegion: setAffiliateRegion, detected: detectedRegion } = useUserRegion();
 
   const scanAnim = useRef(new Animated.Value(0)).current;
   const liveRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -840,9 +849,12 @@ export default function ArbitrageScreen() {
 
   useEffect(() => {
     api.arbitrage.rates().then((r) => { if (r.rates) setLiveRates(r.rates); }).catch(() => {});
-    // Load affiliate partners (public endpoint)
-    api.affiliate.partners().then((r) => setAffiliatePartners(r.partners ?? [])).catch(() => {});
   }, []);
+
+  // Reload affiliate partners whenever affiliate region changes
+  useEffect(() => {
+    api.affiliate.partners(affiliateRegion).then((r) => setAffiliatePartners(r.partners ?? [])).catch(() => {});
+  }, [affiliateRegion]);
 
   useEffect(() => {
     setData(null); setEvData(null); setMiddlesData(null);
@@ -1301,35 +1313,60 @@ export default function ArbitrageScreen() {
         )}
 
         {/* ── Recommended Sportsbooks ── */}
-        {affiliatePartners.length > 0 && (selectedTab === "arbs" || selectedTab === "live") && !isLoading && (
+        {(selectedTab === "arbs" || selectedTab === "live") && !isLoading && (
           <View style={{ gap: 10 }}>
-            <Text style={[styles.sectionLabel, { color: colors.textMuted, marginTop: 8 }]}>📚 RECOMMENDED SPORTSBOOKS</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: "row", gap: 10, paddingRight: 4 }}>
-                {affiliatePartners.map((p) => (
-                  <View key={p.id} style={[styles.recBookCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                    <Text style={styles.recBookLogo}>{p.logo ?? "🏦"}</Text>
-                    <Text style={[styles.recBookName, { color: colors.text }]}>{p.bookName}</Text>
-                    <Text style={[styles.recBookBonus, { color: colors.textMuted }]} numberOfLines={2}>{p.bonusText ?? "Welcome bonus"}</Text>
-                    <TouchableOpacity
-                      style={[styles.recBookBtn, { backgroundColor: "#00FF94" }]}
-                      onPress={() => {
-                        if (token) {
-                          api.affiliate.click(token, { partnerId: p.id, bookName: p.bookName, affiliateUrl: p.affiliateUrl, source: "recommended" }).catch(() => {});
-                        }
-                        Linking.openURL(p.affiliateUrl).catch(() => {});
-                      }}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={[styles.recBookBtnText, { color: "#000" }]}>Sign Up & Get Bonus</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => {}}>
-                      <Text style={[styles.recBookAlready, { color: colors.textMuted }]}>Already a member</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>📚 RECOMMENDED SPORTSBOOKS</Text>
+              <TouchableOpacity
+                style={[styles.regionPill, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => setShowRegionPicker(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 10 }}>📍</Text>
+                <Text style={[styles.regionPillText, { color: colors.text }]} numberOfLines={1}>
+                  {REGION_LABELS[affiliateRegion] ?? affiliateRegion}
+                </Text>
+                <Text style={[{ fontSize: 10, color: colors.textMuted }]}>▾</Text>
+              </TouchableOpacity>
+            </View>
+
+            {affiliatePartners.length === 0 ? (
+              <View style={[styles.recBookCard, { backgroundColor: colors.card, borderColor: colors.cardBorder, width: "100%", paddingVertical: 24 }]}>
+                <Text style={[styles.recBookName, { color: colors.textMuted }]}>No books available for this region</Text>
+                <TouchableOpacity onPress={() => setShowRegionPicker(true)}>
+                  <Text style={[{ color: colors.cyan, fontSize: 12, marginTop: 6 }]}>Change Region →</Text>
+                </TouchableOpacity>
               </View>
-            </ScrollView>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: "row", gap: 10, paddingRight: 4 }}>
+                  {affiliatePartners.map((p) => (
+                    <View key={p.id} style={[styles.recBookCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                      <Text style={styles.recBookLogo}>{p.logo ?? "🏦"}</Text>
+                      <Text style={[styles.recBookName, { color: colors.text }]}>{p.bookName}</Text>
+                      <Text style={[styles.recBookBonus, { color: colors.textMuted }]} numberOfLines={2}>{p.bonusText ?? "Welcome bonus"}</Text>
+                      {p.commissionAmount && (
+                        <Text style={[{ fontSize: 10, color: "#00FF94" }]}>
+                          {p.commissionType === "cpa" ? `CPA ${p.commissionCurrency ?? "USD"} ${p.commissionAmount}` : `${p.commissionAmount}% Rev Share`}
+                        </Text>
+                      )}
+                      <TouchableOpacity
+                        style={[styles.recBookBtn, { backgroundColor: "#00FF94" }]}
+                        onPress={() => {
+                          if (token) {
+                            api.affiliate.click(token, { partnerId: p.id, bookName: p.bookName, affiliateUrl: p.affiliateUrl, source: "recommended", userRegion: affiliateRegion }).catch(() => {});
+                          }
+                          Linking.openURL(p.affiliateUrl).catch(() => {});
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[styles.recBookBtnText, { color: "#000" }]}>Sign Up & Get Bonus</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
           </View>
         )}
 
@@ -1381,6 +1418,55 @@ export default function ArbitrageScreen() {
         sportFilter={sportFilter}
         setSportFilter={setSportFilter}
       />
+
+      {/* ── Region Picker Modal ── */}
+      <Modal
+        visible={showRegionPicker}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowRegionPicker(false)}
+      >
+        <View style={styles.welcomeOverlay}>
+          <View style={[styles.welcomeBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <TouchableOpacity style={styles.welcomeClose} onPress={() => setShowRegionPicker(false)}>
+              <X size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={[styles.welcomeTitle, { color: colors.text, fontSize: 16 }]}>📍 Select Your Region</Text>
+            <Text style={[styles.welcomeBody, { color: colors.textMuted, fontSize: 12 }]}>
+              {detectedRegion !== affiliateRegion && `Auto-detected: ${REGION_LABELS[detectedRegion] ?? detectedRegion}`}
+              {detectedRegion !== affiliateRegion && " · "}
+              Showing sportsbooks available in your selected region.
+            </Text>
+
+            <View style={{ gap: 8 }}>
+              {REGION_DISPLAY_OPTIONS.map((opt) => {
+                const active = opt.id === affiliateRegion;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[styles.welcomePartnerRow, {
+                      backgroundColor: active ? "rgba(0,229,255,0.1)" : colors.background,
+                      borderColor: active ? colors.cyan : colors.border,
+                    }]}
+                    onPress={() => {
+                      setAffiliateRegion(opt.id);
+                      setShowRegionPicker(false);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ fontSize: 18 }}>{opt.label.split(" ")[0]}</Text>
+                    <Text style={[{ flex: 1, color: active ? colors.cyan : colors.text, fontSize: 14, fontWeight: active ? "700" : "400" }]}>
+                      {opt.label.split(" ").slice(1).join(" ")}
+                    </Text>
+                    {active && <Text style={{ color: colors.cyan, fontSize: 12 }}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── First-time Welcome Modal ── */}
       <Modal

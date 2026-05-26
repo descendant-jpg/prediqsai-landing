@@ -102,7 +102,10 @@ export interface AffiliatePartner {
   affiliateUrl: string;
   bonusText: string | null;
   commissionType: string | null;
+  commissionAmount: number | null;
+  commissionCurrency: string | null;
   isActive: boolean | null;
+  regions: string[] | null;
 }
 
 export interface ApiKeyStatus {
@@ -827,11 +830,13 @@ export const api = {
       apiFetch<FDTeamInfo>(`/football-data/team/${teamId}`, { token }),
   },
   affiliate: {
-    partners: () =>
-      apiFetch<{ partners: AffiliatePartner[] }>("/affiliate/partners"),
+    partners: (region?: string) => {
+      const qs = region ? `?region=${encodeURIComponent(region)}` : "";
+      return apiFetch<{ partners: AffiliatePartner[] }>(`/affiliate/partners${qs}`);
+    },
     click: (
       token: string,
-      body: { partnerId?: string; bookName: string; affiliateUrl: string; source: "arb_card" | "recommended" | "modal" },
+      body: { partnerId?: string; bookName: string; affiliateUrl: string; source: "arb_card" | "recommended" | "modal"; userRegion?: string; userCountry?: string },
     ) =>
       apiFetch<{ ok: boolean }>("/affiliate/click", {
         method: "POST",

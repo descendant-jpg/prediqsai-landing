@@ -1,0 +1,391 @@
+Add ALL global sportsbook affiliates to the 
+Arbitrage Scanner organized by country/region.
+
+Users see sportsbooks relevant to THEIR location.
+
+---
+
+## 1. DETECT USER REGION
+
+On app startup, detect user's country using:
+const locale = Localization.locale // expo-localization
+const timezone = Localization.timezone
+
+Map timezone to region:
+- Europe/London, Europe/Dublin → UK_IRELAND
+- Europe/Berlin, Europe/Paris, 
+  Europe/Madrid, Europe/Rome,
+  Europe/Amsterdam → EUROPE
+- Africa/Lagos, Africa/Accra,
+  Africa/Nairobi, Africa/Johannesburg → AFRICA
+- America/New_York, America/Chicago,
+  America/Los_Angeles → USA
+- Asia/* → ASIA
+- Default → GLOBAL
+
+Store detected region in user profile in Supabase.
+Allow user to manually change region in settings.
+
+---
+
+## 2. SPORTSBOOK DATABASE BY REGION
+
+Add all these to affiliate_partners table 
+with a new "regions" column (array of regions):
+
+### UK & IRELAND
+INSERT INTO affiliate_partners VALUES:
+- Bet365 | regions: ['UK_IRELAND','EUROPE','GLOBAL']
+  URL: https://bet365.com
+  Bonus: "Bet £10 Get £30 in Bet Credits"
+  Commission: revenue_share 30%
+
+- William Hill | regions: ['UK_IRELAND','EUROPE']
+  URL: https://williamhill.com
+  Bonus: "Bet £10 Get £30 Free Bets"
+  Commission: revenue_share 25%
+
+- Ladbrokes | regions: ['UK_IRELAND']
+  URL: https://ladbrokes.com
+  Bonus: "Bet £5 Get £20 Free Bet"
+  Commission: revenue_share 25%
+
+- Coral | regions: ['UK_IRELAND']
+  URL: https://coral.co.uk
+  Bonus: "Bet £5 Get £20 Free Bet"
+  Commission: revenue_share 25%
+
+- Paddy Power | regions: ['UK_IRELAND']
+  URL: https://paddypower.com
+  Bonus: "Bet £20 Get £10 Free Bet"
+  Commission: revenue_share 30%
+
+- Betfair | regions: ['UK_IRELAND','EUROPE']
+  URL: https://betfair.com
+  Bonus: "Bet £10 Get £30 Free Bets"
+  Commission: revenue_share 30%
+
+- Sky Bet | regions: ['UK_IRELAND']
+  URL: https://skybet.com
+  Bonus: "Bet £5 Get £20 Free Bet"
+  Commission: cpa £40
+
+- Betfred | regions: ['UK_IRELAND']
+  URL: https://betfred.com
+  Bonus: "Bet £10 Get £30 Free Bet"
+  Commission: cpa £35
+
+### EUROPE (Pan-European)
+- Betway | regions: ['EUROPE','AFRICA','GLOBAL']
+  URL: https://betway.com
+  Bonus: "Bet £10 Get £10 Free Bet"
+  Commission: revenue_share 30%
+
+- Unibet | regions: ['EUROPE','GLOBAL']
+  URL: https://unibet.com
+  Bonus: "€10 Free Bet No Deposit"
+  Commission: revenue_share 25%
+
+- bwin | regions: ['EUROPE']
+  URL: https://bwin.com
+  Bonus: "Bet €10 Get €10 Free Bet"
+  Commission: revenue_share 25%
+
+- 888sport | regions: ['EUROPE','GLOBAL']
+  URL: https://888sport.com
+  Bonus: "Bet £10 Get £30 Free Bets"
+  Commission: revenue_share 30%
+
+- Pinnacle | regions: ['EUROPE','GLOBAL']
+  URL: https://pinnacle.com
+  Bonus: "Best Odds Guaranteed"
+  Commission: revenue_share 25%
+
+- Betsson | regions: ['EUROPE']
+  URL: https://betsson.com
+  Bonus: "€10 Free Bet"
+  Commission: revenue_share 30%
+
+- Unibet | regions: ['EUROPE']
+  URL: https://unibet.com
+  Bonus: "€10 No Deposit Free Bet"
+  Commission: revenue_share 25%
+
+### GERMANY SPECIFIC
+- Tipico | regions: ['EUROPE_DE']
+  URL: https://tipico.de
+  Bonus: "€10 Willkommensbonus"
+  Commission: revenue_share 25%
+
+- Interwetten | regions: ['EUROPE_DE']
+  URL: https://interwetten.com
+  Bonus: "€50 Welcome Bonus"
+  Commission: revenue_share 20%
+
+### SPAIN SPECIFIC
+- Codere | regions: ['EUROPE_ES']
+  URL: https://codere.es
+  Bonus: "€10 Bono Bienvenida"
+  Commission: revenue_share 25%
+
+- Sportium | regions: ['EUROPE_ES']
+  URL: https://sportium.es
+  Bonus: "€10 Gratis"
+  Commission: cpa €30
+
+### FRANCE SPECIFIC
+- Winamax | regions: ['EUROPE_FR']
+  URL: https://winamax.fr
+  Bonus: "100% jusqu'à €100"
+  Commission: revenue_share 30%
+
+- Betclic | regions: ['EUROPE_FR']
+  URL: https://betclic.fr
+  Bonus: "€20 Pari Gratuit"
+  Commission: revenue_share 25%
+
+### ITALY SPECIFIC
+- Sisal | regions: ['EUROPE_IT']
+  URL: https://sisal.it
+  Bonus: "€10 Bonus"
+  Commission: revenue_share 20%
+
+- Snai | regions: ['EUROPE_IT']
+  URL: https://snai.it
+  Bonus: "€10 Senza Deposito"
+  Commission: revenue_share 20%
+
+### AFRICA (Nigeria, Ghana, Kenya etc)
+- SportyBet | regions: ['AFRICA']
+  URL: https://sportybet.com
+  Bonus: "₦100,000 Welcome Bonus"
+  Commission: cpa ₦2000
+
+- BetKing | regions: ['AFRICA']
+  URL: https://betking.com
+  Bonus: "₦50,000 Welcome Bonus"
+  Commission: cpa ₦1500
+
+- 1xBet | regions: ['AFRICA','GLOBAL']
+  URL: https://1xbet.com
+  Bonus: "100% up to $100"
+  Commission: revenue_share 40%
+
+- Betway Africa | regions: ['AFRICA']
+  URL: https://betway.com/af
+  Bonus: "Bet £10 Get £10"
+  Commission: revenue_share 25%
+
+- Parimatch | regions: ['AFRICA','GLOBAL']
+  URL: https://parimatch.com
+  Bonus: "100% up to $150"
+  Commission: revenue_share 35%
+
+- MelBet | regions: ['AFRICA','GLOBAL']
+  URL: https://melbet.com
+  Bonus: "100% up to $100"
+  Commission: revenue_share 40%
+
+- BangBet | regions: ['AFRICA']
+  URL: https://bangbet.com
+  Bonus: "200% Welcome Bonus"
+  Commission: cpa ₦1000
+
+- NairaBet | regions: ['AFRICA']
+  URL: https://nairabet.com
+  Bonus: "₦20,000 Welcome Bonus"
+  Commission: cpa ₦1000
+
+### USA
+- DraftKings | regions: ['USA']
+  URL: https://sportsbook.draftkings.com
+  Bonus: "Bet $5 Get $200 Bonus Bets"
+  Commission: cpa $200
+
+- FanDuel | regions: ['USA']
+  URL: https://fanduel.com/sports
+  Bonus: "Bet $5 Get $150 Bonus Bets"
+  Commission: cpa $150
+
+- BetMGM | regions: ['USA']
+  URL: https://sports.betmgm.com
+  Bonus: "Bet $10 Get $200 Bonus Bets"
+  Commission: cpa $150
+
+- Caesars | regions: ['USA']
+  URL: https://caesars.com/sportsbook
+  Bonus: "First Bet up to $1,000 Back"
+  Commission: cpa $200
+
+- PointsBet | regions: ['USA']
+  URL: https://pointsbet.com
+  Bonus: "5 x $50 Second Chance Bets"
+  Commission: cpa $100
+
+- BetRivers | regions: ['USA']
+  URL: https://betrivers.com
+  Bonus: "2nd Chance Bet up to $500"
+  Commission: cpa $100
+
+- ESPN Bet | regions: ['USA']
+  URL: https://espnbet.com
+  Bonus: "Bet $10 Get $150 Bonus Bets"
+  Commission: cpa $100
+
+### ASIA
+- Bet365 Asia | regions: ['ASIA']
+  URL: https://bet365.com
+  Bonus: "Up to $30 in Bet Credits"
+  Commission: revenue_share 25%
+
+- 1xBet Asia | regions: ['ASIA']
+  URL: https://1xbet.com
+  Bonus: "100% up to $100"
+  Commission: revenue_share 40%
+
+- Dafabet | regions: ['ASIA']
+  URL: https://dafabet.com
+  Bonus: "100% up to $150"
+  Commission: revenue_share 30%
+
+- Parimatch Asia | regions: ['ASIA']
+  URL: https://parimatch.com
+  Bonus: "100% up to $150"
+  Commission: revenue_share 35%
+
+---
+
+## 3. UPDATE SUPABASE TABLE
+
+Add regions column to affiliate_partners:
+ALTER TABLE affiliate_partners 
+ADD COLUMN regions text[] DEFAULT ARRAY['GLOBAL'];
+
+Add country_code to affiliate_clicks for tracking:
+ALTER TABLE affiliate_clicks
+ADD COLUMN user_region text;
+ADD COLUMN user_country text;
+
+---
+
+## 4. DYNAMIC REGION FILTERING IN APP
+
+When showing "Recommended Sportsbooks" section:
+
+const userRegion = await getUserRegion()
+
+const relevantBooks = affiliatePartners.filter(book => 
+  book.regions.includes(userRegion) || 
+  book.regions.includes('GLOBAL')
+)
+
+Show only books relevant to user's region.
+Sort by: commission_amount DESC (highest paying first)
+
+---
+
+## 5. REGION SELECTOR IN ARBITRAGE SCREEN
+
+Add a small region pill button at the top of 
+the Recommended Books section:
+
+"📍 Showing books for: 🇳🇬 Nigeria  [Change]"
+
+Tapping "Change" opens bottom sheet with regions:
+- 🇬🇧 UK & Ireland
+- 🌍 Europe
+- 🇳🇬 Africa
+- 🇺🇸 USA
+- 🌏 Asia
+- 🌐 Global (show all)
+
+Selecting updates the books shown instantly.
+Save preference to user profile in Supabase.
+
+---
+
+## 6. ARB CARD SMART MATCHING
+
+When an arb card shows:
+"Bet365 vs William Hill"
+
+Automatically detect these are UK books →
+Show UK affiliate banners on that specific card
+
+When arb shows:
+"DraftKings vs FanDuel"
+
+Automatically detect these are US books →
+Show US affiliate banners
+
+Match logic:
+const bookRegion = getBookRegion(bookName)
+const affiliateLink = getAffiliateLink(bookName)
+if (affiliateLink) showAffiliateBanner()
+
+---
+
+## 7. ADMIN PANEL REGION MANAGEMENT
+
+In the admin Affiliates tab, update the 
+Add/Edit Partner form to include:
+
+Regions multi-select checkboxes:
+☑️ UK & Ireland
+☑️ Europe  
+☑️ Africa
+☑️ USA
+☑️ Asia
+☑️ Global
+
+Admin can assign multiple regions per book.
+
+Add region filter to earnings dashboard:
+"Filter by region: [All ▼]"
+Shows earnings breakdown by region:
+- UK earnings: £XXX
+- Africa earnings: ₦XXX
+- USA earnings: $XXX
+- Europe earnings: €XXX
+
+---
+
+## 8. EARNINGS MULTI-CURRENCY SUPPORT
+
+Since different regions pay in different currencies:
+
+In affiliate_payouts table add:
+- amount_usd (decimal) // converted amount
+- exchange_rate (decimal) // rate used
+
+Admin dashboard shows total earnings in USD
+with breakdown by original currency:
+"Total: $2,450 USD
+  £800 GBP (UK books)
+  ₦150,000 NGN (Africa books)  
+  €400 EUR (Europe books)"
+
+Use EXCHANGE_RATE_API (already in secrets) to 
+convert all currencies to USD for totals.
+
+---
+
+## IMPLEMENTATION ORDER
+
+Build in this exact order:
+1. Update Supabase tables with regions column
+2. Insert all affiliate partners with regions
+3. Add region detection in app
+4. Update Recommended Books to filter by region
+5. Add region selector UI
+6. Update arb card smart matching
+7. Update admin panel with region management
+8. Add multi-currency earnings tracking
+9. Test with different region settings
+10. Push to GitHub
+
+Do NOT break existing features.
+Keep PrediQs AI dark theme.
+Only FREE and PREMIUM tiers.
+All affiliate links are placeholders until 
+real affiliate codes are added via admin panel.

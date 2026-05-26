@@ -12,6 +12,8 @@ export const affiliateClicks = pgTable("affiliate_clicks", {
   bookName: text("book_name"),
   affiliateUrl: text("affiliate_url"),
   source: text("source"),
+  userRegion: text("user_region"),
+  userCountry: text("user_country"),
   clickedAt: timestamp("clicked_at", { withTimezone: true }).defaultNow(),
   converted: boolean("converted").default(false),
   commissionEarned: real("commission_earned").default(0),

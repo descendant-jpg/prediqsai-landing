@@ -33,6 +33,7 @@ interface AffiliatePartner {
   paymentSchedule: string | null;
   isActive: boolean | null;
   notes: string | null;
+  regions: string[] | null;
   createdAt: string | null;
   totalClicks: number;
   totalConversions: number;
@@ -97,6 +98,16 @@ function PartnerRow({ partner, onEdit, onDelete, onToggle }: {
           thumbColor={partner.isActive ? "#00E5FF" : colors.textMuted}
         />
       </View>
+
+      {partner.regions && partner.regions.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, paddingHorizontal: 12, paddingBottom: 8 }}>
+          {partner.regions.map((r) => (
+            <View key={r} style={[s.regionBadge, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: "rgba(0,229,255,0.2)" }]}>
+              <Text style={{ color: "#00E5FF", fontSize: 9, fontWeight: "600" }}>{r.replace("_", " ")}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <View style={[s.partnerStats, { borderTopColor: colors.border }]}>
         <View style={s.partnerStat}>
@@ -163,7 +174,27 @@ function PartnerFormModal({
   const [paymentSchedule, setPaymentSchedule] = useState("monthly");
   const [isActive, setIsActive] = useState(true);
   const [notes, setNotes] = useState("");
+  const [regions, setRegions] = useState<string[]>(["GLOBAL"]);
   const [saving, setSaving] = useState(false);
+
+  const ALL_REGIONS: { id: string; label: string }[] = [
+    { id: "UK_IRELAND", label: "🇬🇧 UK & Ireland" },
+    { id: "EUROPE",     label: "🌍 Europe" },
+    { id: "EUROPE_DE",  label: "🇩🇪 Germany" },
+    { id: "EUROPE_ES",  label: "🇪🇸 Spain" },
+    { id: "EUROPE_FR",  label: "🇫🇷 France" },
+    { id: "EUROPE_IT",  label: "🇮🇹 Italy" },
+    { id: "AFRICA",     label: "🌍 Africa" },
+    { id: "USA",        label: "🇺🇸 USA" },
+    { id: "ASIA",       label: "🌏 Asia" },
+    { id: "GLOBAL",     label: "🌐 Global" },
+  ];
+
+  const toggleRegion = (r: string) => {
+    setRegions((prev) =>
+      prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r],
+    );
+  };
 
   useEffect(() => {
     if (existing) {
@@ -178,10 +209,12 @@ function PartnerFormModal({
       setPaymentSchedule(existing.paymentSchedule ?? "monthly");
       setIsActive(existing.isActive ?? true);
       setNotes(existing.notes ?? "");
+      setRegions(existing.regions && existing.regions.length > 0 ? existing.regions : ["GLOBAL"]);
     } else {
       setBookName(""); setLogo(""); setAffiliateUrl(""); setBonusText("");
       setCommissionType("cpa"); setCommissionAmount(""); setCommissionCurrency("USD");
       setMinPayout(""); setPaymentSchedule("monthly"); setIsActive(true); setNotes("");
+      setRegions(["GLOBAL"]);
     }
   }, [existing, visible]);
 
@@ -196,7 +229,7 @@ function PartnerFormModal({
         bookName, logo, affiliateUrl, bonusText, commissionType,
         commissionAmount: commissionAmount ? parseFloat(commissionAmount) : undefined,
         commissionCurrency, minPayout: minPayout ? parseFloat(minPayout) : undefined,
-        paymentSchedule, isActive, notes,
+        paymentSchedule, isActive, notes, regions,
       };
       const method = existing ? "PUT" : "POST";
       const url = existing ? `/api/admin/affiliates/partners/${existing.id}` : "/api/admin/affiliates/partners";
@@ -287,6 +320,25 @@ function PartnerFormModal({
                 <Text style={{ color: paymentSchedule === s ? colors.background : colors.text, fontSize: 11 }}>{s.replace("_", " ")}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+
+          <Text style={labelStyle}>Regions (select all that apply)</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+            {ALL_REGIONS.map((r) => {
+              const active = regions.includes(r.id);
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[s.pill, {
+                    backgroundColor: active ? "rgba(0,229,255,0.15)" : colors.card,
+                    borderColor: active ? colors.cyan : colors.border,
+                  }]}
+                  onPress={() => toggleRegion(r.id)}
+                >
+                  <Text style={{ color: active ? colors.cyan : colors.text, fontSize: 11 }}>{r.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <Text style={labelStyle}>Notes</Text>
@@ -751,6 +803,7 @@ const s = StyleSheet.create({
   formLabel: { fontSize: 12, marginTop: 10, marginBottom: 6, fontWeight: "600" },
   formInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, marginBottom: 4 },
   pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  regionBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
   saveBtn: { paddingVertical: 14, borderRadius: 12, alignItems: "center", marginTop: 16 },
   saveBtnText: { fontSize: 16, fontWeight: "700" },
 });

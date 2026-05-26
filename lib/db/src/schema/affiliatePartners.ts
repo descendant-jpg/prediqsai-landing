@@ -15,6 +15,7 @@ export const affiliatePartners = pgTable("affiliate_partners", {
   paymentSchedule: text("payment_schedule").default("monthly"),
   isActive: boolean("is_active").default(true),
   notes: text("notes"),
+  regions: text("regions").array().default(["GLOBAL"]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
