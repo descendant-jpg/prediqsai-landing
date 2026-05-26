@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
 import { IAPProvider } from "@/context/IAPContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { RegionProvider } from "@/context/RegionContext";
 
 if (process.env.EXPO_PUBLIC_DOMAIN) {
   setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
@@ -84,13 +85,15 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <LanguageProvider>
-                <AuthProvider>
-                  <AppProvider>
-                    <IAPProvider>
-                      <RootLayoutNav />
-                    </IAPProvider>
-                  </AppProvider>
-                </AuthProvider>
+                <RegionProvider>
+                  <AuthProvider>
+                    <AppProvider>
+                      <IAPProvider>
+                        <RootLayoutNav />
+                      </IAPProvider>
+                    </AppProvider>
+                  </AuthProvider>
+                </RegionProvider>
               </LanguageProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

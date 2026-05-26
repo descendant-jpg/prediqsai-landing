@@ -39,8 +39,8 @@ import {
   filterByRegion,
   REGION_DISPLAY_OPTIONS,
   REGION_LABELS,
-  useUserRegion,
 } from "@/hooks/useUserRegion";
+import { useRegion } from "@/context/RegionContext";
 import {
   api,
   type AffiliatePartner,
@@ -793,7 +793,7 @@ export default function ArbitrageScreen() {
   const [affiliatePartners, setAffiliatePartners] = useState<AffiliatePartner[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showRegionPicker, setShowRegionPicker] = useState(false);
-  const { region: affiliateRegion, setRegion: setAffiliateRegion, detected: detectedRegion } = useUserRegion();
+  const { region: affiliateRegion, setRegion: setAffiliateRegion, detected: detectedRegion } = useRegion();
 
   const scanAnim = useRef(new Animated.Value(0)).current;
   const liveRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
