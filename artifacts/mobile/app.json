@@ -53,8 +53,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "14d66951-a9a8-4e25-b5b8-7c80e517285d"
       }
-    }
+    },
+    "owner": "nextgen34"
   }
 }
