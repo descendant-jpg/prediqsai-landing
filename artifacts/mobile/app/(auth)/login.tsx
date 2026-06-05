@@ -308,9 +308,9 @@ export default function LoginScreen() {
                 activeOpacity={0.85}
               >
                 {siLoading ? (
-                  <ActivityIndicator color={BG} />
+                  <ActivityIndicator color={isSignInReady ? BG : MUTED} />
                 ) : (
-                  <Text style={s.submitBtnText}>Sign In</Text>
+                  <Text style={[s.submitBtnText, !isSignInReady && s.submitBtnTextDisabled]}>Sign In</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -374,9 +374,9 @@ export default function LoginScreen() {
                 activeOpacity={0.85}
               >
                 {suLoading ? (
-                  <ActivityIndicator color={BG} />
+                  <ActivityIndicator color={isSignUpReady ? BG : MUTED} />
                 ) : (
-                  <Text style={s.submitBtnText}>Sign Up</Text>
+                  <Text style={[s.submitBtnText, !isSignUpReady && s.submitBtnTextDisabled]}>Sign Up</Text>
                 )}
               </TouchableOpacity>
               <Text style={s.tosLine}>
@@ -540,7 +540,7 @@ export default function LoginScreen() {
                   disabled={!forgotEmail.trim()}
                   activeOpacity={0.85}
                 >
-                  <Text style={s.submitBtnText}>Send Reset Link</Text>
+                  <Text style={[s.submitBtnText, !forgotEmail.trim() && s.submitBtnTextDisabled]}>Send Reset Link</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -592,8 +592,9 @@ const s = StyleSheet.create({
 
   // Submit
   submitBtn: { backgroundColor: GOLD, borderRadius: 13, paddingVertical: 15, alignItems: "center", marginTop: 2 },
-  submitBtnDisabled: { opacity: 0.4 },
-  submitBtnText: { color: BG, fontSize: 16, fontWeight: "700" },
+  submitBtnDisabled: { backgroundColor: "#2A3545", borderWidth: 1, borderColor: BORDER },
+  submitBtnText: { color: BG, fontSize: 16, fontWeight: "700", letterSpacing: 0.3 },
+  submitBtnTextDisabled: { color: MUTED },
 
   // ToS consent line
   tosLine: { color: MUTED, fontSize: 11, textAlign: "center", lineHeight: 17 },
