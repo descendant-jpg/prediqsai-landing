@@ -1,0 +1,119 @@
+In my PrediqsAI app, I have a Profile screen and a 
+Settings screen (gear icon on dashboard). Several 
+buttons in the Profile screen are not working. 
+Please fix all of them:
+
+---
+
+## 1. TERMS OF SERVICE (Profile screen)
+Find the "Terms of Service" button under the LEGAL 
+section in the Profile screen.
+Make it navigate to the EXACT same destination/screen 
+as the "Terms of Service" button in the Settings screen 
+(gear icon on dashboard).
+They should use the same component/route.
+
+---
+
+## 2. PRIVACY POLICY (Profile screen)
+Find the "Privacy Policy" button under the LEGAL 
+section in the Profile screen.
+Make it navigate to the EXACT same destination/screen 
+as the "Privacy Policy" button in the Settings screen 
+(gear icon on dashboard).
+They should use the same component/route.
+
+---
+
+## 3. RESPONSIBLE GAMBLING (Profile screen)
+Find the "Responsible Gambling" button under the LEGAL 
+section in the Profile screen.
+Make it navigate to the EXACT same destination/screen 
+as the "Responsible Gambling" button in the Settings 
+screen (gear icon on dashboard).
+They should use the same component/route.
+
+---
+
+## 4. CONTACT US (Profile screen)
+Find the "Contact Us" button in the Profile screen.
+Fix it to work exactly like the "Contact Us" in 
+Settings - when clicked it should:
+- Open the device's email app automatically
+- Pre-fill the recipient email as: support@prediqsai.com
+- Use this code pattern:
+
+import { Linking } from 'react-native';
+
+const handleContactUs = () => {
+  Linking.openURL('mailto:support@prediqsai.com?subject=PrediqsAI Support');
+};
+
+Apply this same mailto handler to the Contact Us 
+button in the Profile screen.
+
+---
+
+## 5. HELP & FAQ (Profile screen)
+Find the "Help & FAQ" button in the Profile screen.
+Make it navigate to the EXACT same destination/screen 
+as the "App Guide" button in the Profile screen.
+They should both lead to the same screen/component.
+
+---
+
+## 6. LANGUAGE (Profile screen)
+Find the "Language" button showing "English" in 
+the Profile screen under FEATURES.
+Make it functional - when clicked show a language 
+selector with at least these options:
+- English (default, currently selected)
+- French
+- Spanish
+- Portuguese
+Save the selected language to user preferences.
+
+---
+
+## 7. BETTING EXPERIENCE (Profile screen)
+Find the "Betting Experience" button showing 
+"Casual" in the Profile screen under FEATURES.
+Make it functional - when clicked show a selector 
+with these options:
+- Casual (default)
+- Intermediate  
+- Professional
+Save the selected experience level to user 
+preferences and use it to personalize content.
+
+---
+
+## HOW TO FIX:
+
+1. First find where the Settings screen (gear icon) 
+   handles Terms of Service, Privacy Policy, 
+   Responsible Gambling and Contact Us
+
+2. Extract those exact navigation routes or 
+   component references
+
+3. Apply the same routes to the Profile screen 
+   buttons
+
+4. For Contact Us specifically use the mailto: 
+   Linking pattern with support@prediqsai.com
+
+5. For Help & FAQ find the App Guide route and 
+   apply it to Help & FAQ as well
+
+---
+
+## IMPORTANT
+- Do not break any existing working buttons
+- Keep the same dark theme styling (#0a0a0a)
+- Keep the same red box/border styling on the 
+  buttons if it exists in the code
+- Test that all navigation routes exist before 
+  linking to them
+- Do not create duplicate screens - reuse 
+  existing ones

@@ -20,6 +20,9 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  FlatList,
+  Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -31,11 +34,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { LANGUAGES, useLanguage } from "@/context/LanguageContext";
 
 const TIER_COLORS: Record<string, string> = {
   free:    "#94A3B8",
   premium: "#FFD700",
 };
+
+const BETTING_EXPERIENCE_OPTIONS = [
+  { key: "Casual",       desc: "I bet for fun occasionally" },
+  { key: "Intermediate", desc: "I follow sports closely and bet regularly" },
+  { key: "Professional", desc: "I treat betting as a serious endeavour" },
+] as const;
+
+type BettingExperience = (typeof BETTING_EXPERIENCE_OPTIONS)[number]["key"];
 
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
@@ -103,7 +115,12 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
+
   const [copied, setCopied] = useState(false);
+  const [showLangModal, setShowLangModal]   = useState(false);
+  const [showExpModal, setShowExpModal]     = useState(false);
+  const [bettingExp, setBettingExp]         = useState<BettingExperience>("Casual");
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
@@ -125,151 +142,268 @@ export default function ProfileScreen() {
       "Sign Out",
       "Are you sure you want to sign out?",
       [
-        { text: "Cancel",    style: "cancel" },
-        { text: "Sign Out",  style: "destructive", onPress: () => logout() },
+        { text: "Cancel",   style: "cancel" },
+        { text: "Sign Out", style: "destructive", onPress: () => logout() },
       ],
     );
   }
 
+  function handleContactUs() {
+    Linking.openURL("mailto:support@prediqsai.com?subject=PrediqsAI Support").catch(() =>
+      Alert.alert("Email", "Email us at support@prediqsai.com"),
+    );
+  }
+
+  function handleTelegram() {
+    Linking.openURL("https://t.me/prediqsai").catch(() =>
+      Alert.alert("Telegram", "Find us at t.me/prediqsai"),
+    );
+  }
+
+  function handleFollowUs() {
+    Linking.openURL("https://twitter.com/prediqsai").catch(() =>
+      Alert.alert("Follow Us", "Find us at @prediqsai"),
+    );
+  }
+
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: topPadding + 16, paddingBottom: insets.bottom + 80 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── Profile card ── */}
-      <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.avatarCircle, { backgroundColor: "rgba(0,229,255,0.15)" }]}>
-          <Text style={styles.avatarText}>{username.charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={styles.accountInfo}>
-          <Text style={[styles.displayName, { color: colors.text }]}>{username}</Text>
-          <Text style={[styles.emailText,   { color: colors.textSecondary }]}>
-            {user?.email ?? ""}
-          </Text>
-          <View style={styles.tierRow}>
-            <View style={[styles.tierBadge, { backgroundColor: `${tierColor}20`, borderColor: `${tierColor}40` }]}>
-              <Star size={11} color={tierColor} />
-              <Text style={[styles.tierText, { color: tierColor }]}>{tier.toUpperCase()}</Text>
+    <>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={{ paddingTop: topPadding + 16, paddingBottom: insets.bottom + 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Profile card ── */}
+        <View style={[styles.profileCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.avatarCircle, { backgroundColor: "rgba(0,229,255,0.15)" }]}>
+            <Text style={styles.avatarText}>{username.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.accountInfo}>
+            <Text style={[styles.displayName, { color: colors.text }]}>{username}</Text>
+            <Text style={[styles.emailText,   { color: colors.textSecondary }]}>
+              {user?.email ?? ""}
+            </Text>
+            <View style={styles.tierRow}>
+              <View style={[styles.tierBadge, { backgroundColor: `${tierColor}20`, borderColor: `${tierColor}40` }]}>
+                <Star size={11} color={tierColor} />
+                <Text style={[styles.tierText, { color: tierColor }]}>{tier.toUpperCase()}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.upgradeBtn, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: "rgba(0,229,255,0.25)" }]}
+                onPress={() => router.push("/settings" as any)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.upgradeBtnText, { color: colors.cyan }]}>
+                  {tier === "premium" ? "Manage Plan" : "Upgrade"}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={[styles.upgradeBtn, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: "rgba(0,229,255,0.25)" }]}
-              onPress={() => router.push("/settings" as any)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.upgradeBtnText, { color: colors.cyan }]}>
-                {tier === "premium" ? "Manage Plan" : "Upgrade"}
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
 
-      {/* ── Referral banner ── */}
-      <View style={[styles.referralCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.2)" }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.referralTitle, { color: colors.gold }]}>🎁 Invite friends — earn rewards</Text>
-          <Text style={[styles.referralLink, { color: colors.textSecondary }]} numberOfLines={1}>
-            {referral}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.copyBtn,
-            {
-              backgroundColor: copied ? "rgba(0,255,148,0.15)" : "rgba(255,215,0,0.15)",
-              borderColor:     copied ? "rgba(0,255,148,0.35)" : "rgba(255,215,0,0.3)",
-            },
-          ]}
-          onPress={copyReferral}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.copyBtnText, { color: copied ? colors.green : colors.gold }]}>
-            {copied ? "Copied!" : "Copy"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── Stats strip ── */}
-      <View style={styles.statsStrip}>
-        {[
-          { label: "Plan",      value: tier.toUpperCase(), color: tierColor     },
-          { label: "Status",    value: "Active",           color: colors.green  },
-          { label: "Referrals", value: "0",                color: colors.textSecondary },
-        ].map((s) => (
-          <View key={s.label} style={[styles.statCell, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.statCellValue, { color: s.color }]}>{s.value}</Text>
-            <Text style={[styles.statCellLabel, { color: colors.textMuted }]}>{s.label}</Text>
+        {/* ── Referral banner ── */}
+        <View style={[styles.referralCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.2)" }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.referralTitle, { color: colors.gold }]}>🎁 Invite friends — earn rewards</Text>
+            <Text style={[styles.referralLink, { color: colors.textSecondary }]} numberOfLines={1}>
+              {referral}
+            </Text>
           </View>
-        ))}
-      </View>
+          <TouchableOpacity
+            style={[
+              styles.copyBtn,
+              {
+                backgroundColor: copied ? "rgba(0,255,148,0.15)" : "rgba(255,215,0,0.15)",
+                borderColor:     copied ? "rgba(0,255,148,0.35)" : "rgba(255,215,0,0.3)",
+              },
+            ]}
+            onPress={copyReferral}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.copyBtnText, { color: copied ? colors.green : colors.gold }]}>
+              {copied ? "Copied!" : "Copy"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* ── Features ── */}
-      <SectionHeader title="Features" />
-      <SettingGroup>
-        <SettingRow
-          icon={Bell}    label="Notifications"
-          onPress={() => Alert.alert("Notifications", "Go to device Settings → PrediQs AI to manage notifications.")}
-        />
-        <SettingRow icon={Globe}   label="Language"           value="English" onPress={() => {}} />
-        <SettingRow icon={Percent} label="Betting Experience" value="Casual"  onPress={() => {}} />
-        <SettingRow icon={Lock}    label="Change Password"    onPress={() => router.push("/change-password" as any)} />
-      </SettingGroup>
+        {/* ── Stats strip ── */}
+        <View style={styles.statsStrip}>
+          {[
+            { label: "Plan",      value: tier.toUpperCase(), color: tierColor               },
+            { label: "Status",    value: "Active",           color: colors.green            },
+            { label: "Referrals", value: "0",                color: colors.textSecondary    },
+          ].map((s) => (
+            <View key={s.label} style={[styles.statCell, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.statCellValue, { color: s.color }]}>{s.value}</Text>
+              <Text style={[styles.statCellLabel, { color: colors.textMuted }]}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
 
-      {/* ── Support ── */}
-      <SectionHeader title="Support" />
-      <SettingGroup>
-        <SettingRow
-          icon={Mail}          label="Contact Us"
-          onPress={() => Alert.alert("Contact", "Email us at support@prediqs.ai")}
-        />
-        <SettingRow icon={HelpCircle}    label="Help & FAQ"         onPress={() => {}} />
-        <SettingRow icon={BookOpen}      label="App Guide"          onPress={() => router.push("/about" as any)} />
-        <SettingRow
-          icon={MessageSquare} label="Telegram Community"
-          right={<ExternalLink size={14} color="#3A5060" />}
-          onPress={() => {}}
-        />
-        <SettingRow
-          icon={Users}         label="Follow Us"
-          right={<ExternalLink size={14} color="#3A5060" />}
-          onPress={() => {}}
-        />
-      </SettingGroup>
-
-      {/* ── Legal ── */}
-      <SectionHeader title="Legal" />
-      <SettingGroup>
-        <SettingRow icon={BookOpen}  label="Terms of Service"     onPress={() => {}} />
-        <SettingRow icon={Shield}    label="Privacy Policy"        onPress={() => {}} />
-        <SettingRow
-          icon={LifeBuoy}  label="Responsible Gambling"
-          iconColor="#FF6B35"
-          onPress={() => {}}
-        />
-      </SettingGroup>
-
-      {/* ── Account Actions ── */}
-      <SectionHeader title="Account" />
-      <SettingGroup>
-        {isAdmin && (
+        {/* ── Features ── */}
+        <SectionHeader title="Features" />
+        <SettingGroup>
           <SettingRow
-            icon={Settings} label="Admin Panel"
-            iconColor={colors.gold}
-            onPress={() => router.push("/setup" as any)}
+            icon={Bell} label="Notifications"
+            onPress={() => Alert.alert("Notifications", "Go to device Settings → PrediQs AI to manage notifications.")}
           />
-        )}
-        <SettingRow icon={LogOut} label="Sign Out" danger onPress={handleLogout} />
-      </SettingGroup>
+          <SettingRow
+            icon={Globe}
+            label="Language"
+            value={`${language.flag} ${language.name}`}
+            onPress={() => setShowLangModal(true)}
+          />
+          <SettingRow
+            icon={Percent}
+            label="Betting Experience"
+            value={bettingExp}
+            onPress={() => setShowExpModal(true)}
+          />
+          <SettingRow icon={Lock} label="Change Password" onPress={() => router.push("/change-password" as any)} />
+        </SettingGroup>
 
-      {/* ── App version ── */}
-      <View style={styles.versionBlock}>
-        <Text style={[styles.versionText,       { color: colors.textMuted }]}>PrediQs AI v1.0.0</Text>
-        <Text style={[styles.versionDisclaimer, { color: colors.textMuted }]}>
-          Educational purposes only
-        </Text>
-      </View>
-    </ScrollView>
+        {/* ── Support ── */}
+        <SectionHeader title="Support" />
+        <SettingGroup>
+          <SettingRow
+            icon={Mail}
+            label="Contact Us"
+            onPress={handleContactUs}
+          />
+          <SettingRow
+            icon={HelpCircle}
+            label="Help & FAQ"
+            onPress={() => router.push("/about" as any)}
+          />
+          <SettingRow
+            icon={BookOpen}
+            label="App Guide"
+            onPress={() => router.push("/about" as any)}
+          />
+          <SettingRow
+            icon={MessageSquare} label="Telegram Community"
+            right={<ExternalLink size={14} color="#3A5060" />}
+            onPress={handleTelegram}
+          />
+          <SettingRow
+            icon={Users} label="Follow Us"
+            right={<ExternalLink size={14} color="#3A5060" />}
+            onPress={handleFollowUs}
+          />
+        </SettingGroup>
+
+        {/* ── Legal ── */}
+        <SectionHeader title="Legal" />
+        <SettingGroup>
+          <SettingRow
+            icon={BookOpen}
+            label="Terms of Service"
+            onPress={() => router.push("/terms-of-service" as any)}
+          />
+          <SettingRow
+            icon={Shield}
+            label="Privacy Policy"
+            onPress={() => router.push("/privacy-policy" as any)}
+          />
+          <SettingRow
+            icon={LifeBuoy}
+            label="Responsible Gambling"
+            iconColor="#FF6B35"
+            onPress={() => router.push("/responsible-gambling" as any)}
+          />
+        </SettingGroup>
+
+        {/* ── Account Actions ── */}
+        <SectionHeader title="Account" />
+        <SettingGroup>
+          {isAdmin && (
+            <SettingRow
+              icon={Settings} label="Admin Panel"
+              iconColor={colors.gold}
+              onPress={() => router.push("/setup" as any)}
+            />
+          )}
+          <SettingRow icon={LogOut} label="Sign Out" danger onPress={handleLogout} />
+        </SettingGroup>
+
+        {/* ── App version ── */}
+        <View style={styles.versionBlock}>
+          <Text style={[styles.versionText,       { color: colors.textMuted }]}>PrediQs AI v1.0.0</Text>
+          <Text style={[styles.versionDisclaimer, { color: colors.textMuted }]}>
+            Educational purposes only
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* ── Language Modal ── */}
+      <Modal visible={showLangModal} transparent animationType="slide" onRequestClose={() => setShowLangModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowLangModal(false)} activeOpacity={1}>
+          <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Select Language</Text>
+            <FlatList
+              data={LANGUAGES}
+              keyExtractor={(l) => l.code}
+              style={{ maxHeight: 440 }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.sheetRow,
+                    { borderBottomColor: colors.border },
+                    item.code === language.code && { backgroundColor: "rgba(255,215,0,0.06)" },
+                  ]}
+                  onPress={() => { setLanguage(item); setShowLangModal(false); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.sheetRowFlag}>{item.flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.sheetRowName, { color: item.code === language.code ? "#FFD700" : colors.text }]}>
+                      {item.name}
+                    </Text>
+                    <Text style={[styles.sheetRowNative, { color: colors.textMuted }]}>{item.nativeName}</Text>
+                  </View>
+                  {item.code === language.code && <Text style={{ color: "#FFD700", fontSize: 16 }}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Betting Experience Modal ── */}
+      <Modal visible={showExpModal} transparent animationType="slide" onRequestClose={() => setShowExpModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowExpModal(false)} activeOpacity={1}>
+          <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Betting Experience</Text>
+            <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
+              This helps us personalise your predictions and risk guidance.
+            </Text>
+            {BETTING_EXPERIENCE_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.key}
+                style={[
+                  styles.expRow,
+                  { borderColor: colors.border, backgroundColor: colors.background },
+                  bettingExp === opt.key && { borderColor: "#FFD700", backgroundColor: "rgba(255,215,0,0.06)" },
+                ]}
+                onPress={() => { setBettingExp(opt.key); setShowExpModal(false); }}
+                activeOpacity={0.8}
+              >
+                <View style={{ flex: 1, gap: 3 }}>
+                  <Text style={[styles.expLabel, { color: bettingExp === opt.key ? "#FFD700" : colors.text }]}>
+                    {opt.key}
+                  </Text>
+                  <Text style={[styles.expDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
+                </View>
+                {bettingExp === opt.key && <Text style={{ color: "#FFD700", fontSize: 18 }}>✓</Text>}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
@@ -305,4 +439,20 @@ const styles = StyleSheet.create({
   versionBlock:       { alignItems: "center", gap: 4, paddingBottom: 20 },
   versionText:        { fontSize: 12, fontFamily: "Inter_400Regular" },
   versionDisclaimer:  { fontSize: 11, fontFamily: "Inter_400Regular" },
+
+  // Modals
+  modalOverlay:   { flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-end" },
+  bottomSheet:    { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingTop: 12, gap: 4 },
+  sheetHandle:    { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  sheetTitle:     { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 6 },
+  sheetSub:       { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 12, lineHeight: 18 },
+  sheetRow:       { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 13, paddingHorizontal: 4, borderBottomWidth: 1 },
+  sheetRowFlag:   { fontSize: 22 },
+  sheetRowName:   { fontSize: 15, fontFamily: "Inter_400Regular" },
+  sheetRowNative: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+
+  // Betting experience options
+  expRow:   { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 14, borderWidth: 1.5, marginBottom: 10 },
+  expLabel: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  expDesc:  { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 17 },
 });
