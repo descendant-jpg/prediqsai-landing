@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,13 +13,17 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
 import { IAPProvider } from "@/context/IAPContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { NotificationsProvider } from "@/context/NotificationsContext";
 import { RegionProvider } from "@/context/RegionContext";
 
 if (process.env.EXPO_PUBLIC_DOMAIN) {
   setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
 }
 
-SplashScreen.preventAutoHideAsync();
+// Only lock the splash on native; web hides it immediately to avoid the white overlay
+if (Platform.OS !== "web") {
+  SplashScreen.preventAutoHideAsync();
+}
 
 const queryClient = new QueryClient();
 
@@ -67,8 +72,9 @@ function RootLayoutNav() {
       <Stack.Screen name="responsible-gambling"  options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="match-detail"           options={{ headerShown: false }} />
       <Stack.Screen name="oracle-chat"      options={{ headerShown: false }} />
-      <Stack.Screen name="change-password"  options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="subscription"     options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="change-password"           options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="subscription"             options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="notification-settings"    options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }
@@ -76,20 +82,27 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
+    // Set dark body background immediately on web to prevent white flash
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      document.documentElement.style.backgroundColor = "#070B12";
+      document.body.style.backgroundColor = "#070B12";
+    }
   }, []);
 
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#070B12" }}>
             <KeyboardProvider>
               <LanguageProvider>
                 <RegionProvider>
                   <AuthProvider>
                     <AppProvider>
                       <IAPProvider>
-                        <RootLayoutNav />
+                        <NotificationsProvider>
+                          <RootLayoutNav />
+                        </NotificationsProvider>
                       </IAPProvider>
                     </AppProvider>
                   </AuthProvider>

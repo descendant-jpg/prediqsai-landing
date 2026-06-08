@@ -1,4 +1,4 @@
-import { boolean, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -23,6 +23,10 @@ export const users = pgTable("users", {
   freeTrialUntil: timestamp("free_trial_until", { withTimezone: true }),
   riskProfile: text("risk_profile").notNull().default("balanced"),
   leaderboardOptIn: boolean("leaderboard_opt_in").notNull().default(false),
+  // Push notifications
+  pushToken: text("push_token"),
+  notificationPrefs: text("notification_prefs"),
+  unreadNotificationCount: integer("unread_notification_count").notNull().default(0),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({

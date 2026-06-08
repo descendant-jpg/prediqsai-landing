@@ -1,0 +1,82 @@
+Yes, please add push notifications for match alerts.
+Here are the full requirements:
+
+---
+
+## PUSH NOTIFICATION TRIGGERS
+
+Send a notification when:
+
+1. HIGH CONFIDENCE AI PICK
+   - When AI generates a pick with 75%+ confidence
+   - Message: "🔥 High Confidence Pick: [Team A] vs 
+     [Team B] - [Confidence]% confidence"
+
+2. ARBITRAGE OPPORTUNITY DETECTED
+   - When a new arb above 2% margin is found
+   - Message: "💰 Arb Alert: [Match] - [X]% guaranteed 
+     profit available now!"
+
+3. LIVE ARB ALERT
+   - When a live in-game arb appears
+   - Message: "⚡ LIVE ARB: [Match] - Act fast! 
+     [X]% profit window open"
+
+4. MATCH STARTING SOON
+   - 30 minutes before a match the user has 
+     saved/followed
+   - Message: "⏰ Starting Soon: [Team A] vs [Team B] 
+     in 30 minutes"
+
+5. +EV BET ALERT
+   - When a +EV bet above 5% edge is detected
+   - Message: "📊 +EV Alert: [Bet] has [X]% edge 
+     on [Bookmaker]"
+
+---
+
+## NOTIFICATION SETTINGS IN PROFILE
+
+Add a Notifications settings screen where users 
+can toggle each type ON/OFF:
+
+- AI Pick Alerts (default: ON)
+- Arbitrage Alerts (default: ON)  
+- Live Arb Alerts (default: ON)
+- Match Reminders (default: ON)
+- +EV Alerts (default: OFF)
+- Quiet Hours (set start and end time)
+
+---
+
+## TECHNICAL REQUIREMENTS
+
+- Use Firebase Cloud Messaging (FCM)
+- Store FCM token in user profile in Supabase
+- Request notification permission on first login
+- Handle notifications when app is:
+  * Open (foreground)
+  * Minimized (background)
+  * Closed (killed)
+- Tapping notification should deep link to 
+  the relevant screen:
+  * AI pick → opens that pick in Picks screen
+  * Arb alert → opens Arbitrage screen
+  * Match reminder → opens match details
+
+---
+
+## NOTIFICATION BADGE
+
+- Show red badge count on the bell icon in 
+  the app header
+- Clear badge when user opens notifications
+- Store unread count in Supabase
+
+---
+
+## IMPORTANT
+- Keep all existing features working
+- Use expo-notifications for React Native 
+  compatibility
+- Make sure it works on Android for Play Store

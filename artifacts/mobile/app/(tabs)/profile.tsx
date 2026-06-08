@@ -35,6 +35,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { LANGUAGES, useLanguage } from "@/context/LanguageContext";
+import { useNotifications } from "@/context/NotificationsContext";
 
 const TIER_COLORS: Record<string, string> = {
   free:    "#94A3B8",
@@ -116,6 +117,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { language, setLanguage } = useLanguage();
+  const { unreadCount } = useNotifications();
 
   const [copied, setCopied] = useState(false);
   const [showLangModal, setShowLangModal]   = useState(false);
@@ -244,8 +246,10 @@ export default function ProfileScreen() {
         <SectionHeader title="Features" />
         <SettingGroup>
           <SettingRow
-            icon={Bell} label="Notifications"
-            onPress={() => Alert.alert("Notifications", "Go to device Settings → PrediQs AI to manage notifications.")}
+            icon={Bell}
+            label="Notifications"
+            value={unreadCount > 0 ? `${unreadCount} new` : undefined}
+            onPress={() => router.push("/notification-settings" as any)}
           />
           <SettingRow
             icon={Globe}

@@ -895,4 +895,29 @@ export const api = {
         token,
       }),
   },
+
+  notifications: {
+    registerToken: (token: string, pushToken: string) =>
+      apiFetch<{ ok: boolean }>("/notifications/register-token", {
+        method: "POST",
+        body: JSON.stringify({ pushToken }),
+        token,
+      }),
+    getPrefs: (token: string) =>
+      apiFetch<Record<string, boolean | string>>("/notifications/prefs", { token }),
+    updatePrefs: (token: string, prefs: Record<string, boolean | string>) =>
+      apiFetch<Record<string, boolean | string>>("/notifications/prefs", {
+        method: "PUT",
+        body: JSON.stringify(prefs),
+        token,
+      }),
+    getUnreadCount: (token: string) =>
+      apiFetch<{ count: number }>("/notifications/unread-count", { token }),
+    markRead: (token: string) =>
+      apiFetch<{ ok: boolean }>("/notifications/mark-read", {
+        method: "POST",
+        body: JSON.stringify({}),
+        token,
+      }),
+  },
 };
