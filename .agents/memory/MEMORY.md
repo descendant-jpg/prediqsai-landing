@@ -1,0 +1,1 @@
+- [React Native Web text node suppression](rnw-text-node-suppression.md) — Replit's devtools proxy logs console.error BEFORE userspace overrides; suppress with LogBox.ignoreLogs + console.error override on web.

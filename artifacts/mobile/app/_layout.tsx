@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -23,6 +23,29 @@ if (process.env.EXPO_PUBLIC_DOMAIN) {
 // Only lock the splash on native; web hides it immediately to avoid the white overlay
 if (Platform.OS !== "web") {
   SplashScreen.preventAutoHideAsync();
+}
+
+// Suppress known false-positive warnings from third-party libraries (GestureHandler,
+// KeyboardProvider, expo-router internals) that trigger the Expo dev overlay on web.
+// These are react-native-web dev-mode checks that fire for empty-string children
+// and deprecated prop styles inside vendor components we cannot modify.
+if (Platform.OS === "web") {
+  LogBox.ignoreLogs([
+    "Unexpected text node",
+    "props.pointerEvents is deprecated",
+  ]);
+
+  const _origError = console.error.bind(console);
+  (console as any).error = (...args: unknown[]) => {
+    const msg = typeof args[0] === "string" ? args[0] : "";
+    if (
+      msg.includes("Unexpected text node") ||
+      msg.includes("props.pointerEvents is deprecated")
+    ) {
+      return;
+    }
+    _origError(...args);
+  };
 }
 
 const queryClient = new QueryClient();
