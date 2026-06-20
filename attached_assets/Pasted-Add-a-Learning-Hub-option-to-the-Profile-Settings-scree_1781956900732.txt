@@ -1,0 +1,224 @@
+Add a "Learning Hub" option to the Profile/Settings screen, placed 
+below "Betting Experience". When tapped, it navigates to a new 
+Learning Hub screen. Here are the full requirements:
+
+---
+
+## 1. LEARNING HUB MAIN SCREEN
+- Add "Learning Hub" row below "Betting Experience" in the Features 
+  section of the Profile screen, with a book/graduation cap icon
+- When tapped, navigate to a new screen: app/(tabs)/learning-hub.tsx
+- The screen shows a beautiful 2x2 grid of 4 cards:
+
+  1. 🎬 Trending Videos
+  2. 📚 Betting Lessons  
+  3. 🧠 Quizzes
+  4. 📖 Dictionary
+
+- Each card should have: a large icon, title, short subtitle, and a 
+  gradient background (use different colors per card to make it pop)
+- Dark theme matching the rest of the app
+- Add a back button/header to return to Profile
+
+---
+
+## 2. TRENDING VIDEOS PAGE (app/learning/videos.tsx)
+- Show a "Coming Soon" screen with:
+  - A large video play button icon (MaterialCommunityIcons: 
+    "play-circle" or similar) in gold/yellow color
+  - Title: "Trending Videos"
+  - Subtitle: "Expert betting video tutorials coming soon!"
+  - A small animated pulse effect on the play icon if possible
+  - Back button to return to Learning Hub
+
+---
+
+## 3. BETTING LESSONS PAGE (app/learning/lessons.tsx)
+- Show a scrollable list of betting lessons grouped into sections:
+
+  SECTION: BASICS
+  - What is Sports Betting?
+  - How Betting Odds Work
+  - Types of Bets Explained
+  - How to Read a Betting Slip
+  - Understanding Bookmakers
+
+  SECTION: STRATEGY
+  - Bankroll Management
+  - Value Betting Strategy
+  - The Kelly Criterion
+  - Arbitrage Betting (ARB)
+  - Hedging Your Bets
+
+  SECTION: ADVANCED
+  - Expected Value (EV) in Betting
+  - Asian Handicap Explained
+  - Live/In-Play Betting Strategy
+  - How to Beat the Bookmaker
+  - Using Statistics for Predictions
+
+  SECTION: MINDSET
+  - Responsible Gambling
+  - Avoiding Tilt and Emotional Betting
+  - Setting Realistic Goals
+  - Keeping a Betting Journal
+  - When to Stop Betting
+
+- Each lesson is a card/row. Tapping it opens a detail screen 
+  (app/learning/lesson-detail.tsx) with:
+  - A header with the lesson title and back button
+  - Full detailed content for each lesson (write accurate, 
+    educational content for each — at least 300 words per lesson)
+  - Nicely formatted with headings, bullet points, key tips 
+    highlighted in gold
+  - A "Key Takeaways" section at the bottom of each lesson
+  - Scrollable, clean reading environment with good font sizes
+
+---
+
+## 4. QUIZZES PAGE (app/learning/quizzes.tsx)
+- Show a 2x2 grid of quiz level cards:
+
+  1. 🟢 Casual — "Perfect for beginners"
+  2. 🟡 Intermediate — "Test your knowledge"
+  3. 🟠 Advanced — "Challenge yourself"
+  4. 🔴 Professional — "For serious bettors"
+
+- Each card has a color-coded badge and difficulty label
+- Tapping a level opens a quiz screen (app/learning/quiz-session.tsx) 
+  with 10 questions for that level:
+
+  CASUAL QUESTIONS (10):
+  1. What does "odds" mean in betting? (A) Price of a bet B) Team name C) Match score D) Bet limit) → A
+  2. What is a "stake"? (A) Winnings B) Amount you bet C) The odds D) A draw) → B
+  3. What does "1X2" mean? (A) Home/Draw/Away B) Score prediction C) Number of goals D) Time of match) → A
+  4. If odds are 2.0 and you bet $10, what do you win? (A) $5 B) $10 C) $20 D) $25) → C
+  5. What is a "accumulator"? (A) Single bet B) Multiple bets combined C) A refund D) A free bet) → B
+  6. What does "FT" mean? (A) Free Transfer B) Full Time C) First Team D) Fast Track) → B
+  7. What is a "draw" result coded as in 1X2? (A) 1 B) 2 C) X D) D) → C
+  8. What does "cash out" mean? (A) Withdraw account B) Settle bet early C) Add funds D) Place new bet) → B
+  9. What is a "free bet"? (A) A no-cost wager offered by bookmaker B) A guaranteed win C) A refund D) A bonus goal) → A
+  10. What does "over/under" mean? (A) Team performance B) Total goals above/below a number C) Halftime score D) Red cards) → B
+
+  INTERMEDIATE QUESTIONS (10):
+  1. What is "value betting"? (A) Betting on favourites B) Finding odds higher than true probability C) Betting low stakes D) Avoiding accumulators) → B
+  2. What does "implied probability" mean? (A) Chance bookmaker assigns to outcome B) Your personal prediction C) Historical win rate D) Form guide) → A
+  3. If odds are 3.5, what is the implied probability? (A) 35% B) 28.6% C) 40% D) 22%) → B
+  4. What is "handicap betting"? (A) Betting on injured players B) Giving one team a virtual advantage/disadvantage C) Betting without odds D) Live betting) → B
+  5. What does "each way" betting mean? (A) Bet on both teams B) Bet to win and place C) Bet on every match D) Refundable bet) → B
+  6. What is "line movement"? (A) Betting queue B) Change in odds over time C) Score update D) Team formation) → B
+  7. What does "juice/vig" mean? (A) Bookmaker's commission B) Bonus payout C) Live odds D) Minimum stake) → A
+  8. What is a "patent" bet? (A) 3 singles + 3 doubles + 1 treble B) 4 selections combined C) Single bet D) System bet with 2 teams) → A
+  9. What is "closing line value"? (A) Final score B) Beating the odds at market close C) Last minute goal D) Bet settlement) → B
+  10. What does "steam move" mean? (A) Hot weather betting B) Sharp money causing rapid odds movement C) Live in-play bet D) Accumulator win) → B
+
+  ADVANCED QUESTIONS (10):
+  1. What is the Kelly Criterion used for? (A) Picking teams B) Optimal bet sizing based on edge C) Calculating odds D) Tracking results) → B
+  2. What is "arbitrage betting"? (A) Betting on draws B) Guaranteed profit by covering all outcomes across bookmakers C) Avoiding losses D) Hedging single bets) → B
+  3. What does "CLV" stand for? (A) Closing Line Value B) Current Live Value C) Calculated Loss Variation D) Core Leverage Value) → A
+  4. What is "positive expected value (+EV)"? (A) Winning streak B) Long-term profitable bet C) Bonus promotion D) Double odds) → B
+  5. What is a "dutching" strategy? (A) Betting on Dutch teams B) Staking multiple selections so any win yields same profit C) Avoiding bookmakers D) System betting) → B
+  6. What is "regression to the mean" in betting? (A) Losing streak ending B) Performance returning to average over time C) Odds lowering D) Team form improving) → B
+  7. What does "market efficiency" mean? (A) Fast payouts B) Odds accurately reflecting true probabilities C) Good customer service D) Low margins) → B
+  8. What is "middling"? (A) Betting at half time B) Profiting when final result lands between two line bets C) Averaging stakes D) Bet hedging) → B
+  9. What is a "sharp bettor"? (A) Quick bettor B) Professional, data-driven bettor respected by bookmakers C) Lucky bettor D) High-stakes casual) → B
+  10. What is "back-lay arbitrage"? (A) Laying bets on exchange B) Profiting from difference between back and lay odds on exchange C) Matching free bets D) Covering draws) → B
+
+  PROFESSIONAL QUESTIONS (10):
+  1. What is "Poisson distribution" used for in betting? (A) Fish markets B) Predicting goal/score frequencies C) Calculating margins D) Tracking deposits) → B
+  2. What does "Pinnacle model" refer to? (A) Mountain betting B) Sharp bookmaker used as odds benchmark C) Accumulator system D) Odds comparison site) → B
+  3. What is "ROI" in betting context? (A) Rules of Investment B) Return on Investment — profit relative to total staked C) Risk of Injury D) Rate of Increase) → B
+  4. What is "Elo rating" used for in sports? (A) Electronic betting B) Ranking team strength based on results C) Odds calculation D) Player valuation) → B
+  5. What does "account restriction" mean? (A) Deposit limit B) Bookmaker limiting stakes of winning bettors C) Age verification D) Country block) → B
+  6. What is "Asian Handicap 0.25"? (A) Quarter ball handicap splitting stake between 0 and 0.5 B) Draw no bet C) Full goal handicap D) Half time bet) → A
+  7. What is "monte carlo simulation" in betting? (A) Casino game B) Statistical method using random sampling to model outcomes C) Odds generator D) Live data feed) → B
+  8. What is a "betting exchange"? (A) Currency swap B) Platform where bettors bet against each other C) Odds aggregator D) Free bet platform) → B
+  9. What does "liability" mean for a layer on an exchange? (A) Total winnings B) Maximum loss if selection wins C) Commission paid D) Bet size) → B
+  10. What is "line shopping"? (A) Buying merchandise B) Comparing odds across bookmakers for best price C) Checking team news D) Analysing form) → B
+
+- Quiz UI: show one question at a time with 4 answer options as 
+  tappable cards
+- After selecting: highlight correct (green) and wrong (red)
+- Show progress bar at top (e.g. Question 3/10)
+- At end: show score screen with percentage, grade, and 
+  "Try Again" / "Back to Quizzes" buttons
+- Scoring: 0-40% Needs Work, 41-70% Good, 71-90% Great, 91-100% Expert
+
+---
+
+## 5. DICTIONARY PAGE (app/learning/dictionary.tsx)
+- Show an alphabetically organized list of betting terms
+- Add a search bar at the top to filter terms
+- Include these terms (and expand with more using your initiative):
+
+  - Accumulator: A bet combining multiple selections where all must win
+  - Arbitrage: Betting on all outcomes across different bookmakers for guaranteed profit
+  - Asian Handicap: A handicap system that eliminates the draw option
+  - Bankroll: Total money set aside for betting
+  - Bettor: A person who places bets
+  - Bookmaker: A company that accepts and pays out bets
+  - Cash Out: Settling a bet before the event ends
+  - Correct Score: Predicting the exact final score
+  - Dead Heat: Two or more selections finishing equal
+  - Double: A bet combining 2 selections
+  - Draw No Bet: Stake refunded if match ends in a draw
+  - Each Way: A bet split between win and place
+  - Expected Value (EV): Long-term average return of a bet
+  - Fixed Odds: Odds agreed at time of placing bet
+  - Form: Recent performance history of a team/player
+  - Handicap: Virtual advantage/disadvantage given to a team
+  - Hedging: Placing additional bets to reduce risk
+  - In-Play: Betting on events while they are happening
+  - Juice/Vig: Bookmaker's commission built into odds
+  - Kelly Criterion: Formula for optimal bet sizing
+  - Lay Bet: Betting against an outcome on an exchange
+  - Lucky 15: 4 selections — 15 bets total
+  - Market: A specific betting option offered by a bookmaker
+  - Matched Betting: Using free bets to guarantee profit
+  - Minimum Stake: Lowest amount allowed per bet
+  - Multiples: Bets with more than one selection
+  - No Bet: Bet voided and stake returned
+  - Odds: Numerical expression of likelihood and payout
+  - Odds-on: When odds suggest outcome is more likely than not
+  - Over/Under: Betting on total being above or below a set number
+  - Patent: 7 bets from 3 selections
+  - Payout: Amount received when a bet wins
+  - Price: Another word for odds
+  - Profit: Winnings minus the original stake
+  - Push: When a bet results in a tie — stake returned
+  - Return: Total amount received back including stake
+  - ROI: Return on Investment
+  - Selection: The outcome you are betting on
+  - Sharp: A professional, sophisticated bettor
+  - Singles: A bet on one selection only
+  - Stake: The amount wagered
+  - System Bet: Multiple bets covering combinations of selections
+  - Treble: A bet combining 3 selections
+  - True Odds: Real probability of an outcome without bookmaker margin
+  - Value Bet: A bet where odds are higher than true probability
+  - Void Bet: A cancelled bet with stake returned
+  - Wager: Another word for a bet
+  - Yankee: 11 bets from 4 selections
+
+- When a term is tapped, open a detail modal or screen showing:
+  - Term name (large, bold, gold color)
+  - Full definition
+  - A practical example of how it is used
+  - A "Used in a sentence" section
+  - Related terms listed at the bottom
+
+- The dictionary must have smooth navigation and look premium
+
+---
+
+## GENERAL REQUIREMENTS FOR ALL SCREENS:
+- Dark theme throughout matching the existing app style
+- Gold/yellow (#FFD700) as accent color for highlights
+- Back navigation on every screen
+- All screens must work on web canvas preview and native APK
+- Smooth transitions between screens
+- Use Expo Router file-based navigation
+- Typecheck must pass before committing
+- Commit and push everything to GitHub when done
+
+Please implement all 5 sections above completely.

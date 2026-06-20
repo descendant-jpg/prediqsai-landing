@@ -1,0 +1,360 @@
+export type DictionaryTerm = {
+  term: string;
+  definition: string;
+  example: string;
+  sentence: string;
+  related: string[];
+};
+
+export const DICTIONARY: DictionaryTerm[] = [
+  {
+    term: "Accumulator",
+    definition: "A single bet combining multiple selections where every selection must win for the bet to pay out. The odds of each leg multiply together, creating large potential returns but a much lower chance of winning.",
+    example: "Backing four football teams to all win in one bet, with the combined odds multiplied together.",
+    sentence: "He placed a five-fold accumulator and only needed the last match to win for a huge payout.",
+    related: ["Double", "Treble", "Multiples", "Singles"],
+  },
+  {
+    term: "Arbitrage",
+    definition: "Betting on every possible outcome of an event across different bookmakers whose combined odds guarantee a profit regardless of the result.",
+    example: "Backing the home team at a high price with one bookmaker and the away team at a high price with another, so any result returns a profit.",
+    sentence: "The arbitrage opportunity disappeared within seconds as the odds quickly adjusted.",
+    related: ["Hedging", "Lay Bet", "Value Bet", "Sharp"],
+  },
+  {
+    term: "Asian Handicap",
+    definition: "A handicap betting system that removes the possibility of a draw by giving one team a virtual goal advantage or disadvantage, often using quarter-goal lines that split the stake.",
+    example: "Backing a strong favourite at -1.5, meaning they must win by two or more goals.",
+    sentence: "She preferred the Asian Handicap because it offered tighter margins than the standard market.",
+    related: ["Handicap", "Draw No Bet", "Over/Under"],
+  },
+  {
+    term: "Bankroll",
+    definition: "The total sum of money a bettor sets aside exclusively for betting, kept separate from everyday finances and used to size individual stakes.",
+    example: "Allocating $1,000 purely for betting and risking only 2% on each wager.",
+    sentence: "Strict bankroll management kept him in the game through a long losing streak.",
+    related: ["Stake", "Kelly Criterion", "ROI"],
+  },
+  {
+    term: "Bettor",
+    definition: "A person who places a bet or wager on the outcome of an event.",
+    example: "Anyone staking money on a match result is a bettor.",
+    sentence: "A disciplined bettor focuses on value rather than chasing big payouts.",
+    related: ["Sharp", "Wager", "Stake"],
+  },
+  {
+    term: "Bookmaker",
+    definition: "A company or individual that sets odds, accepts bets and pays out winnings, building a margin into their prices to profit over time.",
+    example: "A sportsbook offering odds on every Premier League match.",
+    sentence: "The bookmaker shortened the odds after heavy support for the favourite.",
+    related: ["Juice/Vig", "Market", "Odds"],
+  },
+  {
+    term: "Cash Out",
+    definition: "An option to settle a bet before the event finishes, accepting a value offered by the bookmaker based on the current state of play.",
+    example: "Taking an early payout on a winning bet when your team leads but the match is not over.",
+    sentence: "He decided to cash out for a guaranteed profit rather than risk a late equaliser.",
+    related: ["Hedging", "In-Play", "Return"],
+  },
+  {
+    term: "Correct Score",
+    definition: "A bet predicting the exact final score of a match, offering high odds because of the difficulty of being precise.",
+    example: "Betting on the match to finish exactly 2-1.",
+    sentence: "Her correct score bet of 3-0 landed for a generous return.",
+    related: ["Market", "Odds", "Over/Under"],
+  },
+  {
+    term: "Dead Heat",
+    definition: "A situation where two or more selections finish equal, leading to reduced payouts split according to the number of tied selections.",
+    example: "Two horses crossing the finish line simultaneously in a race.",
+    sentence: "The dead heat meant his winnings were halved under the dead-heat rules.",
+    related: ["Each Way", "Push", "Void Bet"],
+  },
+  {
+    term: "Double",
+    definition: "A bet combining two selections, both of which must win for the bet to pay out.",
+    example: "Backing two teams to win in a single combined bet.",
+    sentence: "A simple double on the two favourites returned solid odds.",
+    related: ["Accumulator", "Treble", "Multiples"],
+  },
+  {
+    term: "Draw No Bet",
+    definition: "A market with no draw option — if the match ends in a draw, your stake is refunded, effectively insuring against the tie.",
+    example: "Backing the home team Draw No Bet so a draw returns your stake.",
+    sentence: "He chose Draw No Bet to protect his stake against a stalemate.",
+    related: ["Asian Handicap", "Handicap", "No Bet"],
+  },
+  {
+    term: "Each Way",
+    definition: "A bet split into two parts — one for the selection to win and one for it to 'place' (finish in the top positions) — common in horse racing and outright markets.",
+    example: "An each-way bet on a horse to win or finish in the top three.",
+    sentence: "Her each-way bet paid out on the place portion when the horse came second.",
+    related: ["Dead Heat", "Selection", "Return"],
+  },
+  {
+    term: "Expected Value (EV)",
+    definition: "The average amount a bet would win or lose if repeated many times. Positive EV bets are profitable long term; negative EV bets are not.",
+    example: "A bet that, over thousands of repetitions, returns more than it costs has positive EV.",
+    sentence: "Every bet he placed had to show positive expected value first.",
+    related: ["Value Bet", "True Odds", "ROI"],
+  },
+  {
+    term: "Fixed Odds",
+    definition: "Odds that are locked in at the moment you place your bet and do not change afterwards, regardless of later market movement.",
+    example: "Taking 2.50 on a team, with that price guaranteed even if the odds drop later.",
+    sentence: "He locked in the fixed odds before the price shortened.",
+    related: ["Odds", "Price", "Line Movement"],
+  },
+  {
+    term: "Form",
+    definition: "The recent performance history of a team or player, used to assess current strength and momentum.",
+    example: "A team that has won its last five matches is in good form.",
+    sentence: "Despite poor form, the underdog pulled off a surprise win.",
+    related: ["Selection", "Market"],
+  },
+  {
+    term: "Handicap",
+    definition: "A virtual advantage or disadvantage applied to a team to level an uneven contest, expressed in goals, points or runs.",
+    example: "Giving the underdog a +2 goal start before kickoff.",
+    sentence: "The -1 handicap meant the favourite had to win by two clear goals.",
+    related: ["Asian Handicap", "Draw No Bet", "Market"],
+  },
+  {
+    term: "Hedging",
+    definition: "Placing an additional bet against your original position to reduce risk or lock in a guaranteed profit.",
+    example: "Betting against your own accumulator's final leg to secure a profit.",
+    sentence: "He hedged his futures bet as the final approached to guarantee a return.",
+    related: ["Arbitrage", "Lay Bet", "Cash Out"],
+  },
+  {
+    term: "In-Play",
+    definition: "Betting on an event while it is happening, with odds updating in real time to reflect the action.",
+    example: "Backing a team to score next during a live match.",
+    sentence: "In-play betting let her react the moment the favourite went a goal down.",
+    related: ["Cash Out", "Line Movement", "Market"],
+  },
+  {
+    term: "Juice/Vig",
+    definition: "The commission or margin a bookmaker builds into their odds to ensure long-term profit, also known as the overround.",
+    example: "Offering 1.91 on each side of a 50/50 market instead of a fair 2.00.",
+    sentence: "Line shopping helps you pay less juice across your bets.",
+    related: ["Bookmaker", "Odds", "Market"],
+  },
+  {
+    term: "Kelly Criterion",
+    definition: "A mathematical formula for calculating the optimal stake on a value bet to maximise long-term bankroll growth.",
+    example: "Staking a percentage of your bankroll proportional to your edge and the odds.",
+    sentence: "He used a quarter-Kelly stake to reduce volatility.",
+    related: ["Bankroll", "Expected Value (EV)", "Stake"],
+  },
+  {
+    term: "Lay Bet",
+    definition: "A bet placed against an outcome on a betting exchange, meaning you win if that outcome does not happen.",
+    example: "Laying a team to win, so you profit if they draw or lose.",
+    sentence: "She laid the favourite on the exchange to hedge her earlier back bet.",
+    related: ["Hedging", "Arbitrage", "Market"],
+  },
+  {
+    term: "Lucky 15",
+    definition: "A bet consisting of 15 bets across 4 selections: 4 singles, 6 doubles, 4 trebles and 1 four-fold accumulator.",
+    example: "Covering four selections with every combination plus singles for partial returns.",
+    sentence: "His Lucky 15 paid out even though only two of the four selections won.",
+    related: ["Patent", "Yankee", "System Bet"],
+  },
+  {
+    term: "Market",
+    definition: "A specific betting option offered on an event, such as match result, total goals or first goalscorer.",
+    example: "The over/under 2.5 goals market on a football match.",
+    sentence: "He found better value in the corners market than the match result.",
+    related: ["Selection", "Odds", "Bookmaker"],
+  },
+  {
+    term: "Matched Betting",
+    definition: "A technique using free bets and promotions, combined with lay bets on an exchange, to extract guaranteed profit from bookmaker offers.",
+    example: "Using a free bet on the bookmaker and laying the same outcome on an exchange.",
+    sentence: "Matched betting let her profit from sign-up offers with minimal risk.",
+    related: ["Lay Bet", "Arbitrage", "Hedging"],
+  },
+  {
+    term: "Minimum Stake",
+    definition: "The lowest amount of money a bookmaker will accept on a single bet.",
+    example: "A bookmaker requiring at least $0.10 per bet.",
+    sentence: "The minimum stake was too high for his cautious approach.",
+    related: ["Stake", "Wager"],
+  },
+  {
+    term: "Multiples",
+    definition: "Any bet that combines more than one selection, including doubles, trebles and accumulators.",
+    example: "Combining three match results into a single treble.",
+    sentence: "He preferred singles to multiples for steadier returns.",
+    related: ["Accumulator", "Double", "Treble"],
+  },
+  {
+    term: "No Bet",
+    definition: "A bet that is cancelled and has the stake returned, often due to a specified condition such as a draw in Draw No Bet markets.",
+    example: "A Draw No Bet wager refunded because the match ended level.",
+    sentence: "The draw turned his selection into a no bet and his stake came back.",
+    related: ["Void Bet", "Push", "Draw No Bet"],
+  },
+  {
+    term: "Odds",
+    definition: "A numerical expression of the likelihood of an outcome and the payout it offers, shown in decimal, fractional or American formats.",
+    example: "Decimal odds of 2.00 imply a 50% chance and double your stake.",
+    sentence: "The odds drifted out as confidence in the favourite faded.",
+    related: ["Price", "Implied Probability", "True Odds"],
+  },
+  {
+    term: "Odds-on",
+    definition: "Odds that suggest an outcome is more likely than not, paying out less than your stake in profit (decimal odds below 2.00).",
+    example: "A heavy favourite priced at 1.40.",
+    sentence: "The champions were odds-on to progress to the next round.",
+    related: ["Odds", "Price", "Selection"],
+  },
+  {
+    term: "Over/Under",
+    definition: "A market betting on whether a statistic — usually total goals or points — will be above or below a set number.",
+    example: "Betting Over 2.5 goals, which wins if three or more goals are scored.",
+    sentence: "She backed Under 2.5 goals expecting a tight defensive match.",
+    related: ["Market", "Correct Score", "Asian Handicap"],
+  },
+  {
+    term: "Patent",
+    definition: "A bet made up of 7 bets across 3 selections: 3 singles, 3 doubles and 1 treble, paying out even if only one selection wins.",
+    example: "Covering three selections with singles and all their combinations.",
+    sentence: "His patent returned a small profit thanks to the single legs.",
+    related: ["Lucky 15", "Yankee", "System Bet"],
+  },
+  {
+    term: "Payout",
+    definition: "The total amount of money returned to a bettor when a bet wins, including profit and original stake.",
+    example: "A $10 bet at 2.50 producing a $25 payout.",
+    sentence: "The payout on his accumulator was far higher than expected.",
+    related: ["Return", "Profit", "Odds"],
+  },
+  {
+    term: "Price",
+    definition: "Another word for the odds offered on a selection.",
+    example: "Taking a price of 3.00 on the away team.",
+    sentence: "He always shopped around for the best price before betting.",
+    related: ["Odds", "Fixed Odds", "Value Bet"],
+  },
+  {
+    term: "Profit",
+    definition: "The amount a bettor gains from a winning bet, calculated as the return minus the original stake.",
+    example: "A $25 return on a $10 stake gives $15 profit.",
+    sentence: "Her monthly profit came from a handful of high-value bets.",
+    related: ["Return", "Payout", "ROI"],
+  },
+  {
+    term: "Push",
+    definition: "A bet that results in a tie against the line, leading to the stake being returned with no profit or loss.",
+    example: "A -1 handicap bet where the team wins by exactly one goal.",
+    sentence: "The handicap landing exactly on the line meant a push and his stake came back.",
+    related: ["No Bet", "Void Bet", "Handicap"],
+  },
+  {
+    term: "Return",
+    definition: "The total amount received back from a winning bet, including both the profit and the original stake.",
+    example: "A $10 stake at 2.00 returns $20 in total.",
+    sentence: "His total return covered the stake plus a healthy profit.",
+    related: ["Payout", "Profit", "Stake"],
+  },
+  {
+    term: "ROI",
+    definition: "Return on Investment — a measure of profitability expressed as profit divided by total amount staked, usually as a percentage.",
+    example: "Making $50 profit from $1,000 staked is a 5% ROI.",
+    sentence: "A long-term ROI of 4% is excellent for a sports bettor.",
+    related: ["Profit", "Expected Value (EV)", "Bankroll"],
+  },
+  {
+    term: "Selection",
+    definition: "The specific outcome a bettor chooses to back within a market.",
+    example: "Choosing 'home win' as your selection in the match result market.",
+    sentence: "Each leg of the accumulator needed its selection to win.",
+    related: ["Market", "Wager", "Form"],
+  },
+  {
+    term: "Sharp",
+    definition: "A professional, sophisticated bettor who consistently finds value and is respected — and often restricted — by bookmakers.",
+    example: "A data-driven bettor whose action moves the odds.",
+    sentence: "When the sharps backed the underdog, the line moved quickly.",
+    related: ["Bettor", "Value Bet", "Closing Line Value"],
+  },
+  {
+    term: "Singles",
+    definition: "A bet placed on a single selection, the simplest and most reliable form of bet.",
+    example: "Backing one team to win in a standalone bet.",
+    sentence: "He stuck to singles to keep his variance low.",
+    related: ["Multiples", "Stake", "Selection"],
+  },
+  {
+    term: "Stake",
+    definition: "The amount of money a bettor risks on a wager.",
+    example: "Placing $20 on a selection means your stake is $20.",
+    sentence: "She kept every stake to a fixed percentage of her bankroll.",
+    related: ["Bankroll", "Wager", "Minimum Stake"],
+  },
+  {
+    term: "System Bet",
+    definition: "A bet covering multiple combinations of selections, paying out even if not all of them win.",
+    example: "A Yankee or Lucky 15 that covers many combinations at once.",
+    sentence: "His system bet returned a profit despite one selection losing.",
+    related: ["Patent", "Lucky 15", "Yankee"],
+  },
+  {
+    term: "Treble",
+    definition: "A bet combining three selections, all of which must win for the bet to pay out.",
+    example: "Backing three teams to win in one combined bet.",
+    sentence: "The treble came in when the final team scored a late winner.",
+    related: ["Double", "Accumulator", "Multiples"],
+  },
+  {
+    term: "True Odds",
+    definition: "The real probability of an outcome expressed as odds, without any bookmaker margin added.",
+    example: "A fair coin flip has true odds of 2.00 for heads.",
+    sentence: "Value exists when the offered price beats the true odds.",
+    related: ["Value Bet", "Expected Value (EV)", "Odds"],
+  },
+  {
+    term: "Value Bet",
+    definition: "A bet where the odds offered are higher than the true probability of the outcome justifies, making it profitable long term.",
+    example: "Backing an outcome at 2.20 that you believe has a true 50% chance.",
+    sentence: "Finding value bets is the only sustainable path to profit.",
+    related: ["True Odds", "Expected Value (EV)", "Sharp"],
+  },
+  {
+    term: "Void Bet",
+    definition: "A bet that is cancelled, with the stake returned, typically because an event was abandoned or a condition was not met.",
+    example: "A match postponed before completion voiding the bet.",
+    sentence: "The abandoned game left his bet void and his stake refunded.",
+    related: ["No Bet", "Push", "Dead Heat"],
+  },
+  {
+    term: "Wager",
+    definition: "Another word for a bet — money risked on the outcome of an event.",
+    example: "Placing a wager on the title race.",
+    sentence: "He placed a small wager on the outsider.",
+    related: ["Bettor", "Stake", "Selection"],
+  },
+  {
+    term: "Yankee",
+    definition: "A bet consisting of 11 bets across 4 selections: 6 doubles, 4 trebles and 1 four-fold accumulator.",
+    example: "Covering four selections with every double, treble and the accumulator.",
+    sentence: "Two winners were enough for his Yankee to show a return.",
+    related: ["Lucky 15", "Patent", "System Bet"],
+  },
+];
+
+export function searchDictionary(query: string): DictionaryTerm[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return DICTIONARY;
+  return DICTIONARY.filter(
+    (t) =>
+      t.term.toLowerCase().includes(q) ||
+      t.definition.toLowerCase().includes(q),
+  );
+}
+
+export function getTerm(term: string): DictionaryTerm | undefined {
+  return DICTIONARY.find((t) => t.term.toLowerCase() === term.toLowerCase());
+}

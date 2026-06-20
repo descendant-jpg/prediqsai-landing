@@ -311,6 +311,11 @@ export default function ProfileScreen() {
             value={bettingExp}
             onPress={() => setShowExpModal(true)}
           />
+          <SettingRow
+            icon={BookOpen}
+            label="Learning Hub"
+            onPress={() => router.push("/learning-hub" as any)}
+          />
           <SettingRow icon={Lock} label="Change Password" onPress={() => router.push("/change-password" as any)} />
         </SettingGroup>
 
