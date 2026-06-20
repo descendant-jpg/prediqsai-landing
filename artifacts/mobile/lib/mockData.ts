@@ -484,3 +484,436 @@ export function confidenceColor(value: number, colors: { red: string; orange: st
   if (value <= 75) return colors.orange;
   return colors.green;
 }
+
+// ---------------------------------------------------------------------------
+// Picks screen — Enhanced AI picks (Features 1-10)
+// ---------------------------------------------------------------------------
+
+export type PickType = "hot" | "value" | "arb";
+export type RiskLevel = "Low" | "Medium" | "High";
+
+export interface BookmakerOdd {
+  name: string;
+  odds: number;
+}
+
+export interface ProPick {
+  id: string;
+  sport: SportKey;
+  competition: string;
+  homeTeam: string;
+  awayTeam: string;
+  aiPick: string;
+  confidence: number; // 0-100
+  odds: number;
+  bookmaker: string;
+  isLive: boolean;
+  currentScore: string; // e.g. "2 - 1 (67')" — empty when not live
+  isValue: boolean;
+  type: PickType;
+  reasoning: string;
+  keyStats: string[];
+  riskLevel: RiskLevel;
+  proTip: string;
+  bookmakerOdds: BookmakerOdd[];
+  kickoffTime: string;
+  homeForm: string; // last 5, e.g. "W W D W W"
+  awayForm: string;
+  headToHead: string; // e.g. "3W 1D 1L"
+  avgGoals: string; // e.g. "3.2"
+  bookmakerUrl: string;
+  liveAnalysis: string; // extra reasoning shown only when live
+}
+
+export const TODAY_PERFORMANCE = { won: 4, lost: 1, pending: 2 } as const;
+
+export const PICK_OF_THE_DAY: ProPick = {
+  id: "potd",
+  sport: "football",
+  competition: "UEFA Champions League",
+  homeTeam: "Man City",
+  awayTeam: "Real Madrid",
+  aiPick: "Over 2.5 Goals",
+  confidence: 91,
+  odds: 1.85,
+  bookmaker: "Bet365",
+  isLive: false,
+  currentScore: "",
+  isValue: true,
+  type: "hot",
+  reasoning:
+    "Man City have scored in 9 of their last 10 home games and average 2.4 goals at the Etihad this season. Real Madrid's defensive record away from home averages 1.8 goals conceded per game, and four of the last five meetings between these sides produced 3+ goals. Both managers favour attacking setups in two-legged ties.",
+  keyStats: [
+    "Man City scored in 9/10 home games",
+    "Madrid concede 1.8/game away",
+    "4/5 H2H over 2.5 goals",
+    "Combined xG 3.3",
+  ],
+  riskLevel: "Low",
+  proTip: "Consider the 'Over 2.5 + Both Teams to Score' combo for stronger value at 2.40.",
+  bookmakerOdds: [
+    { name: "Bet365", odds: 1.85 },
+    { name: "1xBet", odds: 1.83 },
+    { name: "Betway", odds: 1.80 },
+    { name: "William Hill", odds: 1.82 },
+    { name: "Pinnacle", odds: 1.84 },
+  ],
+  kickoffTime: "Today · 21:00",
+  homeForm: "W W D W W",
+  awayForm: "W L W W D",
+  headToHead: "3W 1D 1L",
+  avgGoals: "3.2",
+  bookmakerUrl: "https://www.bet365.com",
+  liveAnalysis: "",
+};
+
+export const PRO_PICKS: ProPick[] = [
+  {
+    id: "pp1",
+    sport: "football",
+    competition: "Premier League",
+    homeTeam: "Liverpool",
+    awayTeam: "Chelsea",
+    aiPick: "Over 2.5 Goals",
+    confidence: 88,
+    odds: 1.90,
+    bookmaker: "Bet365",
+    isLive: true,
+    currentScore: "2 - 1 (67')",
+    isValue: true,
+    type: "hot",
+    reasoning:
+      "Liverpool's high press forces turnovers in dangerous areas, and Chelsea's makeshift back line has conceded in 8 of 10 away games. Anfield fixtures average 3.4 goals this season.",
+    keyStats: ["Anfield avg 3.4 goals", "Chelsea concede 8/10 away", "Liverpool xG 2.1"],
+    riskLevel: "Low",
+    proTip: "With 2 goals already in at 67', the Over 2.5 needs just one more — strong live position.",
+    bookmakerOdds: [
+      { name: "Bet365", odds: 1.90 },
+      { name: "1xBet", odds: 1.88 },
+      { name: "Betway", odds: 1.85 },
+      { name: "William Hill", odds: 1.87 },
+      { name: "Pinnacle", odds: 1.92 },
+    ],
+    kickoffTime: "Live now",
+    homeForm: "W W W D W",
+    awayForm: "L W D L W",
+    headToHead: "2W 2D 1L",
+    avgGoals: "3.4",
+    bookmakerUrl: "https://www.bet365.com",
+    liveAnalysis:
+      "Liverpool lead 2-1 at 67 minutes with sustained pressure. One more goal completes Over 2.5 — also consider the Next Goal market for Liverpool at evens.",
+  },
+  {
+    id: "pp2",
+    sport: "basketball",
+    competition: "NBA",
+    homeTeam: "Celtics",
+    awayTeam: "Bucks",
+    aiPick: "Celtics -5.5",
+    confidence: 84,
+    odds: 1.91,
+    bookmaker: "DraftKings",
+    isLive: true,
+    currentScore: "58 - 49 (Q3)",
+    isValue: false,
+    type: "hot",
+    reasoning:
+      "Boston's net rating at home is elite (+9.1) and Milwaukee are without their second scorer. Boston's perimeter defence limits Milwaukee's catch-and-shoot looks.",
+    keyStats: ["Celtics home net +9.1", "Bucks missing key scorer", "Proj margin 9"],
+    riskLevel: "Medium",
+    proTip: "Boston covering comfortably at the half — live spread value has shortened.",
+    bookmakerOdds: [
+      { name: "DraftKings", odds: 1.91 },
+      { name: "Bet365", odds: 1.90 },
+      { name: "1xBet", odds: 1.89 },
+      { name: "Betway", odds: 1.87 },
+      { name: "Pinnacle", odds: 1.93 },
+    ],
+    kickoffTime: "Live now",
+    homeForm: "W W L W W",
+    awayForm: "W L W L W",
+    headToHead: "3W 0D 2L",
+    avgGoals: "221.5",
+    bookmakerUrl: "https://www.draftkings.com",
+    liveAnalysis:
+      "Celtics lead by 9 in Q3 and controlling tempo. The -5.5 is tracking well; watch for garbage-time swings late in Q4.",
+  },
+  {
+    id: "pp3",
+    sport: "football",
+    competition: "La Liga",
+    homeTeam: "Barcelona",
+    awayTeam: "Sevilla",
+    aiPick: "Barcelona -1.5",
+    confidence: 82,
+    odds: 1.95,
+    bookmaker: "1xBet",
+    isLive: false,
+    currentScore: "",
+    isValue: true,
+    type: "value",
+    reasoning:
+      "Barcelona have won by 2+ goals in 7 of 9 home league games. Sevilla's away form is poor with just one win in their last eight on the road.",
+    keyStats: ["Barca 7/9 home wins by 2+", "Sevilla 1 away win in 8", "Barca xG 2.6"],
+    riskLevel: "Medium",
+    proTip: "The -1.5 handicap offers better value than the -1.0 Asian line at these odds.",
+    bookmakerOdds: [
+      { name: "1xBet", odds: 1.95 },
+      { name: "Bet365", odds: 1.90 },
+      { name: "Betway", odds: 1.88 },
+      { name: "William Hill", odds: 1.91 },
+      { name: "Pinnacle", odds: 1.93 },
+    ],
+    kickoffTime: "Today · 20:00",
+    homeForm: "W W W L W",
+    awayForm: "L D L W L",
+    headToHead: "4W 1D 0L",
+    avgGoals: "2.8",
+    bookmakerUrl: "https://1xbet.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp4",
+    sport: "nfl",
+    competition: "NFL",
+    homeTeam: "Chiefs",
+    awayTeam: "Ravens",
+    aiPick: "Chiefs ML",
+    confidence: 80,
+    odds: 1.80,
+    bookmaker: "FanDuel",
+    isLive: false,
+    currentScore: "",
+    isValue: false,
+    type: "hot",
+    reasoning:
+      "Kansas City are 8-1 at home over the last two seasons and have a decisive quarterback edge in clutch situations. The Ravens struggle on the road in cold-weather venues.",
+    keyStats: ["Chiefs 8-1 at home", "QB clutch rating edge", "Ravens road struggles"],
+    riskLevel: "Medium",
+    proTip: "If you want more value, the Chiefs -3 alt line pays better than the moneyline.",
+    bookmakerOdds: [
+      { name: "FanDuel", odds: 1.80 },
+      { name: "Bet365", odds: 1.78 },
+      { name: "1xBet", odds: 1.79 },
+      { name: "Betway", odds: 1.76 },
+      { name: "Pinnacle", odds: 1.82 },
+    ],
+    kickoffTime: "Tomorrow · 18:30",
+    homeForm: "W W L W W",
+    awayForm: "W W L W L",
+    headToHead: "3W 0D 2L",
+    avgGoals: "48.5",
+    bookmakerUrl: "https://www.fanduel.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp5",
+    sport: "tennis",
+    competition: "ATP Masters",
+    homeTeam: "Djokovic",
+    awayTeam: "Medvedev",
+    aiPick: "Djokovic to win",
+    confidence: 77,
+    odds: 1.70,
+    bookmaker: "Pinnacle",
+    isLive: false,
+    currentScore: "",
+    isValue: false,
+    type: "hot",
+    reasoning:
+      "Djokovic leads the head-to-head 9-5 and has won the last four hard-court meetings. His return game neutralises Medvedev's biggest weapon, the first serve.",
+    keyStats: ["H2H 9-5 Djokovic", "Won last 4 hard-court", "Return points won 42%"],
+    riskLevel: "Low",
+    proTip: "Djokovic -4.5 games is the sharper play if you expect a routine straight-sets win.",
+    bookmakerOdds: [
+      { name: "Pinnacle", odds: 1.70 },
+      { name: "Bet365", odds: 1.67 },
+      { name: "1xBet", odds: 1.68 },
+      { name: "Betway", odds: 1.65 },
+      { name: "William Hill", odds: 1.66 },
+    ],
+    kickoffTime: "Today · 16:00",
+    homeForm: "W W W W L",
+    awayForm: "W L W W W",
+    headToHead: "9W 0D 5L",
+    avgGoals: "22.5",
+    bookmakerUrl: "https://www.pinnacle.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp6",
+    sport: "football",
+    competition: "Serie A",
+    homeTeam: "Inter Milan",
+    awayTeam: "Napoli",
+    aiPick: "Under 2.5 Goals",
+    confidence: 74,
+    odds: 2.05,
+    bookmaker: "Betway",
+    isLive: false,
+    currentScore: "",
+    isValue: true,
+    type: "value",
+    reasoning:
+      "Both teams rank top-four defensively in Serie A and big matches between them are typically cagey — three of the last four meetings finished with under 2.5 goals.",
+    keyStats: ["Both top-4 defences", "3/4 H2H under 2.5", "Low combined xG 2.0"],
+    riskLevel: "Medium",
+    proTip: "Odds of 2.05 on the Under offer genuine value against a true probability near 55%.",
+    bookmakerOdds: [
+      { name: "Betway", odds: 2.05 },
+      { name: "Bet365", odds: 2.00 },
+      { name: "1xBet", odds: 2.02 },
+      { name: "William Hill", odds: 1.98 },
+      { name: "Pinnacle", odds: 2.06 },
+    ],
+    kickoffTime: "Tomorrow · 19:45",
+    homeForm: "W D W W D",
+    awayForm: "D W W D L",
+    headToHead: "1W 2D 1L",
+    avgGoals: "2.1",
+    bookmakerUrl: "https://www.betway.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp7",
+    sport: "football",
+    competition: "Bundesliga",
+    homeTeam: "Bayern Munich",
+    awayTeam: "Dortmund",
+    aiPick: "BTTS — Yes",
+    confidence: 76,
+    odds: 1.60,
+    bookmaker: "William Hill",
+    isLive: false,
+    currentScore: "",
+    isValue: false,
+    type: "value",
+    reasoning:
+      "Der Klassiker almost always delivers goals at both ends — both teams have scored in 8 of the last 9 meetings, and each ranks in the league's top three for goals scored.",
+    keyStats: ["BTTS in 8/9 H2H", "Both top-3 attacks", "Avg 3.6 goals in fixture"],
+    riskLevel: "Low",
+    proTip: "BTTS combined with Over 2.5 boosts the price to 2.10 with minimal added risk.",
+    bookmakerOdds: [
+      { name: "William Hill", odds: 1.60 },
+      { name: "Bet365", odds: 1.57 },
+      { name: "1xBet", odds: 1.58 },
+      { name: "Betway", odds: 1.55 },
+      { name: "Pinnacle", odds: 1.61 },
+    ],
+    kickoffTime: "Today · 17:30",
+    homeForm: "W W W D W",
+    awayForm: "W L W W D",
+    headToHead: "5W 2D 2L",
+    avgGoals: "3.6",
+    bookmakerUrl: "https://www.williamhill.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp8",
+    sport: "basketball",
+    competition: "NBA",
+    homeTeam: "Nuggets",
+    awayTeam: "Suns",
+    aiPick: "Over 228.5 Points",
+    confidence: 71,
+    odds: 1.90,
+    bookmaker: "DraftKings",
+    isLive: false,
+    currentScore: "",
+    isValue: true,
+    type: "value",
+    reasoning:
+      "Both teams play at a top-10 pace and rank bottom-half defensively this month. The total has gone Over in six of the last seven head-to-head matchups.",
+    keyStats: ["Both top-10 pace", "6/7 H2H Over", "Combined 232 proj"],
+    riskLevel: "Medium",
+    proTip: "Live-bet the Over if the first quarter is high-scoring for an improved number.",
+    bookmakerOdds: [
+      { name: "DraftKings", odds: 1.90 },
+      { name: "Bet365", odds: 1.88 },
+      { name: "1xBet", odds: 1.91 },
+      { name: "Betway", odds: 1.86 },
+      { name: "Pinnacle", odds: 1.92 },
+    ],
+    kickoffTime: "Tomorrow · 03:00",
+    homeForm: "W L W W L",
+    awayForm: "L W L W W",
+    headToHead: "4W 0D 3L",
+    avgGoals: "229.0",
+    bookmakerUrl: "https://www.draftkings.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp9",
+    sport: "football",
+    competition: "Ligue 1",
+    homeTeam: "PSG",
+    awayTeam: "Marseille",
+    aiPick: "PSG Win & Over 1.5 (arb)",
+    confidence: 69,
+    odds: 2.10,
+    bookmaker: "1xBet",
+    isLive: false,
+    currentScore: "",
+    isValue: true,
+    type: "arb",
+    reasoning:
+      "Cross-bookmaker pricing on Le Classique has drifted: backing PSG to win on 1xBet while laying the draw and Marseille elsewhere locks in a small guaranteed margin.",
+    keyStats: ["Arb margin ~2.4%", "PSG home 9-1", "Price drift across books"],
+    riskLevel: "Low",
+    proTip: "Arb windows close fast — stake proportionally across all three outcomes immediately.",
+    bookmakerOdds: [
+      { name: "1xBet", odds: 2.10 },
+      { name: "Bet365", odds: 1.95 },
+      { name: "Betway", odds: 2.00 },
+      { name: "William Hill", odds: 1.98 },
+      { name: "Pinnacle", odds: 2.05 },
+    ],
+    kickoffTime: "Today · 21:00",
+    homeForm: "W W D W W",
+    awayForm: "W L D W L",
+    headToHead: "6W 1D 1L",
+    avgGoals: "3.0",
+    bookmakerUrl: "https://1xbet.com",
+    liveAnalysis: "",
+  },
+  {
+    id: "pp10",
+    sport: "basketball",
+    competition: "EuroLeague",
+    homeTeam: "Real Madrid",
+    awayTeam: "Olympiacos",
+    aiPick: "Real Madrid ML (arb)",
+    confidence: 68,
+    odds: 1.75,
+    bookmaker: "Pinnacle",
+    isLive: false,
+    currentScore: "",
+    isValue: true,
+    type: "arb",
+    reasoning:
+      "A pricing discrepancy between Pinnacle and Betway on the two-way moneyline creates a low-risk arbitrage opportunity on the EuroLeague clash.",
+    keyStats: ["Arb margin ~1.8%", "Madrid home fortress", "Two-way price gap"],
+    riskLevel: "Low",
+    proTip: "Use the two-way (no draw) market for cleaner arbitrage maths in basketball.",
+    bookmakerOdds: [
+      { name: "Pinnacle", odds: 1.75 },
+      { name: "Bet365", odds: 1.70 },
+      { name: "1xBet", odds: 1.72 },
+      { name: "Betway", odds: 1.68 },
+      { name: "William Hill", odds: 1.71 },
+    ],
+    kickoffTime: "Tomorrow · 20:00",
+    homeForm: "W W W L W",
+    awayForm: "W L W W L",
+    headToHead: "5W 0D 2L",
+    avgGoals: "160.5",
+    bookmakerUrl: "https://www.pinnacle.com",
+    liveAnalysis: "",
+  },
+];
+
+export const PRO_PICK_FREE_LIMIT = 2;
+
+export function bestBookmaker(odds: BookmakerOdd[]): BookmakerOdd {
+  return odds.reduce((best, o) => (o.odds > best.odds ? o : best), odds[0]);
+}

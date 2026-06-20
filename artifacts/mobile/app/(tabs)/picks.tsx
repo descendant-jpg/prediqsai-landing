@@ -1,7 +1,9 @@
-import { Inbox, RefreshCw, WifiOff } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Bookmark, Inbox, Lock, RefreshCw, WifiOff } from "lucide-react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   Platform,
   ScrollView,
@@ -15,6 +17,15 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { LiveMatchCard } from "@/components/LiveMatchCard";
 import { PredictionCard } from "@/components/PredictionCard";
+import { AiReasoningModal } from "@/components/picks/AiReasoningModal";
+import { BetSlipModal } from "@/components/picks/BetSlipModal";
+import { EnhancedPickCard } from "@/components/picks/EnhancedPickCard";
+import { FloatingSlipButton } from "@/components/picks/FloatingSlipButton";
+import { PickOfTheDayCard } from "@/components/picks/PickOfTheDayCard";
+import { PickTypeTabs } from "@/components/picks/PickTypeTabs";
+import { PicksPerformanceBar } from "@/components/picks/PicksPerformanceBar";
+import { Toast } from "@/components/picks/Toast";
+import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -25,7 +36,34 @@ import {
   type SoccerFixture,
   type SoccerLeagueGroup,
 } from "@/lib/api";
+import {
+  PICK_OF_THE_DAY,
+  PRO_PICK_FREE_LIMIT,
+  PRO_PICKS,
+  confidenceColor,
+  type PickType,
+  type ProPick,
+  type SportKey,
+} from "@/lib/mockData";
+import { sharePick, shareSlip } from "@/lib/share";
+import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
+
+const ALL_PRO_PICKS: ProPick[] = [PICK_OF_THE_DAY, ...PRO_PICKS];
+
+function proPickById(id: string): ProPick | undefined {
+  return ALL_PRO_PICKS.find((p) => p.id === id);
+}
+
+function sportChipToKey(s: SportFilter): SportKey | "all" {
+  switch (s) {
+    case "soccer": return "football";
+    case "nba":    return "basketball";
+    case "nfl":    return "nfl";
+    case "mlb":    return "baseball";
+    default:       return "all";
+  }
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type SportFilter  = "all"   | "soccer" | "nfl" | "nba" | "mlb";
@@ -137,14 +175,17 @@ function MultiSportGameCard({
 }
 
 // ── Fixtures view (Today / Tomorrow + sport filter) ───────────────────────────
-function FixturesView({ sport, allSports, loading, tomorrow }: { sport: SportFilter; allSports: AllSportsResponse | null; loading: boolean; tomorrow?: boolean }) {
+function FixturesView({ sport, allSports, loading, tomorrow, header }: { sport: SportFilter; allSports: AllSportsResponse | null; loading: boolean; tomorrow?: boolean; header?: React.ReactNode }) {
   const colors = useColors();
   if (loading && !allSports) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.cyan} size="large" />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{tomorrow ? "Loading tomorrow's fixtures…" : "Loading today's fixtures…"}</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.fixtureList} showsVerticalScrollIndicator={false}>
+        {header}
+        <View style={[styles.centered, { paddingVertical: 60 }]}>
+          <ActivityIndicator color={colors.cyan} size="large" />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{tomorrow ? "Loading tomorrow's fixtures…" : "Loading today's fixtures…"}</Text>
+        </View>
+      </ScrollView>
     );
   }
   const showSoccer = sport === "all" || sport === "soccer";
@@ -160,6 +201,7 @@ function FixturesView({ sport, allSports, loading, tomorrow }: { sport: SportFil
 
   return (
     <ScrollView contentContainerStyle={styles.fixtureList} showsVerticalScrollIndicator={false}>
+      {header}
       {showSoccer && (
         <>
           <View style={styles.sportSection}>
@@ -268,11 +310,131 @@ function FixturesView({ sport, allSports, loading, tomorrow }: { sport: SportFil
   );
 }
 
+// ── Locked Pro pick teaser (FREE gating) ─────────────────────────────────────
+function LockedProPickCard({ pick, onUpgrade }: { pick: ProPick; onUpgrade: () => void }) {
+  const colors = useColors();
+  const confColor = confidenceColor(pick.confidence, colors);
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onUpgrade}
+      style={[styles.lockedCard, { backgroundColor: "#121212", borderColor: colors.border, borderLeftColor: confColor }]}
+    >
+      <View style={styles.lockedBlurred}>
+        <Text style={[styles.lockedComp, { color: colors.textMuted }]}>{pick.competition}</Text>
+        <Text style={[styles.lockedMatch, { color: colors.textMuted }]}>
+          {pick.homeTeam} vs {pick.awayTeam}
+        </Text>
+        <Text style={[styles.lockedPick, { color: colors.textMuted }]}>● ● ● ● ●</Text>
+      </View>
+      <View style={styles.lockedOverlay}>
+        <Lock size={18} color={colors.gold} />
+        <Text style={[styles.lockedText, { color: colors.gold }]}>Upgrade to Pro to unlock</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function PicksScreen() {
   const colors  = useColors();
   const insets  = useSafeAreaInsets();
   const { token } = useAuth();
+  const router = useRouter();
+  const { profile } = useApp();
+  const isPro = profile.tier === "premium";
+
+  // ── Enhanced AI picks state (Features 1-10) ──
+  const [picksFilter, setPicksFilter] = useState<PickType>("hot");
+  const [slipIds, setSlipIds]   = useState<string[]>([]);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [slipOpen, setSlipOpen] = useState(false);
+  const [reasoningPick, setReasoningPick] = useState<ProPick | null>(null);
+  const [toast, setToast] = useState({ msg: "", nonce: 0 });
+  const cardFade = useRef(new Animated.Value(1)).current;
+
+  const showToast = useCallback((msg: string) => setToast({ msg, nonce: Date.now() }), []);
+
+  // Load persisted filter + slip + saved on mount, and refresh on focus
+  useEffect(() => {
+    (async () => {
+      const stored = await getItem<PickType>(STORAGE_KEYS.picksFilter, "hot");
+      setPicksFilter(stored);
+    })();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        const [slip, saved] = await Promise.all([
+          getItem<string[]>(STORAGE_KEYS.betSlip, []),
+          getItem<string[]>(STORAGE_KEYS.savedPicks, []),
+        ]);
+        if (!active) return;
+        setSlipIds(slip);
+        setSavedIds(saved);
+      })();
+      return () => { active = false; };
+    }, []),
+  );
+
+  const changePicksFilter = useCallback((next: PickType) => {
+    Animated.timing(cardFade, { toValue: 0, duration: 120, useNativeDriver: Platform.OS !== "web" }).start(() => {
+      setPicksFilter(next);
+      void setItem(STORAGE_KEYS.picksFilter, next);
+      Animated.timing(cardFade, { toValue: 1, duration: 220, useNativeDriver: Platform.OS !== "web" }).start();
+    });
+  }, [cardFade]);
+
+  const toggleSave = useCallback(async (id: string) => {
+    const exists = savedIds.includes(id);
+    const next = exists ? savedIds.filter((x) => x !== id) : [...savedIds, id];
+    setSavedIds(next);
+    await setItem(STORAGE_KEYS.savedPicks, next);
+    showToast(exists ? "Removed from saved" : "Pick saved");
+  }, [savedIds, showToast]);
+
+  const addToSlip = useCallback(async (id: string) => {
+    if (slipIds.includes(id)) {
+      showToast("Already in your slip");
+      return;
+    }
+    const next = [...slipIds, id];
+    setSlipIds(next);
+    await setItem(STORAGE_KEYS.betSlip, next);
+    showToast("Added to bet slip");
+  }, [slipIds, showToast]);
+
+  const removeFromSlip = useCallback(async (id: string) => {
+    const next = slipIds.filter((x) => x !== id);
+    setSlipIds(next);
+    await setItem(STORAGE_KEYS.betSlip, next);
+  }, [slipIds]);
+
+  const clearSlip = useCallback(async () => {
+    setSlipIds([]);
+    await setItem(STORAGE_KEYS.betSlip, []);
+    showToast("Bet slip cleared");
+  }, [showToast]);
+
+  const handleShare = useCallback(async (pick: ProPick) => {
+    const result = await sharePick(pick);
+    if (result === "copied") showToast("Pick copied to clipboard");
+  }, [showToast]);
+
+  const handleShareSlip = useCallback(async () => {
+    const picks = slipIds.map(proPickById).filter((p): p is ProPick => Boolean(p));
+    if (picks.length === 0) return;
+    const result = await shareSlip(picks);
+    if (result === "copied") showToast("Bet slip copied to clipboard");
+  }, [slipIds, showToast]);
+
+  const handleAnalysis = useCallback((pick: ProPick) => {
+    setReasoningPick(pick);
+  }, []);
+
+  const slipPicks = slipIds.map(proPickById).filter((p): p is ProPick => Boolean(p));
 
   const [sportFilter,  setSportFilter]  = useState<SportFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("today");
@@ -351,6 +513,68 @@ export default function PicksScreen() {
   const byStatus  = filterByStatus(predictions, statusFilter);
   const displayed = filterBySport(byStatus, sportFilter);
 
+  // ── Enhanced AI picks: filter by Hot/Value/ARB + sport chip, live first ──
+  const sportKey = sportChipToKey(sportFilter);
+  const filteredProPicks = PRO_PICKS
+    .filter((p) => p.type === picksFilter)
+    .filter((p) => sportKey === "all" || p.sport === sportKey)
+    .sort((a, b) => Number(b.isLive) - Number(a.isLive));
+
+  const aiPicksHeader = (
+    <View style={styles.aiBlock}>
+      <View style={styles.aiHeaderRow}>
+        <Text style={[styles.aiTitle, { color: colors.text }]}>🎯 AI Picks</Text>
+        <Text style={[styles.aiSubtitle, { color: colors.textSecondary }]}>Powered by PrediQs AI</Text>
+      </View>
+
+      <PickOfTheDayCard
+        pick={PICK_OF_THE_DAY}
+        isPro={isPro}
+        onPress={() => setReasoningPick(PICK_OF_THE_DAY)}
+        onUpgrade={() => router.push("/subscription")}
+      />
+
+      <View style={styles.tabsWrap}>
+        <PickTypeTabs value={picksFilter} onChange={changePicksFilter} />
+      </View>
+
+      <Animated.View style={{ opacity: cardFade }}>
+        {filteredProPicks.length === 0 ? (
+          <View style={styles.aiEmpty}>
+            <Text style={[styles.aiEmptyText, { color: colors.textMuted }]}>No {picksFilter} picks for this sport</Text>
+          </View>
+        ) : (
+          filteredProPicks.map((p, idx) => {
+            const locked = !isPro && idx >= PRO_PICK_FREE_LIMIT;
+            if (locked) {
+              return <LockedProPickCard key={p.id} pick={p} onUpgrade={() => router.push("/subscription")} />;
+            }
+            return (
+              <EnhancedPickCard
+                key={p.id}
+                pick={p}
+                saved={savedIds.includes(p.id)}
+                inSlip={slipIds.includes(p.id)}
+                onSave={() => toggleSave(p.id)}
+                onAddSlip={() => addToSlip(p.id)}
+                onShare={() => handleShare(p)}
+                onAnalysis={() => handleAnalysis(p)}
+              />
+            );
+          })
+        )}
+      </Animated.View>
+
+      {!isPro && filteredProPicks.length > PRO_PICK_FREE_LIMIT ? (
+        <Text style={[styles.aiUpsell, { color: colors.textSecondary }]}>
+          Showing {PRO_PICK_FREE_LIMIT} of {filteredProPicks.length} picks · Upgrade to Pro for full access
+        </Text>
+      ) : null}
+
+      <View style={[styles.aiDivider, { backgroundColor: colors.border }]} />
+    </View>
+  );
+
   const monthLabel = accuracy?.month
     ? new Date(accuracy.month + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : "";
@@ -371,9 +595,21 @@ export default function PicksScreen() {
       <View style={[styles.header, { paddingTop: topPadding + 16, borderBottomColor: colors.border }]}>
         <View style={styles.headerRow}>
           <Text style={[styles.title, { color: colors.text }]}>Picks</Text>
-          <TouchableOpacity onPress={fetchPredictions} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <RefreshCw size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={() => router.push("/saved-picks")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <View>
+                <Bookmark size={18} color={savedIds.length > 0 ? colors.gold : colors.textSecondary} fill={savedIds.length > 0 ? colors.gold : "transparent"} />
+                {savedIds.length > 0 ? (
+                  <View style={[styles.savedBadge, { backgroundColor: colors.gold }]}>
+                    <Text style={styles.savedBadgeText}>{savedIds.length}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={fetchPredictions} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <RefreshCw size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Sport filter ── */}
@@ -438,6 +674,9 @@ export default function PicksScreen() {
         </ScrollView>
       </View>
 
+      {/* ── Today's performance tracker (Feature 1) ── */}
+      <PicksPerformanceBar />
+
       {/* ── Accuracy banner (Today / Tomorrow) ── */}
       {(statusFilter === "today" || statusFilter === "tomorrow") && accuracy?.accuracy != null && (
         <View style={[styles.accuracyBanner, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "#00E5FF" }]}>
@@ -470,15 +709,18 @@ export default function PicksScreen() {
               contentContainerStyle={listPad}
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={
-                <View style={styles.liveHeader}>
-                  <View style={styles.liveBadgeRow}>
-                    <View style={styles.livePulse} />
-                    <Text style={[styles.liveHeaderText, { color: "#FF4D4D" }]}>LIVE NOW</Text>
+                <>
+                  {aiPicksHeader}
+                  <View style={styles.liveHeader}>
+                    <View style={styles.liveBadgeRow}>
+                      <View style={styles.livePulse} />
+                      <Text style={[styles.liveHeaderText, { color: "#FF4D4D" }]}>LIVE NOW</Text>
+                    </View>
+                    <Text style={[styles.liveRefreshText, { color: colors.textMuted }]}>
+                      Auto-refreshes every 60s · {liveFixtures.length} matches
+                    </Text>
                   </View>
-                  <Text style={[styles.liveRefreshText, { color: colors.textMuted }]}>
-                    Auto-refreshes every 60s · {liveFixtures.length} matches
-                  </Text>
-                </View>
+                </>
               }
               ListEmptyComponent={
                 <View style={styles.empty}>
@@ -505,6 +747,7 @@ export default function PicksScreen() {
               renderItem={({ item }) => <PredictionCard prediction={item} />}
               contentContainerStyle={listPad}
               showsVerticalScrollIndicator={false}
+              ListHeaderComponent={aiPicksHeader}
               ListEmptyComponent={
                 <View style={styles.empty}>
                   <Inbox size={28} color={colors.textMuted} />
@@ -517,10 +760,10 @@ export default function PicksScreen() {
         </>
       ) : statusFilter === "today" ? (
         /* TODAY ALL: show fixtures across all sports */
-        <FixturesView sport={sportFilter} allSports={allSports} loading={sportsLoading} />
+        <FixturesView sport={sportFilter} allSports={allSports} loading={sportsLoading} header={aiPicksHeader} />
       ) : statusFilter === "tomorrow" ? (
         /* TOMORROW: show tomorrow's fixture list */
-        <FixturesView sport={sportFilter} allSports={tomorrowSports} loading={tomorrowLoading} tomorrow />
+        <FixturesView sport={sportFilter} allSports={tomorrowSports} loading={tomorrowLoading} tomorrow header={aiPicksHeader} />
       ) : (
         /* All other statuses: AI predictions list */
         <>
@@ -545,28 +788,31 @@ export default function PicksScreen() {
               contentContainerStyle={listPad}
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={
-                statusFilter === "won" ? (
-                  <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>Top Value Picks</Text>
-                    <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
-                      Highest-confidence picks with detected bookmaker edge
-                    </Text>
-                  </View>
-                ) : statusFilter === "lost" ? (
-                  <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>⚠️ Picks to Avoid</Text>
-                    <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
-                      AI has flagged these matches — proceed with caution
-                    </Text>
-                  </View>
-                ) : statusFilter === "tomorrow" ? (
-                  <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>Tomorrow's Picks</Text>
-                    <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
-                      AI predictions for tomorrow's fixtures
-                    </Text>
-                  </View>
-                ) : null
+                <>
+                  {aiPicksHeader}
+                  {statusFilter === "won" ? (
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>Top Value Picks</Text>
+                      <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
+                        Highest-confidence picks with detected bookmaker edge
+                      </Text>
+                    </View>
+                  ) : statusFilter === "lost" ? (
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>⚠️ Picks to Avoid</Text>
+                      <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
+                        AI has flagged these matches — proceed with caution
+                      </Text>
+                    </View>
+                  ) : statusFilter === "tomorrow" ? (
+                    <View style={styles.sectionHeader}>
+                      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>Tomorrow's Picks</Text>
+                      <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
+                        AI predictions for tomorrow's fixtures
+                      </Text>
+                    </View>
+                  ) : null}
+                </>
               }
               ListEmptyComponent={
                 <View style={styles.empty}>
@@ -579,6 +825,30 @@ export default function PicksScreen() {
           )}
         </>
       )}
+
+      {/* ── Floating bet slip button (Feature 6) ── */}
+      <FloatingSlipButton count={slipIds.length} onPress={() => setSlipOpen(true)} />
+
+      {/* ── Bet slip modal (Feature 6) ── */}
+      <BetSlipModal
+        visible={slipOpen}
+        slip={slipPicks}
+        onClose={() => setSlipOpen(false)}
+        onRemove={removeFromSlip}
+        onClear={clearSlip}
+        onShare={handleShareSlip}
+      />
+
+      {/* ── AI reasoning modal (Feature 5/8/10) ── */}
+      <AiReasoningModal
+        pick={reasoningPick}
+        isPro={isPro}
+        onClose={() => setReasoningPick(null)}
+        onUpgrade={() => { setReasoningPick(null); router.push("/subscription"); }}
+      />
+
+      {/* ── Toast (save/slip/share feedback) ── */}
+      <Toast message={toast.msg} nonce={toast.nonce} />
     </View>
   );
 }
@@ -642,4 +912,26 @@ const styles = StyleSheet.create({
   offSeasonIcon:       { fontSize: 28, marginBottom: 2 },
   offSeasonTitle:      { fontSize: 14, fontFamily: "Inter_600SemiBold", textAlign: "center" },
   offSeasonText:       { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 18 },
+  // Header actions
+  headerActions:       { flexDirection: "row", alignItems: "center", gap: 16 },
+  savedBadge:          { position: "absolute", top: -6, right: -8, minWidth: 15, height: 15, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  savedBadgeText:      { color: "#0a0a0a", fontSize: 9, fontFamily: "Inter_700Bold" },
+  // AI Picks block
+  aiBlock:             { marginBottom: 4 },
+  aiHeaderRow:         { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 },
+  aiTitle:             { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  aiSubtitle:          { fontSize: 12, fontFamily: "Inter_400Regular" },
+  tabsWrap:            { marginTop: 14, marginBottom: 10 },
+  aiEmpty:             { paddingVertical: 28, alignItems: "center" },
+  aiEmptyText:         { fontSize: 13, fontFamily: "Inter_400Regular" },
+  aiUpsell:            { fontSize: 12, fontFamily: "Inter_500Medium", textAlign: "center", marginTop: 4, marginBottom: 8 },
+  aiDivider:           { height: 1, marginTop: 16, marginBottom: 16 },
+  // Locked pro pick
+  lockedCard:          { borderRadius: 14, borderWidth: 1, borderLeftWidth: 3, padding: 14, marginBottom: 10, overflow: "hidden" },
+  lockedBlurred:       { opacity: 0.25, gap: 6 },
+  lockedComp:          { fontSize: 11, fontFamily: "Inter_500Medium" },
+  lockedMatch:         { fontSize: 15, fontFamily: "Inter_700Bold" },
+  lockedPick:          { fontSize: 13, fontFamily: "Inter_600SemiBold", letterSpacing: 4 },
+  lockedOverlay:       { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 },
+  lockedText:          { fontSize: 13, fontFamily: "Inter_700Bold" },
 });

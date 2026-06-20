@@ -102,6 +102,7 @@ function RootLayoutNav() {
       <Stack.Screen name="journal"                  options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="notifications"            options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="rankings"                 options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="saved-picks"              options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }

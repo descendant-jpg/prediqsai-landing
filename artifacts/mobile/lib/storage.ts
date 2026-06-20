@@ -9,6 +9,9 @@ export const STORAGE_KEYS = {
   notificationsRead: "notifications_read_v1",
   notificationsSeeded: "notifications_seeded_v1",
   sportFilter: "sport_filter_v1",
+  picksFilter: "picks_filter",
+  betSlip: "betslip",
+  savedPicks: "saved_picks",
 } as const;
 
 export async function getItem<T>(key: string, fallback: T): Promise<T> {

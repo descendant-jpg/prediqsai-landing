@@ -1,0 +1,264 @@
+Add 10 new features to the existing Picks screen. 
+IMPORTANT: Do NOT remove, replace or modify any existing 
+features on the Picks screen. Keep all existing sport filter 
+chips (ALL/Soccer/NFL/NBA), Today/Tomorrow/Live/Won tabs, 
+match listings, refresh button, dark theme and all routing. 
+Only ADD new components on top of what already exists.
+
+---
+
+## LAYOUT ORDER (top to bottom on Picks screen):
+1. Header (existing + new icons)
+2. Picks Performance Tracker bar (NEW)
+3. Sport filter chips (EXISTING — keep as is)
+4. Today/Tomorrow/Live/Won tabs (EXISTING — keep as is)
+5. AI Pick of the Day hero card (NEW)
+6. Hot/Value/ARB filter tabs (NEW)
+7. Existing match cards (EXISTING — enhanced with new features)
+8. PRO lock prompt at bottom (EXISTING — keep as is)
+9. Floating "My Slip" button (NEW)
+
+---
+
+## 1. PICKS PERFORMANCE TRACKER BAR
+Add a slim stats bar just below the screen header showing:
+- Today's pick record: "Today: 4W • 1L • 2P • 80% ✅"
+- W = Won, L = Lost, P = Pending
+- Won count in green, Lost in red, Pending in gold
+- Separated by bullets
+- Use mock data for now stored in lib/mockData.ts
+- Background: slightly lighter than app background (#1a1a1a)
+- Small text, single line, full width, padding 8px vertical
+
+---
+
+## 2. AI PICK OF THE DAY HERO CARD
+Add a large premium hero card just above the Hot/Value/ARB 
+filter tabs and below the existing sport/time filter chips:
+- Gradient background: dark green (#0d2818) to dark blue 
+  (#0d1528) left to right
+- Gold border (#FFD700) with subtle glow shadow
+- Badge top-left: "⭐ AI PICK OF THE DAY" in gold small caps
+- Match name large and bold: e.g. "Man City vs Real Madrid"
+- Competition name small below: "UEFA Champions League"
+- AI recommendation: "🎯 Over 2.5 Goals" in gold
+- Confidence gauge: horizontal bar, color coded:
+  - 0-50% red, 51-75% orange, 76-100% green
+  - Show percentage number next to bar: "91% Confidence"
+- Odds: "Odds: 1.85" with bookmaker: "Best on Bet365"
+- FREE users: bottom half of card blurred with gold lock 
+  overlay showing "🔒 PRO Feature — Unlock $19.99/mo"
+- PRO users: full card visible
+- Tapping card (if PRO) opens AI Reasoning Modal (see Feature 5)
+- Use mock data from lib/mockData.ts
+- Animate card entrance: fade in + slide up on screen load
+
+---
+
+## 3. PICK TYPE FILTER — HOT / VALUE / ARB
+Add a horizontal row of 3 filter tabs below the hero card 
+and above the match listing:
+- [🔥 Hot] [💎 Value] [⚡ ARB]
+- Selected tab: gold background (#FFD700) with black text, 
+  bold, rounded pill shape
+- Unselected tabs: dark background, gold border, gold text
+- HOT: shows picks with confidence 76%+
+- VALUE: shows picks where odds are higher than true 
+  probability (value_bet: true in mock data)
+- ARB: shows arbitrage opportunities only 
+  (type: "arb" in mock data)
+- Filtering animates smoothly — cards fade out then fade in
+- Default selected: HOT
+- Persists selection using AsyncStorage key "prediqs_picks_filter"
+- This filter works alongside existing sport chips and 
+  Today/Tomorrow/Live/Won tabs — all filters combine
+
+---
+
+## 4. ENHANCED MATCH CARDS
+Keep existing match card design and layout completely. 
+Only ADD these elements to each card:
+
+a) CONFIDENCE COLOR TINT:
+   - Cards with 80%+ confidence: subtle dark green left border 
+     (4px solid #00c853)
+   - Cards with 60-79%: subtle gold left border (4px solid #FFD700)
+   - Cards below 60%: subtle red left border (4px solid #ff4444)
+
+b) LIVE BADGE:
+   - If match is live (isLive: true in mock data), show a 
+     pulsing red 🔴 LIVE badge in top-right of card
+   - Pulse animation: opacity 1.0 → 0.3 → 1.0 loop every 1s
+
+c) CONFIDENCE BAR:
+   - Below the AI pick text add a slim horizontal progress bar
+   - Filled portion color matches confidence level 
+     (red/orange/green)
+   - Show percentage: "84% AI Confidence"
+
+d) ODDS COMPARISON STRIP:
+   - Below confidence bar show 3 bookmaker odds inline:
+   - "Bet365: 2.10 | 1xBet: 2.15 | Betway: 2.05"
+   - Highest odds highlighted in gold bold text
+   - Other odds in grey
+
+e) ACTION BUTTONS ROW at bottom of each card:
+   - [❤️ Save] [📋 Add to Slip] [📤 Share] [🔍 Analysis]
+   - Small compact buttons in a row
+   - Gold icon color, dark background, rounded
+   - Each button has onPress handler (see Features 8, 4, 10, 5)
+
+---
+
+## 5. AI REASONING MODAL
+Tapping [🔍 Analysis] button or the hero card (PRO only) 
+opens a full bottom sheet modal:
+- Dark background matching app theme
+- Header: match name + close X button
+- Sections:
+  a) "🤖 Why AI Recommends This" — 2-3 sentences of reasoning
+     e.g. "Man City have scored in 9 of their last 10 home 
+     games. Real Madrid's defensive record away from home 
+     this season averages 1.8 goals conceded per game."
+  b) "📊 Key Stats" — 3-4 bullet points:
+     - Home team form (last 5): W W D W W
+     - Away team form (last 5): W L W W D  
+     - Head to Head: 3W 1D 1L
+     - Average goals this fixture: 3.2
+  c) "⚠️ Risk Level" — Low / Medium / High badge
+     - Low: green badge, Medium: orange, High: red
+  d) "🏦 Best Bookmaker" — name + odds + a "Bet Now" 
+     button (opens bookmaker URL with Linking.openURL)
+  e) "💡 Pro Tip" — one line tip in gold italic text
+- Scrollable if content overflows
+- All content from lib/mockData.ts per match
+- FREE users see a blurred overlay on this modal with 
+  "🔒 Unlock PRO to see full AI Analysis — $19.99/mo"
+
+---
+
+## 6. ADD TO SLIP (BET SLIP BUILDER)
+Add a floating button at the bottom of the Picks screen:
+- Shows "📋 My Slip (X)" where X is number of picks added
+- Gold background, black text, rounded pill, shadow
+- Position: bottom center, above tab navigation bar
+- Only visible when at least 1 pick is added to slip
+
+When [📋 Add to Slip] is tapped on a card:
+- Pick is added to slip (stored in AsyncStorage 
+  key "prediqs_betslip")
+- Button updates count immediately with bounce animation
+- Show a brief toast/snackbar: "✅ Added to slip!"
+- If pick already in slip, show "✅ Already in slip"
+
+Tapping the floating slip button opens a Bet Slip modal:
+- Lists all added picks with match, pick, odds
+- Shows combined accumulator odds (multiply all odds together)
+- "Stake" input field — user enters amount
+- "Potential Return" calculated live as stake × combined odds
+- [🗑️ Remove] button per pick
+- [Clear All] button at top right
+- [Share Slip 📤] button to share full slip
+- Dark theme, gold accents
+
+---
+
+## 7. SAVE / BOOKMARK PICKS
+Tapping [❤️ Save] on a card:
+- Toggles saved state — heart fills gold when saved, 
+  outline when not saved
+- Saved picks stored in AsyncStorage 
+  key "prediqs_saved_picks"
+- Add a bookmark icon 🔖 in the Picks screen header 
+  (top right, next to refresh)
+- Tapping bookmark icon opens "Saved Picks" screen showing 
+  all bookmarked picks in same card style
+- Saved picks persist across app sessions
+- Show empty state if no saved picks: 
+  "No saved picks yet. Tap ❤️ on any pick to save it."
+
+---
+
+## 8. ODDS COMPARISON STRIP
+Already included in Feature 4d above as part of enhanced 
+match cards. Additionally:
+- Add "Best Odds" label above the strip on the hero card
+- In the AI Reasoning modal show a fuller odds comparison 
+  table with 5 bookmakers:
+  Bet365 | 1xBet | Betway | William Hill | Pinnacle
+- Best odds row highlighted with gold background
+- Label: "💰 Best Value" next to highest odds
+
+---
+
+## 9. SHARE A PICK
+Tapping [📤 Share] on any card:
+- On native: use React Native Share API (Share.share()) 
+  to open native share sheet
+- Share text format:
+  "🎯 PrediqsAI Pick
+  ⚽ [Match Name]
+  📌 Pick: [AI Recommendation]
+  💯 Confidence: [X]%
+  💰 Best Odds: [X.XX] on [Bookmaker]
+  
+  Get AI-powered picks at prediqsai.app"
+- On web/canvas: copy text to clipboard and show 
+  toast "📋 Copied to clipboard!"
+- Use Platform.OS === 'web' to detect environment
+
+---
+
+## 10. LIVE MATCH ENHANCEMENTS
+For any pick marked isLive: true in mock data:
+- Show pulsing 🔴 LIVE badge (already in Feature 4b)
+- Add current score below match name: "2 - 1 (67')"
+  shown in bright white bold
+- Add "⚡ In-Play Tip" badge next to AI recommendation 
+  in gold
+- Tapping live card opens AI Reasoning Modal (Feature 5) 
+  with an extra section:
+  "📡 Live Analysis" — updated reasoning based on 
+  current match state e.g. "With Man City leading 2-1 
+  at 67 minutes, Over 2.5 is already achieved. 
+  Consider the Next Goal market."
+- Live cards sorted to top of the feed automatically
+- Use mock data with 2 matches marked isLive: true 
+  with current scores
+
+---
+
+## MOCK DATA REQUIREMENTS
+Add all new mock data to lib/mockData.ts:
+- 10 prediction picks across football, basketball, tennis, NFL
+- Each pick must have these fields:
+  id, sport, competition, homeTeam, awayTeam, 
+  aiPick, confidence (number), odds (number), 
+  bookmaker, isLive (boolean), currentScore (string), 
+  isValue (boolean), type ("hot"|"value"|"arb"),
+  reasoning (string), keyStats (array), riskLevel 
+  ("Low"|"Medium"|"High"), proTip (string),
+  bookmakerOdds (array of {name, odds}),
+  kickoffTime (string)
+- 1 featured pick for "AI Pick of the Day"
+- Today's performance: { won: 4, lost: 1, pending: 2 }
+- Make data realistic — use real team names, real 
+  competitions, realistic odds (1.50 — 3.50 range)
+
+---
+
+## GENERAL REQUIREMENTS:
+- DO NOT remove or modify any existing Picks screen features
+- Keep all existing sport chips, time tabs, match listings
+- Dark theme throughout (#0a0a0a, #FFD700 gold accents)
+- All AsyncStorage keys prefixed with "prediqs_"
+- No new third-party packages — use only what is already 
+  installed
+- FREE vs PRO gating via AuthContext user plan:
+  FREE: sees 2 picks + locked hero card + locked analysis
+  PRO: sees everything unlocked
+- All animations use React Native Animated API only
+- Typecheck must pass with zero errors
+- Works on both web canvas and native APK
+- All features in one single commit pushed to GitHub
+- Verify remote SHA matches local HEAD after push
