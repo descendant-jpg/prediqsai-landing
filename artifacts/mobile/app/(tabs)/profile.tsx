@@ -144,8 +144,22 @@ export default function ProfileScreen() {
       "Sign Out",
       "Are you sure you want to sign out?",
       [
-        { text: "Cancel",   style: "cancel" },
-        { text: "Sign Out", style: "destructive", onPress: () => logout() },
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace("/(auth)/login");
+            } catch {
+              Alert.alert(
+                "Sign Out Failed",
+                "Something went wrong while signing out. Please try again.",
+              );
+            }
+          },
+        },
       ],
     );
   }
