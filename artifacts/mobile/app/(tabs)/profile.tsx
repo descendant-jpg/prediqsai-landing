@@ -43,9 +43,10 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const BETTING_EXPERIENCE_OPTIONS = [
-  { key: "Casual",       desc: "I bet for fun occasionally" },
-  { key: "Intermediate", desc: "I follow sports closely and bet regularly" },
-  { key: "Professional", desc: "I treat betting as a serious endeavour" },
+  { key: "Casual",       label: "Casual",       desc: "I bet for fun occasionally" },
+  { key: "Intermediate", label: "Intermediate", desc: "I follow sports closely and bet regularly" },
+  { key: "advanced",     label: "Advanced",     desc: "I have extensive betting knowledge and strategy" },
+  { key: "Professional", label: "Professional", desc: "I treat betting as a serious endeavour" },
 ] as const;
 
 type BettingExperience = (typeof BETTING_EXPERIENCE_OPTIONS)[number]["key"];
@@ -422,7 +423,7 @@ export default function ProfileScreen() {
               >
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text style={[styles.expLabel, { color: bettingExp === opt.key ? "#FFD700" : colors.text }]}>
-                    {opt.key}
+                    {opt.label}
                   </Text>
                   <Text style={[styles.expDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
                 </View>
