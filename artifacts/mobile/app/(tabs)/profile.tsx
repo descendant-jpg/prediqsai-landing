@@ -16,6 +16,7 @@ import {
   Star,
   Users,
 } from "lucide-react-native";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -50,6 +51,15 @@ const BETTING_EXPERIENCE_OPTIONS = [
 ] as const;
 
 type BettingExperience = (typeof BETTING_EXPERIENCE_OPTIONS)[number]["key"];
+
+const SOCIAL_LINKS = [
+  { name: "Facebook",      icon: "facebook",  color: "#1877F2", url: "https://facebook.com/prediqsai" },
+  { name: "Telegram",      icon: "telegram",  color: "#229ED9", url: "https://t.me/prediqsai" },
+  { name: "X (Twitter)",   icon: "twitter",   color: "#FFFFFF", url: "https://x.com/prediqsai" },
+  { name: "Instagram",     icon: "instagram", color: "#E1306C", url: "https://instagram.com/prediqsai" },
+  { name: "TikTok",        icon: "tiktok",    color: "#FFFFFF", url: "https://tiktok.com/@prediqsai" },
+  { name: "YouTube",       icon: "youtube",   color: "#FF0000", url: "https://youtube.com/@prediqsai" },
+] as const;
 
 function SectionHeader({ title }: { title: string }) {
   const colors = useColors();
@@ -123,6 +133,7 @@ export default function ProfileScreen() {
   const [copied, setCopied] = useState(false);
   const [showLangModal, setShowLangModal]   = useState(false);
   const [showExpModal, setShowExpModal]     = useState(false);
+  const [showSocialModal, setShowSocialModal] = useState(false);
   const [bettingExp, setBettingExp]         = useState<BettingExperience>("Casual");
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
@@ -189,9 +200,20 @@ export default function ProfileScreen() {
   }
 
   function handleFollowUs() {
-    Linking.openURL("https://twitter.com/prediqsai").catch(() =>
-      Alert.alert("Follow Us", "Find us at @prediqsai"),
-    );
+    setShowSocialModal(true);
+  }
+
+  async function openSocial(url: string) {
+    try {
+      await Linking.openURL(url);
+      setShowSocialModal(false);
+    } catch {
+      if (Platform.OS === "web") {
+        window.alert("Could not open link. Please try again.");
+      } else {
+        Alert.alert("Follow Us", "Could not open link. Please try again.");
+      }
+    }
   }
 
   return (
@@ -433,6 +455,40 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* ── Follow Us Modal ── */}
+      <Modal visible={showSocialModal} transparent animationType="slide" onRequestClose={() => setShowSocialModal(false)}>
+        <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSocialModal(false)} activeOpacity={1}>
+          <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Follow Us</Text>
+            <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
+              Join the PrediQs AI community and stay up to date.
+            </Text>
+            {SOCIAL_LINKS.map((s) => (
+              <TouchableOpacity
+                key={s.name}
+                style={[styles.sheetRow, { borderBottomColor: colors.border }]}
+                onPress={() => openSocial(s.url)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.socialIcon, { backgroundColor: s.color === "#FFFFFF" ? "#1A1A1A" : s.color }]}>
+                  <FontAwesome5 name={s.icon} size={18} color="#FFFFFF" brand solid={false} />
+                </View>
+                <Text style={[styles.sheetRowName, { color: colors.text, flex: 1, fontSize: 15 }]}>{s.name}</Text>
+                <ExternalLink size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[styles.socialClose, { borderColor: colors.border }]}
+              onPress={() => setShowSocialModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.socialCloseText, { color: colors.text }]}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
@@ -485,4 +541,9 @@ const styles = StyleSheet.create({
   expRow:   { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 14, borderWidth: 1.5, marginBottom: 10 },
   expLabel: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   expDesc:  { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 17 },
+
+  // Follow Us social links
+  socialIcon:      { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  socialClose:     { marginTop: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1, alignItems: "center" },
+  socialCloseText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
