@@ -462,7 +462,7 @@ function Pricing() {
       name: "Premium",
       price: "$19.99",
       period: "per month",
-      annualNote: "$455/yr (save 5%)",
+      annualNote: "$228/yr (save 5%)",
       color: CYAN,
       features: [
         "Unlimited AI predictions",

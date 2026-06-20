@@ -14,7 +14,7 @@ type Tier = "free" | "premium";
 
 export const TIER_PRICING = {
   free:    { monthly: 0,      annual: 0,    annualSave: 0 },
-  premium: { monthly: 19.99,  annual: 433,  annualSave: 46.88 },
+  premium: { monthly: 19.99,  annual: 216,  annualSave: 23.88 },
 } as const;
 
 export const UPGRADE_PRICE: Record<Tier, string> = {
@@ -318,7 +318,7 @@ export default function SettingsScreen() {
                     <Text style={[styles.tierCardPrice, { color: isActive ? tier.color : colors.text }]}>{priceLabel(tier.key)}</Text>
                     {save && <Text style={[styles.annualSave, { color: "#00FF94" }]}>{save}</Text>}
                     {tier.key === "premium" && !annualMode && (
-                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$433/year — save ~10%</Text>
+                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$216/year — save ~10%</Text>
                     )}
                     <View style={styles.tierFeatures}>
                       {tier.cardFeatures.map((f, i) => (
