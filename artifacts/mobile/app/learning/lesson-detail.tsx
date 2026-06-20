@@ -1,9 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Lightbulb } from "lucide-react-native";
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LearningLoader } from "@/components/learning/LearningLoader";
+import { EntranceView, PressableScale, useLoadingDelay } from "@/components/learning/animations";
 import { useColors } from "@/hooks/useColors";
 import { getLessonById } from "@/lib/learning/lessons";
 
@@ -13,14 +15,30 @@ export default function LessonDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const lesson = getLessonById(id ?? "");
+  const loading = useLoadingDelay(1000);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
+          <PressableScale style={styles.backBtn} onPress={() => router.back()}>
+            <ArrowLeft size={20} color={colors.text} />
+          </PressableScale>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Lesson</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <LearningLoader message="Loading lesson..." />
+      </View>
+    );
+  }
 
   if (!lesson) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backBtn}>
+          <PressableScale style={styles.backBtn} onPress={() => router.back()}>
             <ArrowLeft size={20} color={colors.text} />
-          </TouchableOpacity>
+          </PressableScale>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Lesson</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -34,20 +52,21 @@ export default function LessonDetailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backBtn}>
+        <PressableScale style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={20} color={colors.text} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
           {lesson.section}
         </Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 90 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.lessonEmoji}>{lesson.icon}</Text>
+      <EntranceView style={{ flex: 1 }} direction="none" duration={420}>
+        <ScrollView
+          contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 90 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.lessonEmoji}>{lesson.icon}</Text>
         <Text style={[styles.title, { color: colors.text }]}>{lesson.title}</Text>
         <Text style={[styles.subtitle, { color: colors.gold }]}>{lesson.subtitle}</Text>
 
@@ -90,7 +109,8 @@ export default function LessonDetailScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </EntranceView>
     </View>
   );
 }

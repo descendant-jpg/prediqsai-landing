@@ -5,6 +5,8 @@ import React from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LearningLoader } from "@/components/learning/LearningLoader";
+import { EntranceView, PressableScale, useLoadingDelay } from "@/components/learning/animations";
 import { useColors } from "@/hooks/useColors";
 
 type HubCard = {
@@ -50,6 +52,7 @@ export default function LearningHubScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const loading = useLoadingDelay(1200);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -61,45 +64,54 @@ export default function LearningHubScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 90 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.heroCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.2)" }]}>
-          <GraduationCap size={26} color={colors.gold} />
-          <Text style={[styles.heroTitle, { color: colors.text }]}>Master the game</Text>
-          <Text style={[styles.heroDesc, { color: colors.textSecondary }]}>
-            Learn the maths, strategy and mindset behind smart, responsible betting.
-          </Text>
-        </View>
+      {loading ? (
+        <LearningLoader message="Loading your learning hub..." />
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 90 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <EntranceView direction="up" distance={14}>
+            <View style={[styles.heroCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.2)" }]}>
+              <GraduationCap size={26} color={colors.gold} />
+              <Text style={[styles.heroTitle, { color: colors.text }]}>Master the game</Text>
+              <Text style={[styles.heroDesc, { color: colors.textSecondary }]}>
+                Learn the maths, strategy and mindset behind smart, responsible betting.
+              </Text>
+            </View>
+          </EntranceView>
 
-        <View style={styles.grid}>
-          {CARDS.map((card) => {
-            const Icon = card.icon;
-            return (
-              <TouchableOpacity
-                key={card.title}
-                style={styles.gridItem}
-                activeOpacity={0.85}
-                onPress={() => router.push(card.route as never)}
-              >
-                <LinearGradient
-                  colors={card.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.cardGradient}
+          <View style={styles.grid}>
+            {CARDS.map((card, index) => {
+              const Icon = card.icon;
+              return (
+                <EntranceView
+                  key={card.title}
+                  style={styles.gridItem}
+                  direction="up"
+                  distance={24}
+                  delay={150 + index * 100}
                 >
-                  <View style={styles.cardIcon}>
-                    <Icon size={28} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.cardTitle}>{card.title}</Text>
-                  <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+                  <PressableScale style={styles.cardPress} onPress={() => router.push(card.route as never)}>
+                    <LinearGradient
+                      colors={card.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.cardGradient}
+                    >
+                      <View style={styles.cardIcon}>
+                        <Icon size={28} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.cardTitle}>{card.title}</Text>
+                      <Text style={styles.cardSubtitle}>{card.subtitle}</Text>
+                    </LinearGradient>
+                  </PressableScale>
+                </EntranceView>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -121,6 +133,7 @@ const styles = StyleSheet.create({
   heroDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 19, textAlign: "center" },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 14 },
   gridItem: { width: "47%" },
+  cardPress: { width: "100%" },
   cardGradient: { borderRadius: 18, padding: 18, height: 150, justifyContent: "space-between" },
   cardIcon: {
     width: 48,

@@ -4,6 +4,8 @@ import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LearningLoader } from "@/components/learning/LearningLoader";
+import { EntranceView, PressableScale, useLoadingDelay } from "@/components/learning/animations";
 import { useColors } from "@/hooks/useColors";
 import { DictionaryTerm, searchDictionary } from "@/lib/learning/dictionary";
 
@@ -11,6 +13,7 @@ export default function DictionaryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const loading = useLoadingDelay(1100);
 
   const [query, setQuery] = useState("");
   const [active, setActive] = useState<DictionaryTerm | null>(null);
@@ -31,112 +34,132 @@ export default function DictionaryScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => setActive(null)} activeOpacity={0.7} style={styles.backBtn}>
+          <PressableScale onPress={() => setActive(null)} style={styles.backBtn}>
             <ArrowLeft size={20} color={colors.text} />
-          </TouchableOpacity>
+          </PressableScale>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Dictionary</Text>
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView
-          contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 90 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={[styles.termTitle, { color: colors.gold }]}>{active.term}</Text>
+        <EntranceView style={{ flex: 1 }} direction="up" distance={14} duration={360}>
+          <ScrollView
+            contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 90 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={[styles.termTitle, { color: colors.gold }]}>{active.term}</Text>
 
-          <Text style={[styles.detailLabel, { color: colors.textMuted }]}>DEFINITION</Text>
-          <Text style={[styles.detailBody, { color: colors.text }]}>{active.definition}</Text>
+            <Text style={[styles.detailLabel, { color: colors.textMuted }]}>DEFINITION</Text>
+            <Text style={[styles.detailBody, { color: colors.text }]}>{active.definition}</Text>
 
-          <Text style={[styles.detailLabel, { color: colors.textMuted }]}>EXAMPLE</Text>
-          <Text style={[styles.detailBody, { color: colors.textSecondary }]}>{active.example}</Text>
+            <Text style={[styles.detailLabel, { color: colors.textMuted }]}>EXAMPLE</Text>
+            <Text style={[styles.detailBody, { color: colors.textSecondary }]}>{active.example}</Text>
 
-          <View style={[styles.sentenceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.detailLabel, { color: colors.textMuted, marginTop: 0 }]}>USED IN A SENTENCE</Text>
-            <Text style={[styles.sentenceText, { color: colors.text }]}>&ldquo;{active.sentence}&rdquo;</Text>
-          </View>
+            <View style={[styles.sentenceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted, marginTop: 0 }]}>USED IN A SENTENCE</Text>
+              <Text style={[styles.sentenceText, { color: colors.text }]}>&ldquo;{active.sentence}&rdquo;</Text>
+            </View>
 
-          {active.related.length > 0 && (
-            <>
-              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>RELATED TERMS</Text>
-              <View style={styles.relatedWrap}>
-                {active.related.map((rel) => (
-                  <View key={rel} style={[styles.relatedPill, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                    <Text style={[styles.relatedText, { color: colors.textSecondary }]}>{rel}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-        </ScrollView>
+            {active.related.length > 0 && (
+              <>
+                <Text style={[styles.detailLabel, { color: colors.textMuted }]}>RELATED TERMS</Text>
+                <View style={styles.relatedWrap}>
+                  {active.related.map((rel) => (
+                    <View key={rel} style={[styles.relatedPill, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                      <Text style={[styles.relatedText, { color: colors.textSecondary }]}>{rel}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </EntranceView>
       </View>
     );
   }
 
+  let termIndex = -1;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backBtn}>
+        <PressableScale onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color={colors.text} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dictionary</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.searchWrap}>
-        <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Search size={18} color={colors.textMuted} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search betting terms..."
-            placeholderTextColor={colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")} activeOpacity={0.7}>
-              <X size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 90 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {grouped.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No terms match &ldquo;{query}&rdquo;.</Text>
-          </View>
-        )}
-
-        {grouped.map(({ letter, terms }) => (
-          <View key={letter} style={{ marginBottom: 18 }}>
-            <Text style={[styles.letterHeader, { color: colors.gold }]}>{letter}</Text>
-            <View style={[styles.group, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {terms.map((term, i) => (
-                <TouchableOpacity
-                  key={term.term}
-                  style={[styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
-                  activeOpacity={0.7}
-                  onPress={() => setActive(term)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]}>{term.term}</Text>
-                    <Text style={[styles.rowDef, { color: colors.textMuted }]} numberOfLines={1}>
-                      {term.definition}
-                    </Text>
-                  </View>
-                  <ChevronRight size={16} color={colors.textMuted} />
+      {loading ? (
+        <LearningLoader message="Loading dictionary..." />
+      ) : (
+        <>
+          <View style={styles.searchWrap}>
+            <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Search size={18} color={colors.textMuted} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Search betting terms..."
+                placeholderTextColor={colors.textMuted}
+                value={query}
+                onChangeText={setQuery}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              {query.length > 0 && (
+                <TouchableOpacity onPress={() => setQuery("")} activeOpacity={0.7}>
+                  <X size={18} color={colors.textMuted} />
                 </TouchableOpacity>
-              ))}
+              )}
             </View>
           </View>
-        ))}
-      </ScrollView>
+
+          <ScrollView
+            contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 90 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {grouped.length === 0 && (
+              <EntranceView style={styles.empty} direction="none">
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No terms match &ldquo;{query}&rdquo;.</Text>
+              </EntranceView>
+            )}
+
+            <View key={query}>
+              {grouped.map(({ letter, terms }) => (
+                <View key={letter} style={{ marginBottom: 18 }}>
+                  <Text style={[styles.letterHeader, { color: colors.gold }]}>{letter}</Text>
+                  <View style={[styles.group, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    {terms.map((term, i) => {
+                      termIndex += 1;
+                      return (
+                        <EntranceView
+                          key={term.term}
+                          direction="none"
+                          delay={Math.min(termIndex, 14) * 35}
+                          duration={300}
+                        >
+                          <PressableScale
+                            style={[styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}
+                            onPress={() => setActive(term)}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.rowTitle, { color: colors.text }]}>{term.term}</Text>
+                              <Text style={[styles.rowDef, { color: colors.textMuted }]} numberOfLines={1}>
+                                {term.definition}
+                              </Text>
+                            </View>
+                            <ChevronRight size={16} color={colors.textMuted} />
+                          </PressableScale>
+                        </EntranceView>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }

@@ -1,0 +1,75 @@
+Add loading animations and smooth entrance animations across all the 
+Learning Hub screens I recently added. The goal is to make the app 
+feel lively, premium and satisfying to use. Here are the full requirements:
+
+---
+
+## 1. LOADING ANIMATIONS
+Add a loading state to every Learning Hub screen before content appears:
+- Learning Hub main grid
+- Betting Lessons list
+- Lesson Detail screen
+- Quizzes screen
+- Quiz Session screen
+- Dictionary screen
+- Trending Videos screen
+
+For each screen, when it first loads:
+- Show a centered loading animation for 1-1.5 seconds before 
+  displaying content
+- Use a pulsing/glowing gold (#FFD700) spinning ring or dots animation
+- Below the spinner show a contextual loading message:
+  - Learning Hub: "Loading your learning hub..."
+  - Lessons: "Preparing your lessons..."
+  - Lesson Detail: "Loading lesson..."
+  - Quizzes: "Loading quizzes..."
+  - Quiz Session: "Getting your questions ready..."
+  - Dictionary: "Loading dictionary..."
+  - Videos: "Loading videos..."
+- Use Animated API from react-native (no third-party animation 
+  libraries needed)
+
+---
+
+## 2. CONTENT ENTRANCE ANIMATIONS
+After loading completes, animate the content appearing:
+
+- Learning Hub grid cards: each card fades in and slides up from 
+  bottom one by one with a 100ms stagger between each card
+- Lesson list items: fade in and slide in from the right, staggered 
+  50ms apart
+- Lesson detail content: fade in smoothly from opacity 0 to 1
+- Quiz level cards: scale up from 0.8 to 1.0 with fade in, staggered
+- Quiz questions: slide in from the right when a new question appears, 
+  slide out to the left when moving to next question
+- Dictionary terms: fade in staggered from top to bottom
+- Score screen at end of quiz: scale up dramatically from 0.5 to 1.0 
+  with a bounce effect
+
+---
+
+## 3. INTERACTION ANIMATIONS
+Add micro-animations on user interactions:
+
+- All tappable cards/buttons: slight scale down (0.95) on press and 
+  back to 1.0 on release using Animated or Pressable
+- Quiz answer selection: selected card bounces slightly then locks 
+  color (green/red)
+- Correct answer: brief green flash/pulse animation
+- Wrong answer: brief red shake animation (horizontal shake left-right)
+- Progress bar on quiz: animate smoothly as it fills up
+- Dictionary search bar: smooth fade in of filtered results
+
+---
+
+## 4. GENERAL REQUIREMENTS
+- Use only React Native's built-in Animated API (no expo-reanimated 
+  or third-party libs unless already installed)
+- If react-native-reanimated is already in the project, use it for 
+  smoother animations
+- All animations must work on both web canvas and native APK
+- Do not break any existing functionality
+- Keep animations subtle and fast (150-400ms) — they should feel 
+  snappy not slow
+- Typecheck must pass
+- Commit and push to GitHub when complete

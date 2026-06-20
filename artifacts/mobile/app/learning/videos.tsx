@@ -12,12 +12,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LearningLoader } from "@/components/learning/LearningLoader";
+import { EntranceView, useLoadingDelay } from "@/components/learning/animations";
 import { useColors } from "@/hooks/useColors";
 
 export default function VideosScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const loading = useLoadingDelay(1100);
 
   const pulse = useSharedValue(1);
 
@@ -45,23 +48,27 @@ export default function VideosScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.body}>
-        <View style={styles.iconWrap}>
-          <Animated.View style={[styles.ring, { borderColor: colors.gold }, ringStyle]} />
-          <Animated.View style={iconStyle}>
-            <MaterialCommunityIcons name="play-circle" size={120} color={colors.gold} />
-          </Animated.View>
-        </View>
+      {loading ? (
+        <LearningLoader message="Loading videos..." />
+      ) : (
+        <EntranceView style={styles.body} direction="none">
+          <View style={styles.iconWrap}>
+            <Animated.View style={[styles.ring, { borderColor: colors.gold }, ringStyle]} />
+            <Animated.View style={iconStyle}>
+              <MaterialCommunityIcons name="play-circle" size={120} color={colors.gold} />
+            </Animated.View>
+          </View>
 
-        <Text style={[styles.title, { color: colors.text }]}>Trending Videos</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Expert betting video tutorials coming soon!
-        </Text>
+          <Text style={[styles.title, { color: colors.text }]}>Trending Videos</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Expert betting video tutorials coming soon!
+          </Text>
 
-        <View style={[styles.badge, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.3)" }]}>
-          <Text style={[styles.badgeText, { color: colors.gold }]}>COMING SOON</Text>
-        </View>
-      </View>
+          <View style={[styles.badge, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.3)" }]}>
+            <Text style={[styles.badgeText, { color: colors.gold }]}>COMING SOON</Text>
+          </View>
+        </EntranceView>
+      )}
     </View>
   );
 }
