@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { ArrowLeft, BookOpen, Brain, Clapperboard, GraduationCap, Library } from "lucide-react-native";
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LearningLoader } from "@/components/learning/LearningLoader";
@@ -57,9 +57,9 @@ export default function LearningHubScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backBtn}>
+        <PressableScale onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color={colors.text} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Learning Hub</Text>
         <View style={{ width: 40 }} />
       </View>

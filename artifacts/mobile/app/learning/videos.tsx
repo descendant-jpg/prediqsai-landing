@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import React, { useEffect } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -13,7 +13,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LearningLoader } from "@/components/learning/LearningLoader";
-import { EntranceView, useLoadingDelay } from "@/components/learning/animations";
+import { EntranceView, PressableScale, useLoadingDelay } from "@/components/learning/animations";
 import { useColors } from "@/hooks/useColors";
 
 export default function VideosScreen() {
@@ -41,9 +41,9 @@ export default function VideosScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backBtn}>
+        <PressableScale onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft size={20} color={colors.text} />
-        </TouchableOpacity>
+        </PressableScale>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Trending Videos</Text>
         <View style={{ width: 40 }} />
       </View>
