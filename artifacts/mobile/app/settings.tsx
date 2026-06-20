@@ -176,11 +176,40 @@ export default function SettingsScreen() {
     }
   }
 
+  async function performLogout() {
+    try {
+      await logout();
+      router.replace("/(auth)/login");
+    } catch {
+      if (Platform.OS === "web") {
+        window.alert("Something went wrong while signing out. Please try again.");
+      } else {
+        Alert.alert(
+          "Sign Out Failed",
+          "Something went wrong while signing out. Please try again.",
+        );
+      }
+    }
+  }
+
   function handleLogout() {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Sign out", style: "destructive", onPress: () => logout() },
-    ]);
+    // React Native Web's Alert.alert ignores the buttons array, so use the
+    // browser's native confirm on web and the RN Alert on native devices.
+    if (Platform.OS === "web") {
+      if (window.confirm("Are you sure you want to sign out?")) {
+        performLogout();
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign Out", style: "destructive", onPress: performLogout },
+      ],
+    );
   }
 
   const rawTier = user?.tier ?? "free";
