@@ -14,12 +14,12 @@ type Tier = "free" | "premium";
 
 export const TIER_PRICING = {
   free:    { monthly: 0,      annual: 0,    annualSave: 0 },
-  premium: { monthly: 39.99,  annual: 433,  annualSave: 46.88 },
+  premium: { monthly: 19.99,  annual: 433,  annualSave: 46.88 },
 } as const;
 
 export const UPGRADE_PRICE: Record<Tier, string> = {
   free:    "$0",
-  premium: "$39.99/mo",
+  premium: "$19.99/mo",
 };
 
 // ─── Tier card features (compact) ─────────────────────────────────────────────
@@ -349,7 +349,7 @@ export default function SettingsScreen() {
                 {item.label}
                 {!item.active && item.requiredTier ? (
                   <Text style={{ color: "#FFD700" }}>
-                    {" "}(Upgrade to Premium — $39.99/mo)
+                    {" "}(Upgrade to Premium — $19.99/mo)
                   </Text>
                 ) : null}
               </Text>
@@ -365,7 +365,7 @@ export default function SettingsScreen() {
             activeOpacity={0.8}
           >
             <Star size={15} color="#FFD700" fill="#FFD700" />
-            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>⭐ Upgrade to Premium — $39.99/mo</Text>
+            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>⭐ Upgrade to Premium — $19.99/mo</Text>
           </TouchableOpacity>
         )}
 

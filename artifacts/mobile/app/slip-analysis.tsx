@@ -232,7 +232,7 @@ export default function SlipAnalysisScreen() {
                 style={[styles.upgradeBtn, { backgroundColor: "#FFD700" }]}
                 onPress={() => router.push("/settings" as any)}
               >
-                <Text style={[styles.upgradeBtnText, { color: "#070B12" }]}>⭐ Upgrade — $39.99/mo</Text>
+                <Text style={[styles.upgradeBtnText, { color: "#070B12" }]}>⭐ Upgrade — $19.99/mo</Text>
               </TouchableOpacity>
             </View>
           ) : (

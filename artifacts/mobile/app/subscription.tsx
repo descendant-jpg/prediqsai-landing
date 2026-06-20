@@ -105,7 +105,7 @@ export default function SubscriptionScreen() {
         {!isPremium && (
           <View style={[styles.priceCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.25)" }]}>
             <View style={styles.priceRow}>
-              <Text style={[styles.price, { color: "#FFD700" }]}>$39.99</Text>
+              <Text style={[styles.price, { color: "#FFD700" }]}>$19.99</Text>
               <Text style={[styles.pricePer, { color: colors.textSecondary }]}>/month</Text>
             </View>
             <Text style={[styles.priceSub, { color: colors.textMuted }]}>
@@ -138,7 +138,7 @@ export default function SubscriptionScreen() {
               ) : (
                 <>
                   <Zap size={18} color="#070B12" fill="#070B12" />
-                  <Text style={styles.subscribeBtnText}>Subscribe — $39.99/mo</Text>
+                  <Text style={styles.subscribeBtnText}>Subscribe — $19.99/mo</Text>
                 </>
               )}
             </TouchableOpacity>

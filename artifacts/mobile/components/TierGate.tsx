@@ -51,7 +51,7 @@ export function TierGate({ requiredTier, children, customMessage }: Props) {
           onPress={() => router.push("/subscription" as any)}
         >
           <Lock size={13} color="#070B12" />
-          <Text style={styles.btnText}>Upgrade — $39.99/mo</Text>
+          <Text style={styles.btnText}>Upgrade — $19.99/mo</Text>
         </TouchableOpacity>
       </View>
     </View>

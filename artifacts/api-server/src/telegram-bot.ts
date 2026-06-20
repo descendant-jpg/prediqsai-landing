@@ -155,7 +155,7 @@ const HELP = `📖 <b>PrediQs AI — Commands</b>
 
 💡 <i>Tap any button to get started!</i>`;
 
-const PREMIUM_MSG = `⭐ <b>PrediQs AI Premium — $39.99/mo</b>
+const PREMIUM_MSG = `⭐ <b>PrediQs AI Premium — $19.99/mo</b>
 
 Unlock the full AI intelligence platform:
 

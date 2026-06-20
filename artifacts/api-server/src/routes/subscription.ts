@@ -23,7 +23,7 @@ const PLANS = {
   },
   premium: {
     name: "Premium",
-    price: 39.99,
+    price: 19.99,
     productId: PRODUCT_ID,
     features: [
       "Unlimited picks all sports & leagues",

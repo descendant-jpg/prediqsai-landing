@@ -968,7 +968,7 @@ export default function ArbitrageScreen() {
             onPress={() => router.push("/settings")}
             activeOpacity={0.85}
           >
-            <Text style={[styles.upgradeBtnText, { color: "#070B12" }]}>⭐ Upgrade to Premium — $39.99/mo</Text>
+            <Text style={[styles.upgradeBtnText, { color: "#070B12" }]}>⭐ Upgrade to Premium — $19.99/mo</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

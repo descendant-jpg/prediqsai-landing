@@ -136,7 +136,7 @@ export default function AdminRevenueScreen() {
           <View style={[s.stripeNote, { backgroundColor: "#FFD70010", borderColor: "#FFD70033" }]}>
             <Text style={[s.stripeNoteText, { color: "#FFD700" }]}>
               💡 Revenue is generated via Apple App Store and Google Play in-app purchases.
-              MRR is estimated from the Premium user count × $39.99/month.
+              MRR is estimated from the Premium user count × $19.99/month.
             </Text>
           </View>
         </ScrollView>

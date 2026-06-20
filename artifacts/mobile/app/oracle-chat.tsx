@@ -220,7 +220,7 @@ export default function OracleChatScreen() {
                 onPress={() => router.push("/settings" as any)}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.limitBtnText, { color: "#070B12" }]}>Upgrade — $39.99/mo</Text>
+                <Text style={[styles.limitBtnText, { color: "#070B12" }]}>Upgrade — $19.99/mo</Text>
               </TouchableOpacity>
             </View>
           ) : (

@@ -460,7 +460,7 @@ function Pricing() {
     },
     {
       name: "Premium",
-      price: "$39.99",
+      price: "$19.99",
       period: "per month",
       annualNote: "$455/yr (save 5%)",
       color: CYAN,
