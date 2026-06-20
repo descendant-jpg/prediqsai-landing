@@ -1,0 +1,199 @@
+Add the following 10 new features to the PrediqsAI dashboard and app. 
+Implement all of them in one go. Here are the full details:
+
+---
+
+## 1. DAILY PREDICTION FEED
+Add a scrollable vertical card feed on the Dashboard below the 
+existing stats bar replacing the empty space. Each prediction card 
+shows:
+- Match title (e.g. "Man United vs Arsenal")
+- Sport icon (football, basketball, tennis etc)
+- AI recommended pick (e.g. "Home Win", "Over 2.5", "BTTS")
+- Confidence score shown as a colored progress bar:
+  - 0-50%: red, 51-75%: orange, 76-100%: green
+- Bookmaker recommendation (e.g. "Best on Bet365")
+- Odds value (e.g. 1.85)
+- A "View Analysis" button that opens a modal with full AI reasoning
+- FREE users see 2 cards per day, remaining cards are blurred with 
+  a gold lock icon and "Upgrade to PRO" label
+- PRO users see all cards unlimited
+- Use realistic dummy/mock data for now (10 match predictions across 
+  football, basketball, tennis) stored in a local data file
+- Cards should have a dark card background with gold accent borders 
+  on high confidence picks (76%+)
+
+---
+
+## 2. LIVE ODDS TICKER
+Add a horizontally auto-scrolling ticker bar just below the 
+"Setup incomplete" banner (or below the stats bar if banner is gone).
+- Shows items like: "⚽ Man City vs Chelsea — Over 2.5 → 2.10 ⬇️" 
+- Arrow indicators: ⬆️ odds rising (value opportunity), 
+  ⬇️ odds falling (sharp money coming in)
+- Auto-scrolls left continuously in a loop (infinite scroll animation)
+- Tapping an item opens a small modal with more detail
+- Use mock data with 8-10 items cycling through
+- Gold text on dark background, subtle and clean
+
+---
+
+## 3. AI CONFIDENCE METER
+On each prediction card from Feature 1, add a visual confidence 
+meter that looks like a speedometer/gauge:
+- Rendered using React Native Animated or SVG arc
+- Needle points to confidence percentage
+- Color zones: Red (low) → Orange (medium) → Green (high)
+- Show the percentage number in the center bold
+- Label below: "AI Confidence"
+- Keep it compact enough to fit inside the prediction card
+
+---
+
+## 4. STREAK & ACHIEVEMENT BADGES
+Add a badges/achievements section to the Dashboard:
+- Place it as a horizontal scrollable row below the stats bar 
+  titled "Your Achievements"
+- Include these badges with icons and names:
+  - 🔥 "7 Day Streak" — log in 7 days in a row
+  - 🏆 "First Win" — log first winning bet
+  - ⚡ "ARB Master" — use ARB scanner 5 times
+  - 📚 "Scholar" — complete 3 lessons in Learning Hub
+  - 🎯 "Sharp Eye" — achieve 70%+ win rate
+  - 💎 "PRO Member" — upgrade to premium
+  - 🧠 "Quiz Champ" — score 90%+ on any quiz
+  - 🌟 "7 Picks Streak" — follow 7 winning AI picks in a row
+- Locked badges appear greyed out with a lock icon
+- Unlocked badges glow gold with animation
+- Tapping any badge shows a modal explaining how to unlock it
+- Store badge unlock state in AsyncStorage
+- For now unlock "First Win" and "Scholar" by default to 
+  show how they look when active
+
+---
+
+## 5. BANKROLL TRACKER
+Add a "Bankroll Tracker" card on the Dashboard (collapsible, 
+below prediction feed):
+- Shows: Starting Bankroll, Current Bankroll, Total Profit/Loss, 
+  ROI percentage
+- A simple line graph showing bankroll over time 
+  (use mock data for now — 7 data points over 7 days)
+- Use react-native SVG or a simple custom drawn line chart 
+  using React Native Animated/Canvas
+- "Log a Bet" button opens a modal where user inputs:
+  - Match name
+  - Stake amount
+  - Odds
+  - Result (Won/Lost)
+  - App calculates returns and updates bankroll
+- Store all entries in AsyncStorage
+- Profit shown in green, loss in red
+- Graph line in gold (#FFD700)
+
+---
+
+## 6. MATCH OF THE DAY
+Add a prominent "Match of the Day" card at the very top of the 
+Dashboard feed (above the prediction cards):
+- Large card with gradient background (dark green to dark blue)
+- Shows: Match name, competition, time, AI pick, confidence score
+- FREE users: card is visible but analysis is blurred with a 
+  gold lock overlay and "🔒 Unlock with PRO — $19.99/mo" button
+- PRO users: full card visible with complete AI reasoning, 
+  key stats, and recommended bookmaker
+- Badge in top corner: "⭐ MATCH OF THE DAY"
+- Use mock data for now
+
+---
+
+## 7. WIN/LOSS JOURNAL WITH ROI COMPARISON
+Add a "My Journal" screen accessible from the Dashboard 
+(add a journal icon button in the dashboard header next to 
+the gear icon):
+- Users can log bets manually with: match, stake, odds, result
+- App calculates: total staked, total returned, profit/loss, ROI%
+- Side-by-side comparison: "Your ROI" vs "PrediqsAI ROI" 
+  (use 34% as the AI ROI benchmark figure)
+- Show a summary card at top: 
+  "If you had followed all AI picks you would have made $X more"
+- List of all logged bets below, each showing win (green ✓) 
+  or loss (red ✗)
+- Delete bet entry on long press
+- Store all data in AsyncStorage
+- Match the app dark theme with gold accents
+
+---
+
+## 8. LEADERBOARD
+Add a "Leaderboard" tab or section accessible from the Dashboard:
+- Weekly leaderboard showing top 20 users by win rate
+- Each row shows: rank number, avatar (initials), username, 
+  win rate %, total picks followed
+- Top 3 get special gold/silver/bronze styling
+- Current user's row is highlighted in gold border
+- Tabs: "Weekly" | "Monthly" | "All Time"
+- Use realistic mock data for now (20 fake users with usernames, 
+  win rates between 45-89%)
+- Show current user in the list (use their actual profile name)
+- Animated entrance — rows slide in staggered from bottom
+
+---
+
+## 9. PUSH NOTIFICATION SIMULATION
+Since true push notifications require a server, implement 
+an in-app notification system instead:
+- Add a bell icon 🔔 in the Dashboard header (next to gear icon)
+- A red badge shows unread notification count
+- Tapping bell opens a notifications panel/screen showing:
+  - "🔥 High confidence pick just dropped — 89% confidence"
+  - "📊 Your bankroll is up 12% this week!"
+  - "🏆 New achievement unlocked: Scholar"
+  - "⚡ ARB opportunity detected — Act fast!"
+  - "📅 Daily picks are now available"
+- Each notification has timestamp and an unread dot
+- Tapping a notification marks it as read and navigates 
+  to the relevant screen
+- Store notification read state in AsyncStorage
+- On app load, simulate 3 new notifications appearing 
+  with a subtle animation on the bell icon badge
+
+---
+
+## 10. SPORTS FILTER CHIPS ON DASHBOARD
+Add a horizontally scrollable row of filter chips just above 
+the prediction feed:
+- Chips: "🌟 All" | "⚽ Football" | "🏀 Basketball" | 
+  "🎾 Tennis" | "🏈 NFL" | "⚾ Baseball" | "🏒 Hockey"
+- Selected chip is highlighted gold with dark text
+- Unselected chips are dark with gold border and gold text
+- Tapping a chip filters the prediction feed to show only 
+  that sport's predictions
+- "All" shows everything
+- The filter also applies to the Match of the Day 
+  (shows next best match for that sport)
+- Smooth animated transition when feed filters/refilters
+- Remember last selected filter using AsyncStorage
+
+---
+
+## GENERAL REQUIREMENTS FOR ALL 10 FEATURES:
+- Dark theme throughout (#0a0a0a background, #FFD700 gold accents)
+- All mock/dummy data stored in a single file: 
+  lib/mockData.ts — easy to replace with real API later
+- All AsyncStorage keys prefixed with "prediqs_" to avoid conflicts
+- Every new screen/modal has back navigation
+- All animations use React Native Animated API 
+  (use Reanimated only if already installed)
+- No new third-party packages unless absolutely necessary — 
+  use only what is already installed in the project
+- FREE vs PRO gating: check user plan from AuthContext or 
+  user profile — FREE users see locked content, PRO users 
+  see everything
+- Typecheck must pass with zero errors
+- Web canvas preview and native APK must both work
+- All features committed and pushed to GitHub in one final 
+  commit when everything is done
+
+Please implement all 10 features completely and confirm 
+each one is done before the final commit.

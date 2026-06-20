@@ -1,5 +1,5 @@
-import { AlertTriangle, ChevronRight, Clock, Settings, TrendingDown, TrendingUp, WifiOff } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { AlertTriangle, Bell, BookOpen, ChevronRight, Clock, Settings, TrendingDown, TrendingUp, WifiOff } from "lucide-react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -18,11 +18,28 @@ import { RiskBadge } from "@/components/RiskBadge";
 import { SkeletonCard, SkeletonStatRow } from "@/components/SkeletonLoader";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { SportBadge } from "@/components/SportBadge";
+import { AchievementsRow } from "@/components/dashboard/AchievementsRow";
+import { BankrollTracker } from "@/components/dashboard/BankrollTracker";
+import { MatchOfTheDay } from "@/components/dashboard/MatchOfTheDay";
+import { OddsTicker } from "@/components/dashboard/OddsTicker";
+import { PredictionFeedCard } from "@/components/dashboard/PredictionFeedCard";
+import { SportFilterChips } from "@/components/dashboard/SportFilterChips";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type ApiPrediction } from "@/lib/api";
+import {
+  FREE_FEED_LIMIT,
+  getMatchOfDay,
+  NOTIFICATIONS,
+  PREDICTIONS,
+  SIMULATED_NEW_IDS,
+  type SportFilter,
+} from "@/lib/mockData";
+import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
+
+const DEFAULT_NOTIF_READ = NOTIFICATIONS.filter((n) => !SIMULATED_NEW_IDS.includes(n.id)).map((n) => n.id);
 
 const ORANGE = "#FF6B35";
 
@@ -148,6 +165,45 @@ export default function DashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [setupMissing, setSetupMissing] = useState(false);
+  const [sportFilter, setSportFilter] = useState<SportFilter>("all");
+  const [unreadCount, setUnreadCount] = useState(SIMULATED_NEW_IDS.length);
+
+  const isPro = profile.tier === "premium";
+
+  // Load the saved sport filter once on mount.
+  useEffect(() => {
+    (async () => {
+      const saved = await getItem<SportFilter>(STORAGE_KEYS.sportFilter, "all");
+      setSportFilter(saved);
+    })();
+  }, []);
+
+  const handleSelectSport = useCallback((key: SportFilter) => {
+    setSportFilter(key);
+    void setItem(STORAGE_KEYS.sportFilter, key);
+  }, []);
+
+  // Recompute the unread notification badge whenever the dashboard regains focus.
+  const refreshUnread = useCallback(async () => {
+    const stored = await getItem<string[] | null>(STORAGE_KEYS.notificationsRead, null);
+    const readIds = stored ?? DEFAULT_NOTIF_READ;
+    setUnreadCount(NOTIFICATIONS.filter((n) => !readIds.includes(n.id)).length);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshUnread();
+    }, [refreshUnread]),
+  );
+
+  const feedPredictions =
+    sportFilter === "all" ? PREDICTIONS : PREDICTIONS.filter((p) => p.sport === sportFilter);
+  const matchOfDay = getMatchOfDay(sportFilter);
+
+  // Global FREE unlock policy: the first FREE_FEED_LIMIT predictions overall are
+  // free. Lock state is keyed by prediction id so switching sport chips can never
+  // reveal more than the daily limit of free cards.
+  const unlockedIds = new Set(PREDICTIONS.slice(0, FREE_FEED_LIMIT).map((p) => p.id));
 
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
@@ -207,6 +263,19 @@ export default function DashboardScreen() {
             onPress={() => router.push("/settings")}
           >
             <Text style={[styles.tierText, { color: colors.cyan }]}>{profile.tier.toUpperCase()}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/journal")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <BookOpen size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/notifications")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <View>
+              <Bell size={18} color={unreadCount > 0 ? colors.gold : colors.textMuted} />
+              {unreadCount > 0 && (
+                <View style={[styles.notifBadge, { backgroundColor: colors.gold }]}>
+                  <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push("/settings")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Settings size={18} color={colors.textMuted} />
@@ -311,6 +380,50 @@ export default function DashboardScreen() {
         </View>
         <ChevronRight size={18} color="#00FF94" />
       </TouchableOpacity>
+
+      {/* Live Odds Ticker (Feature 2) */}
+      <OddsTicker />
+
+      {/* Match of the Day (Feature 6) */}
+      <MatchOfTheDay motd={matchOfDay} isPro={isPro} onUpgrade={() => router.push("/subscription")} />
+
+      {/* Achievements (Feature 4) */}
+      <AchievementsRow />
+
+      {/* Daily Prediction Feed (Features 1 + 3 + 10) */}
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Predictions</Text>
+        <PulseDot color={colors.gold} />
+        <Text style={[styles.liveText, { color: colors.gold }]}>AI FEED</Text>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity onPress={() => router.push("/rankings")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={[styles.seeAll, { color: colors.cyan }]}>🏆 Ranks →</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ marginBottom: 12 }}>
+        <SportFilterChips selected={sportFilter} onSelect={handleSelectSport} />
+      </View>
+
+      {feedPredictions.length === 0 ? (
+        <View style={[styles.avoidBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.avoidBannerText, { color: colors.textMuted }]}>
+            No predictions for this sport right now. Try another filter.
+          </Text>
+        </View>
+      ) : (
+        feedPredictions.map((p) => (
+          <PredictionFeedCard
+            key={p.id}
+            prediction={p}
+            locked={!isPro && !unlockedIds.has(p.id)}
+            onUpgrade={() => router.push("/subscription")}
+          />
+        ))
+      )}
+
+      {/* Bankroll Tracker (Feature 5) */}
+      <BankrollTracker />
 
       {/* Error */}
       {error && !isLoading && (
@@ -454,6 +567,8 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   tierBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
   tierText: { fontSize: 11, letterSpacing: 1 },
+  notifBadge: { position: "absolute", top: -6, right: -7, minWidth: 15, height: 15, borderRadius: 7.5, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  notifBadgeText: { color: "#0a0a0a", fontSize: 9, fontWeight: "700" },
   statsRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   setupBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1, marginBottom: 12 },
   setupBannerText: { fontSize: 13, flex: 1 },

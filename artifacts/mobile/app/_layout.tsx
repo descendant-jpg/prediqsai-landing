@@ -99,6 +99,9 @@ function RootLayoutNav() {
       <Stack.Screen name="change-password"           options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="subscription"             options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="notification-settings"    options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="journal"                  options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="notifications"            options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="rankings"                 options={{ headerShown: false, presentation: "modal" }} />
     </Stack>
   );
 }
