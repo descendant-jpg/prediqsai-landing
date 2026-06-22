@@ -11,6 +11,7 @@ import {
   Mail,
   MessageSquare,
   Percent,
+  PlayCircle,
   Settings,
   Shield,
   Star,
@@ -315,6 +316,12 @@ export default function ProfileScreen() {
             icon={BookOpen}
             label="Learning Hub"
             onPress={() => router.push("/learning-hub" as any)}
+          />
+          <SettingRow
+            icon={PlayCircle}
+            iconColor={colors.cyan}
+            label="Replay App Guide"
+            onPress={() => router.push("/app-guide" as any)}
           />
           <SettingRow icon={Lock} label="Change Password" onPress={() => router.push("/change-password" as any)} />
         </SettingGroup>

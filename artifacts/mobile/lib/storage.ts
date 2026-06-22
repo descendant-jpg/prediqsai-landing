@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   picksFilter: "picks_filter",
   betSlip: "betslip",
   savedPicks: "saved_picks",
+  appGuideComplete: "app_guide_complete_v1",
 } as const;
 
 export async function getItem<T>(key: string, fallback: T): Promise<T> {
