@@ -32,15 +32,10 @@ const EXPERIENCE_KEY = "@betting_experience";
  * request. Kept in sync by AppContext, and hydrated once from AsyncStorage at
  * module load so even the very first cold-start request carries it.
  *
- * BACKEND TODO — the AI/prediction layer must read `req.headers["x-user-experience"]`
- * and DYNAMICALLY ADJUST THE SYSTEM PROMPT (Claude/OpenAI) based on its value:
- *   - "Beginner":     explain odds and value in plain language, avoid jargon,
- *                     define terms, keep stake guidance conservative.
- *   - "Intermediate": balanced tone with brief reasoning.
- *   - "Advanced":     include strategy, edge and bankroll context.
- *   - "Professional": provide advanced statistical breakdowns (EV, implied
- *                     probability, market movement) and skip basic explanations.
- * Fall back to "Beginner" when the header is missing or unrecognized.
+ * BACKEND — honored by the API server: `lib/experiencePersona.ts` reads
+ * `req.headers["x-user-experience"]` and injects a level-specific persona into the
+ * AI system prompt (applied in the chat and slip-analyzer routes). The server
+ * defaults to "Intermediate" when the header is missing or unrecognized.
  */
 let currentExperience = "Beginner";
 
