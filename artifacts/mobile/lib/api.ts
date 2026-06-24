@@ -113,6 +113,7 @@ export interface UserData {
   bankroll: number;
   dailyLossLimit: number;
   isAdmin?: boolean;
+  emailVerified?: boolean;
 }
 
 export interface AdminUser {
@@ -697,6 +698,16 @@ export const api = {
         body: JSON.stringify({ currentPassword, newPassword }),
         token,
       }),
+    google: (idToken: string) =>
+      apiFetch<{ token: string; user: UserData }>("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+      }),
+    resendVerification: (token: string) =>
+      apiFetch<{ ok: boolean; sent?: boolean; alreadyVerified?: boolean }>(
+        "/auth/resend-verification",
+        { method: "POST", token },
+      ),
   },
   user: {
     me: (token: string) => apiFetch<UserData>("/user/me", { token }),

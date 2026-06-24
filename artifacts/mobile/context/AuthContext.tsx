@@ -7,6 +7,7 @@ import React, {
 } from "react";
 
 import { api, tokenStorage, type UserData } from "@/lib/api";
+import { signInWithGoogle, signOutGoogle } from "@/lib/google";
 
 interface AuthContextValue {
   user: UserData | null;
@@ -16,6 +17,9 @@ interface AuthContextValue {
   setPendingOnboarding: (v: boolean) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  resendVerification: () => Promise<void>;
+  checkEmailVerified: () => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -68,10 +72,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const loginWithGoogle = useCallback(async () => {
+    const idToken = await signInWithGoogle();
+    const { token: t, user: u } = await api.auth.google(idToken);
+    await tokenStorage.set(t);
+    setToken(t);
+    setUser(u);
+  }, []);
+
+  const resendVerification = useCallback(async () => {
+    if (!token) throw new Error("Not signed in");
+    await api.auth.resendVerification(token);
+  }, [token]);
+
+  const checkEmailVerified = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
+    const u = await api.user.me(token);
+    setUser(u);
+    return u.emailVerified === true;
+  }, [token]);
+
   const logout = useCallback(async () => {
+    await signOutGoogle();
     await tokenStorage.remove();
     setToken(null);
     setUser(null);
+    setPendingOnboarding(false);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -84,7 +110,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, pendingOnboarding, setPendingOnboarding, login, register, logout, refreshUser }}
+      value={{
+        user,
+        token,
+        isLoading,
+        pendingOnboarding,
+        setPendingOnboarding,
+        login,
+        register,
+        loginWithGoogle,
+        resendVerification,
+        checkEmailVerified,
+        logout,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

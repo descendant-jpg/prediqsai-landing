@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
+import { GOOGLE_CANCELLED, GOOGLE_UNAVAILABLE } from "@/lib/google";
 import { LANGUAGES, useLanguage } from "@/context/LanguageContext";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
@@ -149,10 +150,11 @@ function InputField({
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const { language, setLanguage } = useLanguage();
 
   const [mode, setMode] = useState<Mode>("signin");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Sign-in fields
   const [siEmail, setSiEmail]       = useState("");
@@ -221,12 +223,35 @@ export default function LoginScreen() {
     }
   }
 
-  function handleSocial(provider: "Google" | "Apple") {
-    Alert.alert(
-      `${provider} Sign In`,
-      `${provider} sign-in is coming soon. Please use email and password for now.`,
-      [{ text: "OK" }],
-    );
+  async function handleSocial(provider: "Google" | "Apple") {
+    if (provider === "Apple") {
+      Alert.alert(
+        "Apple Sign In",
+        "Apple sign-in is coming soon. Please use email or Google for now.",
+        [{ text: "OK" }],
+      );
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      await loginWithGoogle();
+      // Root guard routes the user into the app on success.
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Google sign-in failed";
+      if (msg === GOOGLE_CANCELLED) return;
+      if (msg === GOOGLE_UNAVAILABLE) {
+        Alert.alert(
+          "Google Sign-In",
+          "Google Sign-In only works in the installed PrediQs AI app, not the web preview. Please use email and password here.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+      Alert.alert("Google Sign-In failed", msg, [{ text: "OK" }]);
+    } finally {
+      setGoogleLoading(false);
+    }
   }
 
   const filteredCountries = COUNTRIES.filter((c) =>
@@ -439,8 +464,10 @@ export default function LoginScreen() {
         </View>
 
         <View style={s.socialRow}>
-          <TouchableOpacity style={s.socialBtn} onPress={() => handleSocial("Google")} activeOpacity={0.8}>
-            <Text style={s.socialBtnText}>G  Google</Text>
+          <TouchableOpacity style={s.socialBtn} onPress={() => handleSocial("Google")} activeOpacity={0.8} disabled={googleLoading}>
+            {googleLoading
+              ? <ActivityIndicator color={TEXT} />
+              : <Text style={s.socialBtnText}>G  Google</Text>}
           </TouchableOpacity>
           <TouchableOpacity style={s.socialBtn} onPress={() => handleSocial("Apple")} activeOpacity={0.8}>
             <Text style={s.socialBtnText}>🍎  Apple</Text>

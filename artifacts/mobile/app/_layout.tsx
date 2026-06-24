@@ -64,9 +64,17 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
     const inGuide = segments[0] === "app-guide";
+    const inVerifyEmail = segments[0] === "verify-email";
 
     if (!user) {
       if (!inAuthGroup) router.replace("/(auth)/login");
+      return;
+    }
+
+    // Email/password accounts must verify their email before entering the app.
+    // Google accounts arrive already verified, so this never blocks them.
+    if (user.emailVerified === false) {
+      if (!inVerifyEmail) router.replace("/verify-email");
       return;
     }
 
@@ -88,8 +96,8 @@ function RootLayoutNav() {
       return;
     }
 
-    // Guide already seen → leave the auth/onboarding screens for the dashboard.
-    if (inAuthGroup || inOnboarding) {
+    // Guide already seen → leave the auth/onboarding/verify screens for the dashboard.
+    if (inAuthGroup || inOnboarding || inVerifyEmail) {
       router.replace("/(tabs)");
     }
   }, [user, isLoading, segments, pendingOnboarding, appGuideSeen]);
@@ -98,6 +106,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerBackTitle: "Back", headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="verify-email" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="app-guide" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="slip-analysis" options={{ headerShown: false, presentation: "modal" }} />
