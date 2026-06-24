@@ -2,6 +2,28 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TOKEN_KEY = "prediqs_auth_token";
 
+/**
+ * Globally-selected language code, sent as `Accept-Language` on every request.
+ * Updated by LanguageContext whenever the user changes language.
+ *
+ * BACKEND TODO — the API server does not yet honour this header. To return
+ * localized dynamic data (articles, quizzes, AI picks, prediction reasoning),
+ * the backend needs to:
+ *   1. Read `req.headers["accept-language"]` (or a `?lang=` query param) in a
+ *      middleware and attach a normalized locale to the request.
+ *   2. Pass that locale to the prediction engine / Claude prompt so AI text is
+ *      generated in the requested language.
+ *   3. Localize or translate stored content (articles, quizzes) per locale,
+ *      falling back to English when a translation is missing.
+ * Until then, requests carry the header but responses remain English.
+ */
+let currentLanguage = "en";
+
+/** Set the language code appended to outbound requests (called by LanguageContext). */
+export function setApiLanguage(code: string): void {
+  currentLanguage = code;
+}
+
 export function getApiBaseUrl(): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}`;
@@ -34,6 +56,7 @@ async function apiFetch<T>(
     ...rest,
     headers: {
       "Content-Type": "application/json",
+      "Accept-Language": currentLanguage,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(rest.headers ?? {}),
     },

@@ -1,5 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { Alert, I18nManager, Platform } from "react-native";
+
+import i18n, { RTL_LANGUAGES } from "@/lib/i18n";
+import { setApiLanguage } from "@/lib/api";
 
 export type Language = {
   code: string;
@@ -27,35 +31,101 @@ export const LANGUAGES: Language[] = [
   { code: "pt-BR", flag: "🇧🇷", name: "Portuguese BR",  nativeName: "Português BR",   claudeInstruction: "Respond in Brazilian Portuguese (Português Brasileiro) only." },
 ];
 
+const STORAGE_KEY = "@app_language";
+/** Legacy key used before global localization — migrated on first load. */
+const LEGACY_STORAGE_KEY = "prediqsLanguage";
+
+type TranslateOptions = Record<string, unknown>;
+
 type LanguageContextType = {
   language: Language;
   setLanguage: (lang: Language) => void;
+  /** Translate a key (e.g. "tabs.dashboard"). Re-renders consumers on language change. */
+  t: (key: string, options?: TranslateOptions) => string;
+  /** Current locale code (e.g. "en", "ar"). */
+  locale: string;
+  /** Whether the active language is right-to-left. */
+  isRTL: boolean;
 };
 
 const LanguageContext = createContext<LanguageContextType>({
   language: LANGUAGES[0],
   setLanguage: () => {},
+  t: (key) => key,
+  locale: LANGUAGES[0].code,
+  isRTL: false,
 });
+
+/** Apply locale to i18n + outbound API requests. */
+function applyLocale(code: string) {
+  i18n.locale = code;
+  setApiLanguage(code);
+}
+
+/**
+ * Sync React Native's RTL layout direction to the selected language.
+ * forceRTL only takes effect after a full reload, so on a user-initiated
+ * change we prompt the user to restart. `silent` skips the prompt (used at boot).
+ */
+function applyDirection(code: string, silent: boolean, t: (k: string) => string) {
+  const shouldRTL = RTL_LANGUAGES.includes(code);
+  if (shouldRTL === I18nManager.isRTL) return;
+  I18nManager.allowRTL(shouldRTL);
+  I18nManager.forceRTL(shouldRTL);
+  if (!silent && Platform.OS !== "web") {
+    Alert.alert(t("profile.restartTitle"), t("profile.restartBody"), [{ text: "OK" }]);
+  }
+}
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(LANGUAGES[0]);
 
+  // Bootstrap persisted language (with one-time migration from the legacy key).
   useEffect(() => {
-    AsyncStorage.getItem("prediqsLanguage").then((code) => {
-      if (code) {
-        const found = LANGUAGES.find((l) => l.code === code);
-        if (found) setLanguageState(found);
+    let mounted = true;
+    (async () => {
+      let code = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!code) {
+        const legacy = await AsyncStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy) {
+          code = legacy;
+          await AsyncStorage.setItem(STORAGE_KEY, legacy);
+        }
       }
-    });
+      const found = code ? LANGUAGES.find((l) => l.code === code) : undefined;
+      const initial = found ?? LANGUAGES[0];
+      applyLocale(initial.code);
+      applyDirection(initial.code, true, (k) => i18n.t(k));
+      if (mounted) setLanguageState(initial);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  function setLanguage(lang: Language) {
+  const t = useCallback(
+    (key: string, options?: TranslateOptions) => i18n.t(key, options),
+    // language is intentionally in deps so consumers re-render on change
+    [language],
+  );
+
+  const setLanguage = useCallback((lang: Language) => {
+    applyLocale(lang.code);
+    AsyncStorage.setItem(STORAGE_KEY, lang.code);
+    applyDirection(lang.code, false, (k) => i18n.t(k));
     setLanguageState(lang);
-    AsyncStorage.setItem("prediqsLanguage", lang.code);
-  }
+  }, []);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage }}>
+    <LanguageContext.Provider
+      value={{
+        language,
+        setLanguage,
+        t,
+        locale: language.code,
+        isRTL: RTL_LANGUAGES.includes(language.code),
+      }}
+    >
       {children}
     </LanguageContext.Provider>
   );

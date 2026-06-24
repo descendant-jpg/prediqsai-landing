@@ -6,6 +6,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 
 const BASE_TAB_HEIGHT = 62;
 
@@ -42,6 +43,7 @@ function TabIcon({
 export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const isIOS  = Platform.OS === "ios";
 
   // Extra breathing room above Android's nav buttons; iOS home indicator already covered by inset.
@@ -75,7 +77,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
+          title: t("tabs.dashboard"),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={LayoutGrid} focused={focused} color={color} size={20} />
           ),
@@ -84,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="picks"
         options={{
-          title: "Picks",
+          title: t("tabs.picks"),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={Crosshair} focused={focused} color={color} size={20} />
           ),
@@ -93,7 +95,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="assistant"
         options={{
-          title: "PrediQs AI",
+          title: t("tabs.assistant"),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={BrainCircuit} focused={focused} color={color} size={21} />
           ),
@@ -102,7 +104,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bankroll"
         options={{
-          title: "Finance",
+          title: t("tabs.finance"),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={DollarSign} focused={focused} color={color} size={20} />
           ),
@@ -111,7 +113,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("tabs.profile"),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={User} focused={focused} color={color} size={20} />
           ),

@@ -128,7 +128,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const { unreadCount } = useNotifications();
 
   const [copied, setCopied] = useState(false);
@@ -245,7 +245,7 @@ export default function ProfileScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.upgradeBtnText, { color: colors.cyan }]}>
-                  {tier === "premium" ? "Manage Plan" : "Upgrade"}
+                  {tier === "premium" ? t("profile.managePlan") : t("profile.upgrade")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -255,7 +255,7 @@ export default function ProfileScreen() {
         {/* ── Referral banner ── */}
         <View style={[styles.referralCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.2)" }]}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.referralTitle, { color: colors.gold }]}>🎁 Invite friends — earn rewards</Text>
+            <Text style={[styles.referralTitle, { color: colors.gold }]}>{t("profile.invite")}</Text>
             <Text style={[styles.referralLink, { color: colors.textSecondary }]} numberOfLines={1}>
               {referral}
             </Text>
@@ -272,7 +272,7 @@ export default function ProfileScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.copyBtnText, { color: copied ? colors.green : colors.gold }]}>
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t("profile.copied") : t("profile.copy")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -280,9 +280,9 @@ export default function ProfileScreen() {
         {/* ── Stats strip ── */}
         <View style={styles.statsStrip}>
           {[
-            { label: "Plan",      value: tier.toUpperCase(), color: tierColor               },
-            { label: "Status",    value: "Active",           color: colors.green            },
-            { label: "Referrals", value: "0",                color: colors.textSecondary    },
+            { label: t("profile.plan"),      value: tier.toUpperCase(),  color: tierColor            },
+            { label: t("profile.status"),    value: t("profile.active"), color: colors.green         },
+            { label: t("profile.referrals"), value: "0",                 color: colors.textSecondary },
           ].map((s) => (
             <View key={s.label} style={[styles.statCell, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={[styles.statCellValue, { color: s.color }]}>{s.value}</Text>
@@ -292,109 +292,109 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Features ── */}
-        <SectionHeader title="Features" />
+        <SectionHeader title={t("sections.features")} />
         <SettingGroup>
           <SettingRow
             icon={Bell}
-            label="Notifications"
-            value={unreadCount > 0 ? `${unreadCount} new` : undefined}
+            label={t("profile.notifications")}
+            value={unreadCount > 0 ? t("profile.newCount", { count: unreadCount }) : undefined}
             onPress={() => router.push("/notification-settings" as any)}
           />
           <SettingRow
             icon={Globe}
-            label="Language"
+            label={t("profile.language")}
             value={`${language.flag} ${language.name}`}
             onPress={() => setShowLangModal(true)}
           />
           <SettingRow
             icon={Percent}
-            label="Betting Experience"
+            label={t("profile.bettingExperience")}
             value={bettingExp}
             onPress={() => setShowExpModal(true)}
           />
           <SettingRow
             icon={BookOpen}
-            label="Learning Hub"
+            label={t("profile.learningHub")}
             onPress={() => router.push("/learning-hub" as any)}
           />
           <SettingRow
             icon={PlayCircle}
             iconColor={colors.cyan}
-            label="Replay App Guide"
+            label={t("profile.replayGuide")}
             onPress={() => router.push("/app-guide" as any)}
           />
-          <SettingRow icon={Lock} label="Change Password" onPress={() => router.push("/change-password" as any)} />
+          <SettingRow icon={Lock} label={t("profile.changePassword")} onPress={() => router.push("/change-password" as any)} />
         </SettingGroup>
 
         {/* ── Support ── */}
-        <SectionHeader title="Support" />
+        <SectionHeader title={t("sections.support")} />
         <SettingGroup>
           <SettingRow
             icon={Mail}
-            label="Contact Us"
+            label={t("profile.contactUs")}
             onPress={handleContactUs}
           />
           <SettingRow
             icon={HelpCircle}
-            label="Help & FAQ"
+            label={t("profile.helpFaq")}
             onPress={() => router.push("/about" as any)}
           />
           <SettingRow
             icon={BookOpen}
-            label="App Guide"
+            label={t("profile.appGuide")}
             onPress={() => router.push("/about" as any)}
           />
           <SettingRow
-            icon={MessageSquare} label="Telegram Community"
+            icon={MessageSquare} label={t("profile.telegramCommunity")}
             right={<ExternalLink size={14} color="#3A5060" />}
             onPress={handleTelegram}
           />
           <SettingRow
-            icon={Users} label="Follow Us"
+            icon={Users} label={t("profile.followUs")}
             right={<ExternalLink size={14} color="#3A5060" />}
             onPress={handleFollowUs}
           />
         </SettingGroup>
 
         {/* ── Legal ── */}
-        <SectionHeader title="Legal" />
+        <SectionHeader title={t("sections.legal")} />
         <SettingGroup>
           <SettingRow
             icon={BookOpen}
-            label="Terms of Service"
+            label={t("profile.termsOfService")}
             onPress={() => router.push("/terms-of-service" as any)}
           />
           <SettingRow
             icon={Shield}
-            label="Privacy Policy"
+            label={t("profile.privacyPolicy")}
             onPress={() => router.push("/privacy-policy" as any)}
           />
           <SettingRow
             icon={LifeBuoy}
-            label="Responsible Gambling"
+            label={t("profile.responsibleGambling")}
             iconColor="#FF6B35"
             onPress={() => router.push("/responsible-gambling" as any)}
           />
         </SettingGroup>
 
         {/* ── Account Actions ── */}
-        <SectionHeader title="Account" />
+        <SectionHeader title={t("sections.account")} />
         <SettingGroup>
           {isAdmin && (
             <SettingRow
-              icon={Settings} label="Admin Panel"
+              icon={Settings} label={t("profile.adminPanel")}
               iconColor={colors.gold}
               onPress={() => router.push("/setup" as any)}
             />
           )}
-          <SettingRow icon={LogOut} label="Sign Out" danger onPress={handleLogout} />
+          <SettingRow icon={LogOut} label={t("profile.signOut")} danger onPress={handleLogout} />
         </SettingGroup>
 
         {/* ── App version ── */}
         <View style={styles.versionBlock}>
           <Text style={[styles.versionText,       { color: colors.textMuted }]}>PrediQs AI v1.0.0</Text>
           <Text style={[styles.versionDisclaimer, { color: colors.textMuted }]}>
-            Educational purposes only
+            {t("profile.educationalOnly")}
           </Text>
         </View>
       </ScrollView>
@@ -404,7 +404,7 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowLangModal(false)} activeOpacity={1}>
           <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>Select Language</Text>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t("profile.selectLanguage")}</Text>
             <FlatList
               data={LANGUAGES}
               keyExtractor={(l) => l.code}
@@ -440,9 +440,9 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowExpModal(false)} activeOpacity={1}>
           <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>Betting Experience</Text>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t("profile.bettingExperience")}</Text>
             <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
-              This helps us personalise your predictions and risk guidance.
+              {t("profile.bettingExperienceSub")}
             </Text>
             {BETTING_EXPERIENCE_OPTIONS.map((opt) => (
               <TouchableOpacity
@@ -473,9 +473,9 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.modalOverlay} onPress={() => setShowSocialModal(false)} activeOpacity={1}>
           <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>Follow Us</Text>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t("profile.followUsTitle")}</Text>
             <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
-              Join the PrediQs AI community and stay up to date.
+              {t("profile.followUsSub")}
             </Text>
             {SOCIAL_LINKS.map((s) => (
               <TouchableOpacity
@@ -496,7 +496,7 @@ export default function ProfileScreen() {
               onPress={() => setShowSocialModal(false)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.socialCloseText, { color: colors.text }]}>Close</Text>
+              <Text style={[styles.socialCloseText, { color: colors.text }]}>{t("profile.close")}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
