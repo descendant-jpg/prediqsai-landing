@@ -39,8 +39,15 @@ export function RegionProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function init() {
-      const tz = Localization.getCalendars()[0]?.timeZone ?? "UTC";
-      const auto = timezoneToRegion(tz);
+      // Localization.getCalendars() is a native call; guard it so a native
+      // failure on launch can never crash the app — fall back to UTC/GLOBAL.
+      let auto: AffiliateRegion = "GLOBAL";
+      try {
+        const tz = Localization.getCalendars()[0]?.timeZone ?? "UTC";
+        auto = timezoneToRegion(tz);
+      } catch {
+        auto = "GLOBAL";
+      }
       setDetected(auto);
 
       const stored = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
@@ -51,7 +58,7 @@ export function RegionProvider({ children }: { children: React.ReactNode }) {
       }
       setLoaded(true);
     }
-    init();
+    init().catch(() => setLoaded(true));
   }, []);
 
   const setRegion = useCallback(async (r: AffiliateRegion) => {
