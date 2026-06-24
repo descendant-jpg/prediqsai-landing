@@ -1,0 +1,24 @@
+I want to build a premium animated boot screen and a first-launch disclaimer modal for my app, prediqsAI. 
+
+CRITICAL STYLING INSTRUCTION: Do not invent new colors. Please scan my codebase (e.g., `constants/Colors.ts`, `theme`, or your global stylesheet) and use the exact existing color palette and theme variables we have been using for prediqsAI. The background, typography, icons, and buttons for these new screens must perfectly match the current app's branding so it feels native and seamless.
+
+Please create or update the initial routing flow to include two things:
+
+1. An Animated Boot Screen component (using react-native-reanimated).
+- It should display the prediqsAI logo and a tagline "VISION INTELLIGENCE AI".
+- It should sequentially fade in 5 bullet points: "AI Match Analysis", "Predictive Odds Modeling", "Real-Time Data Feeds", "Smart Bankroll Strategy", "Built for Winners".
+- At the bottom, show a row that says "🔴 LIVE • 🔒 SECURED • 🤝 TRUSTED" which changes to "INITIALISING..." after the bullets finish.
+- After a 3-second delay, it should automatically route to the main Authentication or Welcome screen.
+
+2. A First-Launch Disclaimer Modal (Bottom Sheet style).
+- On the screen that appears immediately after the boot sequence, check `AsyncStorage` for a key like `@has_accepted_disclaimer`.
+- If the key is null (meaning it's their first launch), automatically pop up a non-dismissible modal.
+- The modal should have a warning icon and the title: "Educational only. Not betting advice. Betting involves risk of loss."
+- Include 4 text sections: 
+  - Educational Purpose Only: prediqsAI provides predictive data analysis. This is NOT financial or betting advice.
+  - High Risk Warning: Sports betting carries substantial risk. You may lose your entire stake.
+  - Past Performance: Historical AI accuracy does not guarantee future outcomes.
+  - Your Responsibility: You are solely responsible for all betting decisions. We are not liable for losses.
+- Include a large "I Accept & Understand" button at the bottom. When pressed, save the `@has_accepted_disclaimer` key to true in AsyncStorage and close the modal so they never see it again.
+
+Please implement these components and wire them into the Expo Router flow securely.
