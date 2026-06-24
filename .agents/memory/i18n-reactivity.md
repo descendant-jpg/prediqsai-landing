@@ -16,3 +16,11 @@ Rules that are easy to get wrong:
 **Why:** these are the non-obvious failure modes — silent non-reactivity, wrong interpolation braces, and RTL needing a reload — that cost time when adding new localized screens.
 
 **How to apply:** when localizing a new screen, get `t` from `useLanguage()`, add the keys to every locale object in `lib/i18n.ts`, and use `%{}` for interpolation.
+
+## Preference values sent to the backend (e.g. X-User-Experience)
+
+When a user preference doubles as a wire value (header/body to the AI/backend), keep ONE canonical casing for the stored + transmitted value (here: capitalized `Beginner|Intermediate|Advanced|Professional`) and a SEPARATE lowercase i18n dictionary key for display lookup. Validate/coerce values read from AsyncStorage before using them so corrupted storage can't send an unrecognized value the backend silently ignores.
+
+**Why:** a single option (`advanced`) was lowercased while siblings were capitalized — a case-sensitive backend parser would treat it as unknown and fall back to default, silently dropping that level's behavior.
+
+**How to apply:** wire value = canonical enum (one source of truth in the context that owns it); display = `t()` via a mapped i18n key; always coerce hydrated storage to the enum.
