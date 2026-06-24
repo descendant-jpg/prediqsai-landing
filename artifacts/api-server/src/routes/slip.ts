@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { requireAuth } from "../middleware/auth";
+import { withExperiencePersona } from "../lib/experiencePersona";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -121,7 +122,7 @@ router.post("/slip/analyze", requireAuth, async (req, res) => {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 2048,
-      system: imageBase64 ? SLIP_SYSTEM_PROMPT : TEXT_ANALYSIS_PROMPT,
+      system: withExperiencePersona(imageBase64 ? SLIP_SYSTEM_PROMPT : TEXT_ANALYSIS_PROMPT, req),
       messages: [{ role: "user", content: content as Parameters<typeof anthropic.messages.create>[0]["messages"][0]["content"] }],
     });
 

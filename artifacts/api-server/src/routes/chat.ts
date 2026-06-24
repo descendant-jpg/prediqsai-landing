@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { withExperiencePersona } from "../lib/experiencePersona";
 
 const router = Router();
 
@@ -23,9 +24,12 @@ router.post("/chat", async (req, res) => {
 
   const language: string | undefined = req.body?.language;
 
-  const systemPrompt = language && language !== "Respond in English."
+  const baseWithLanguage = language && language !== "Respond in English."
     ? `${SYSTEM_PROMPT}\n\nIMPORTANT: ${language}`
     : SYSTEM_PROMPT;
+
+  // Tailor tone/depth to the user's betting experience (X-User-Experience header).
+  const systemPrompt = withExperiencePersona(baseWithLanguage, req);
 
   try {
     const response = await anthropic.messages.create({
