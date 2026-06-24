@@ -50,6 +50,12 @@ const translations = {
       educationalOnly: "Educational purposes only",
       restartTitle: "Restart Required",
       restartBody: "Please restart the app to fully apply the new text direction.",
+      expOptions: {
+        beginner:     { label: "Beginner",     desc: "I have zero to very little experience in betting." },
+        intermediate: { label: "Intermediate", desc: "I follow sports closely and bet regularly." },
+        advanced:     { label: "Advanced",     desc: "I have extensive betting knowledge and strategy." },
+        professional: { label: "Professional", desc: "I treat betting as a serious endeavour." },
+      },
     },
   },
   fr: {
@@ -90,6 +96,12 @@ const translations = {
       educationalOnly: "À but éducatif uniquement",
       restartTitle: "Redémarrage requis",
       restartBody: "Veuillez redémarrer l'application pour appliquer la nouvelle orientation du texte.",
+      expOptions: {
+        beginner:     { label: "Débutant",      desc: "Je n'ai aucune ou très peu d'expérience en paris." },
+        intermediate: { label: "Intermédiaire", desc: "Je suis le sport de près et je parie régulièrement." },
+        advanced:     { label: "Avancé",        desc: "J'ai de solides connaissances et une stratégie de paris." },
+        professional: { label: "Professionnel", desc: "Je considère les paris comme une activité sérieuse." },
+      },
     },
   },
   es: {
@@ -130,6 +142,12 @@ const translations = {
       educationalOnly: "Solo con fines educativos",
       restartTitle: "Reinicio necesario",
       restartBody: "Reinicia la aplicación para aplicar por completo la nueva dirección del texto.",
+      expOptions: {
+        beginner:     { label: "Principiante", desc: "Tengo poca o ninguna experiencia en apuestas." },
+        intermediate: { label: "Intermedio",   desc: "Sigo el deporte de cerca y apuesto con regularidad." },
+        advanced:     { label: "Avanzado",     desc: "Tengo amplios conocimientos y estrategia de apuestas." },
+        professional: { label: "Profesional",  desc: "Me tomo las apuestas como algo serio." },
+      },
     },
   },
   pt: {
@@ -170,6 +188,12 @@ const translations = {
       educationalOnly: "Apenas para fins educativos",
       restartTitle: "Reinício necessário",
       restartBody: "Reinicie o app para aplicar totalmente a nova direção do texto.",
+      expOptions: {
+        beginner:     { label: "Iniciante",     desc: "Tenho pouca ou nenhuma experiência em apostas." },
+        intermediate: { label: "Intermediário", desc: "Acompanho esportes de perto e aposto regularmente." },
+        advanced:     { label: "Avançado",      desc: "Tenho amplo conhecimento e estratégia de apostas." },
+        professional: { label: "Profissional",  desc: "Levo as apostas como algo sério." },
+      },
     },
   },
   de: {
@@ -210,6 +234,12 @@ const translations = {
       educationalOnly: "Nur zu Bildungszwecken",
       restartTitle: "Neustart erforderlich",
       restartBody: "Bitte starte die App neu, um die neue Textrichtung vollständig anzuwenden.",
+      expOptions: {
+        beginner:     { label: "Anfänger",       desc: "Ich habe keine bis sehr wenig Erfahrung mit Wetten." },
+        intermediate: { label: "Mittelstufe",    desc: "Ich verfolge Sport genau und wette regelmäßig." },
+        advanced:     { label: "Fortgeschritten", desc: "Ich habe umfangreiches Wettwissen und eine Strategie." },
+        professional: { label: "Profi",          desc: "Ich betrachte Wetten als ernsthafte Tätigkeit." },
+      },
     },
   },
   it: {
@@ -250,6 +280,12 @@ const translations = {
       educationalOnly: "Solo a scopo educativo",
       restartTitle: "Riavvio necessario",
       restartBody: "Riavvia l'app per applicare completamente la nuova direzione del testo.",
+      expOptions: {
+        beginner:     { label: "Principiante",   desc: "Ho poca o nessuna esperienza nelle scommesse." },
+        intermediate: { label: "Intermedio",     desc: "Seguo lo sport da vicino e scommetto regolarmente." },
+        advanced:     { label: "Avanzato",       desc: "Ho ampie conoscenze e strategia nelle scommesse." },
+        professional: { label: "Professionista", desc: "Considero le scommesse un'attività seria." },
+      },
     },
   },
   ar: {
@@ -290,6 +326,12 @@ const translations = {
       educationalOnly: "لأغراض تعليمية فقط",
       restartTitle: "إعادة التشغيل مطلوبة",
       restartBody: "يرجى إعادة تشغيل التطبيق لتطبيق اتجاه النص الجديد بالكامل.",
+      expOptions: {
+        beginner:     { label: "مبتدئ",  desc: "ليس لدي أي خبرة أو خبرة قليلة جدًا في الرهان." },
+        intermediate: { label: "متوسط",  desc: "أتابع الرياضة عن كثب وأراهن بانتظام." },
+        advanced:     { label: "متقدم",  desc: "لدي معرفة واسعة واستراتيجية في الرهان." },
+        professional: { label: "محترف",  desc: "أتعامل مع الرهان كنشاط جاد." },
+      },
     },
   },
 } as const;

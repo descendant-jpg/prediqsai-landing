@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
@@ -7,8 +8,32 @@ import React, {
 } from "react";
 
 import { useAuth } from "@/context/AuthContext";
-import { api, type ApiBankrollEntry } from "@/lib/api";
+import { api, setApiExperience, type ApiBankrollEntry } from "@/lib/api";
 import type { BankrollEntry, EntryType, Tier, UserProfile } from "@/types";
+
+export const BETTING_EXPERIENCE_KEY = "@betting_experience";
+
+export type BettingExperience =
+  | "Beginner"
+  | "Intermediate"
+  | "Advanced"
+  | "Professional";
+
+const VALID_EXPERIENCES: readonly BettingExperience[] = [
+  "Beginner",
+  "Intermediate",
+  "Advanced",
+  "Professional",
+];
+
+const DEFAULT_EXPERIENCE: BettingExperience = "Beginner";
+
+/** Coerce an arbitrary stored string to a valid level, falling back to default. */
+function coerceExperience(value: string | null): BettingExperience {
+  return VALID_EXPERIENCES.includes(value as BettingExperience)
+    ? (value as BettingExperience)
+    : DEFAULT_EXPERIENCE;
+}
 
 interface AppContextValue {
   profile: UserProfile;
@@ -17,6 +42,8 @@ interface AppContextValue {
   updateBankroll: (amount: number) => Promise<void>;
   setTier: (tier: Tier) => Promise<void>;
   refreshBankroll: () => Promise<void>;
+  bettingExperience: BettingExperience;
+  setBettingExperience: (level: BettingExperience) => Promise<void>;
   isLoaded: boolean;
 }
 
@@ -36,6 +63,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, token, refreshUser } = useAuth();
   const [bankrollEntries, setBankrollEntries] = useState<BankrollEntry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [bettingExperience, setBettingExperienceState] =
+    useState<BettingExperience>(DEFAULT_EXPERIENCE);
+
+  // Hydrate betting experience from storage on mount (independent of auth) and
+  // keep the API layer's outbound header in sync.
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(BETTING_EXPERIENCE_KEY);
+        const level = coerceExperience(stored);
+        setBettingExperienceState(level);
+        setApiExperience(level);
+      } catch {
+        setApiExperience(DEFAULT_EXPERIENCE);
+      }
+    })();
+  }, []);
+
+  const setBettingExperience = useCallback(async (level: BettingExperience) => {
+    setBettingExperienceState(level);
+    setApiExperience(level);
+    try {
+      await AsyncStorage.setItem(BETTING_EXPERIENCE_KEY, level);
+    } catch {}
+  }, []);
 
   // Normalize legacy tiers: pro/elite → premium
   const rawTier = user?.tier ?? "free";
@@ -103,6 +155,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateBankroll,
         setTier,
         refreshBankroll,
+        bettingExperience,
+        setBettingExperience,
         isLoaded,
       }}
     >

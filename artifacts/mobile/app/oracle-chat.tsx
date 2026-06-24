@@ -19,7 +19,7 @@ import { SUGGESTED_PROMPTS } from "@/constants/mockData";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useLanguage } from "@/context/LanguageContext";
-import { getApiBaseUrl } from "@/lib/api";
+import { getApiBaseUrl, getApiExperience } from "@/lib/api";
 import type { ChatMessage } from "@/types";
 
 function generateId(): string {
@@ -85,7 +85,10 @@ export default function OracleChatScreen() {
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-User-Experience": getApiExperience(),
+        },
         body: JSON.stringify({ messages: apiMessages, language: language.claudeInstruction }),
         signal: controller.signal,
       });

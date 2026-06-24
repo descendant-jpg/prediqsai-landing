@@ -24,6 +24,43 @@ export function setApiLanguage(code: string): void {
   currentLanguage = code;
 }
 
+const EXPERIENCE_KEY = "@betting_experience";
+
+/**
+ * User's self-reported betting experience level (Beginner | Intermediate |
+ * Advanced | Professional), sent as the `X-User-Experience` header on every
+ * request. Kept in sync by AppContext, and hydrated once from AsyncStorage at
+ * module load so even the very first cold-start request carries it.
+ *
+ * BACKEND TODO — the AI/prediction layer must read `req.headers["x-user-experience"]`
+ * and DYNAMICALLY ADJUST THE SYSTEM PROMPT (Claude/OpenAI) based on its value:
+ *   - "Beginner":     explain odds and value in plain language, avoid jargon,
+ *                     define terms, keep stake guidance conservative.
+ *   - "Intermediate": balanced tone with brief reasoning.
+ *   - "Advanced":     include strategy, edge and bankroll context.
+ *   - "Professional": provide advanced statistical breakdowns (EV, implied
+ *                     probability, market movement) and skip basic explanations.
+ * Fall back to "Beginner" when the header is missing or unrecognized.
+ */
+let currentExperience = "Beginner";
+
+/** Set the betting-experience level sent on outbound requests (called by AppContext). */
+export function setApiExperience(level: string): void {
+  currentExperience = level;
+}
+
+/** Current betting-experience level (for non-apiFetch callers, e.g. the chat stream). */
+export function getApiExperience(): string {
+  return currentExperience;
+}
+
+// Hydrate from AsyncStorage once at startup so the first request is correct.
+AsyncStorage.getItem(EXPERIENCE_KEY)
+  .then((v) => {
+    if (v) currentExperience = v;
+  })
+  .catch(() => {});
+
 export function getApiBaseUrl(): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}`;
@@ -57,6 +94,7 @@ async function apiFetch<T>(
     headers: {
       "Content-Type": "application/json",
       "Accept-Language": currentLanguage,
+      "X-User-Experience": currentExperience,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(rest.headers ?? {}),
     },

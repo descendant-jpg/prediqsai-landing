@@ -34,6 +34,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { LANGUAGES, useLanguage } from "@/context/LanguageContext";
@@ -45,13 +46,11 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const BETTING_EXPERIENCE_OPTIONS = [
-  { key: "Casual",       label: "Casual",       desc: "I bet for fun occasionally" },
-  { key: "Intermediate", label: "Intermediate", desc: "I follow sports closely and bet regularly" },
-  { key: "advanced",     label: "Advanced",     desc: "I have extensive betting knowledge and strategy" },
-  { key: "Professional", label: "Professional", desc: "I treat betting as a serious endeavour" },
+  { key: "Beginner",     i18nKey: "beginner" },
+  { key: "Intermediate", i18nKey: "intermediate" },
+  { key: "Advanced",     i18nKey: "advanced" },
+  { key: "Professional", i18nKey: "professional" },
 ] as const;
-
-type BettingExperience = (typeof BETTING_EXPERIENCE_OPTIONS)[number]["key"];
 
 const SOCIAL_LINKS = [
   { name: "Facebook",      icon: "facebook",  color: "#1877F2", url: "https://facebook.com/prediqsai" },
@@ -130,12 +129,12 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const { unreadCount } = useNotifications();
+  const { bettingExperience, setBettingExperience } = useApp();
 
   const [copied, setCopied] = useState(false);
   const [showLangModal, setShowLangModal]   = useState(false);
   const [showExpModal, setShowExpModal]     = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
-  const [bettingExp, setBettingExp]         = useState<BettingExperience>("Casual");
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
@@ -309,7 +308,9 @@ export default function ProfileScreen() {
           <SettingRow
             icon={Percent}
             label={t("profile.bettingExperience")}
-            value={bettingExp}
+            value={t(`profile.expOptions.${
+              BETTING_EXPERIENCE_OPTIONS.find((o) => o.key === bettingExperience)?.i18nKey ?? "beginner"
+            }.label`)}
             onPress={() => setShowExpModal(true)}
           />
           <SettingRow
@@ -450,18 +451,20 @@ export default function ProfileScreen() {
                 style={[
                   styles.expRow,
                   { borderColor: colors.border, backgroundColor: colors.background },
-                  bettingExp === opt.key && { borderColor: "#FFD700", backgroundColor: "rgba(255,215,0,0.06)" },
+                  bettingExperience === opt.key && { borderColor: "#FFD700", backgroundColor: "rgba(255,215,0,0.06)" },
                 ]}
-                onPress={() => { setBettingExp(opt.key); setShowExpModal(false); }}
+                onPress={() => { setBettingExperience(opt.key); setShowExpModal(false); }}
                 activeOpacity={0.8}
               >
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={[styles.expLabel, { color: bettingExp === opt.key ? "#FFD700" : colors.text }]}>
-                    {opt.label}
+                  <Text style={[styles.expLabel, { color: bettingExperience === opt.key ? "#FFD700" : colors.text }]}>
+                    {t(`profile.expOptions.${opt.i18nKey}.label`)}
                   </Text>
-                  <Text style={[styles.expDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
+                  <Text style={[styles.expDesc, { color: colors.textMuted }]}>
+                    {t(`profile.expOptions.${opt.i18nKey}.desc`)}
+                  </Text>
                 </View>
-                {bettingExp === opt.key && <Text style={{ color: "#FFD700", fontSize: 18 }}>✓</Text>}
+                {bettingExperience === opt.key && <Text style={{ color: "#FFD700", fontSize: 18 }}>✓</Text>}
               </TouchableOpacity>
             ))}
           </View>
