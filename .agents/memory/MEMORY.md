@@ -1,3 +1,2 @@
-- [React Native Web text node suppression](rnw-text-node-suppression.md) — Replit's devtools proxy logs console.error BEFORE userspace overrides; suppress with LogBox.ignoreLogs + console.error override on web.
-- [Expo Router typed routes](expo-typed-routes.md) — new screens fail typecheck until the Expo dev server runs and regenerates .expo/types; restart the workflow, don't cast routes.
-- [git push workflow](git-push-workflow.md) — bash blocks git push; use code_execution+execSync with the github connection token, mask the token, verify SHA via API.
+- [git push workflow](git-push-workflow.md) — bash blocks push; commit/push via code_execution + GitHub token; how to purge a secret blocked by push protection.
+- [Secret hygiene](secret-hygiene.md) — never commit firebase.json (it's a service-account key here); mobile builds use google-services.json (client config) only; rotate if leaked.

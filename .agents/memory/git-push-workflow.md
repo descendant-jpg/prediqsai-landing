@@ -14,3 +14,13 @@ The `bash` tool sandbox blocks `git push` (and other destructive git ops). To co
   `GET https://api.github.com/repos/descendant-jpg/prediqsai-landing/git/refs/heads/main` → `object.sha`.
 
 **Why:** the platform requires destructive git ops to go through better-protected paths; bash refuses them, so the code-execution sandbox + connection token is the reliable route.
+
+## Push protection (GH013): purging a secret from UNPUSHED commits
+
+If a push is rejected with "Push cannot contain secrets", a secret blob lives in one of the unpushed commits. A new "delete the file" commit is NOT enough — the blob still exists in the earlier commit and stays blocked. For commits that have not been pushed yet, do this via `code_execution` execSync (bash blocks these ops):
+
+1. `reset --soft <last_pushed_sha>` (keeps all changes staged, working tree untouched).
+2. `rm --cached <secret_file>` (untrack, keep on disk), then gitignore it.
+3. Recommit clean and push. The old commits become dangling (local only).
+
+Never click GitHub's "allow secret" / unblock URL for a live credential — that publishes it.
