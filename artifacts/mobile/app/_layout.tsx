@@ -2,12 +2,14 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { LogBox, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { BootScreen } from "@/components/BootScreen";
+import { DisclaimerModal } from "@/components/DisclaimerModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
@@ -109,6 +111,8 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [booted, setBooted] = useState(false);
+
   useEffect(() => {
     SplashScreen.hideAsync();
     // Set dark body background immediately on web to prevent white flash
@@ -131,6 +135,8 @@ export default function RootLayout() {
                       <IAPProvider>
                         <NotificationsProvider>
                           <RootLayoutNav />
+                          {booted && <DisclaimerModal />}
+                          {!booted && <BootScreen onFinish={() => setBooted(true)} />}
                         </NotificationsProvider>
                       </IAPProvider>
                     </AppProvider>
