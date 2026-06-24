@@ -1,13 +1,17 @@
 import Constants from "expo-constants";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Alert, Platform } from "react-native";
-import type { Purchase, PurchaseError } from "react-native-iap";
+import type { Purchase, PurchaseError, ProductSubscription } from "react-native-iap";
 
 import { useAuth } from "./AuthContext";
 import { api } from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// IMPORTANT: this must match the subscription product ID configured in
+// App Store Connect AND Google Play Console *exactly*. On Google Play the
+// product must also have an active base plan — the Android offer token used
+// for the purchase is read from that base plan at runtime.
 export const IAP_PRODUCT_ID = "prediqsai_premium_monthly";
 
 // ─── Environment detection ────────────────────────────────────────────────────
@@ -34,6 +38,16 @@ function getIAP(): IAPModule | null {
   }
 }
 
+// Pull the Android base-plan offer token from a fetched subscription product.
+// Google Play subscriptions can only be purchased by referencing a concrete
+// offer; without this token the purchase fails with "SKU not found".
+function getAndroidOfferToken(product: ProductSubscription): string | undefined {
+  if ("subscriptionOfferDetailsAndroid" in product) {
+    return product.subscriptionOfferDetailsAndroid?.[0]?.offerToken ?? undefined;
+  }
+  return undefined;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface IAPContextType {
@@ -42,6 +56,14 @@ interface IAPContextType {
   isLoading: boolean;
   error: string | null;
   clearError: () => void;
+  /** The dynamically-fetched subscription product, or null if not yet loaded. */
+  product: ProductSubscription | null;
+  /** True once offerings have been fetched and a purchasable product is available. */
+  productsReady: boolean;
+  /** Localised price string from the store (e.g. "$19.99"), when available. */
+  priceLabel: string | null;
+  /** Whether native IAP is available at all (false on web / Expo Go). */
+  iapSupported: boolean;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -52,6 +74,10 @@ const IAPContext = createContext<IAPContextType>({
   isLoading: false,
   error: null,
   clearError: () => {},
+  product: null,
+  productsReady: false,
+  priceLabel: null,
+  iapSupported: IAP_SUPPORTED,
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -60,6 +86,8 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
   const { token, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [product, setProduct] = useState<ProductSubscription | null>(null);
+  const [productsReady, setProductsReady] = useState(false);
   const purchaseListener = useRef<{ remove: () => void } | null>(null);
   const errorListener = useRef<{ remove: () => void } | null>(null);
   const connectedRef = useRef(false);
@@ -71,8 +99,9 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
 
     let cancelled = false;
 
-    iap.initConnection()
-      .then(() => {
+    const setup = async () => {
+      try {
+        await iap.initConnection();
         if (cancelled) return;
         connectedRef.current = true;
 
@@ -103,10 +132,50 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
           }
           setIsLoading(false);
         });
-      })
-      .catch(() => {
-        // IAP unavailable — simulator, old Expo Go, etc. Fail silently.
-      });
+
+        // Dynamically fetch the offering from the store rather than relying on a
+        // hardcoded SKU that might be missing/mismatched in the store console.
+        const items = (await iap.fetchProducts({
+          skus: [IAP_PRODUCT_ID],
+          type: "subs",
+        })) as ProductSubscription[];
+        if (cancelled) return;
+
+        const match =
+          (items ?? []).find((p) => p.id === IAP_PRODUCT_ID) ?? (items ?? [])[0] ?? null;
+
+        if (!match) {
+          setProductsReady(false);
+          setError(
+            "Subscription plans are currently unavailable. Please try again later.",
+          );
+          return;
+        }
+
+        // On Android a base-plan offer token is mandatory to start the purchase.
+        // If the product exists but has no offer, surface a precise message
+        // instead of enabling a button that would fail mid-purchase.
+        if (Platform.OS === "android" && !getAndroidOfferToken(match)) {
+          setProduct(match);
+          setProductsReady(false);
+          setError(
+            "This subscription has no active plan available in the store yet. Please try again later.",
+          );
+          return;
+        }
+
+        setProduct(match);
+        setProductsReady(true);
+      } catch {
+        if (cancelled) return;
+        setProductsReady(false);
+        setError(
+          "Couldn't load subscription details. Please check your connection and try again.",
+        );
+      }
+    };
+
+    void setup();
 
     return () => {
       cancelled = true;
@@ -130,13 +199,27 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
       );
       return;
     }
+    if (!product) {
+      setError(
+        "Subscription plan is unavailable right now. Please try again in a moment.",
+      );
+      return;
+    }
     setError(null);
     setIsLoading(true);
     try {
+      const offerToken = getAndroidOfferToken(product);
+
       await iap.requestPurchase({
         request: {
-          apple: { sku: IAP_PRODUCT_ID },
-          google: { skus: [IAP_PRODUCT_ID] },
+          apple: { sku: product.id },
+          google: {
+            skus: [product.id],
+            // Android subscriptions must reference a concrete base-plan offer.
+            ...(offerToken
+              ? { subscriptionOffers: [{ sku: product.id, offerToken }] }
+              : {}),
+          },
         },
         type: "subs",
       });
@@ -147,7 +230,7 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     }
-  }, []);
+  }, [product]);
 
   const restore = useCallback(async () => {
     const iap = getIAP();
@@ -188,8 +271,25 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const priceLabel =
+    product && "displayPrice" in product && typeof product.displayPrice === "string"
+      ? product.displayPrice
+      : null;
+
   return (
-    <IAPContext.Provider value={{ subscribe, restore, isLoading, error, clearError }}>
+    <IAPContext.Provider
+      value={{
+        subscribe,
+        restore,
+        isLoading,
+        error,
+        clearError,
+        product,
+        productsReady,
+        priceLabel,
+        iapSupported: IAP_SUPPORTED,
+      }}
+    >
       {children}
     </IAPContext.Provider>
   );

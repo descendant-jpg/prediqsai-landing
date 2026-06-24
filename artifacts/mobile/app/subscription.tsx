@@ -37,10 +37,17 @@ export default function SubscriptionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { subscribe, restore, isLoading, error, clearError } = useIAP();
+  const { subscribe, restore, isLoading, error, clearError, productsReady, priceLabel, iapSupported } =
+    useIAP();
   const { profile } = useApp();
 
   const isPremium = profile.tier === "premium";
+
+  // Only block the button when IAP is genuinely available but offerings failed
+  // to load. On web / Expo Go we leave it enabled so the explanatory alert fires.
+  const offeringsUnavailable = iapSupported && !productsReady;
+  const ctaDisabled = isLoading || offeringsUnavailable;
+  const priceText = priceLabel ?? "$19.99";
 
   useEffect(() => {
     clearError();
@@ -105,7 +112,7 @@ export default function SubscriptionScreen() {
         {!isPremium && (
           <View style={[styles.priceCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.25)" }]}>
             <View style={styles.priceRow}>
-              <Text style={[styles.price, { color: "#FFD700" }]}>$19.99</Text>
+              <Text style={[styles.price, { color: "#FFD700" }]}>{priceText}</Text>
               <Text style={[styles.pricePer, { color: colors.textSecondary }]}>/month</Text>
             </View>
             <Text style={[styles.priceSub, { color: colors.textMuted }]}>
@@ -127,18 +134,20 @@ export default function SubscriptionScreen() {
             <TouchableOpacity
               style={[
                 styles.subscribeBtn,
-                { backgroundColor: "#FFD700", opacity: isLoading ? 0.75 : 1 },
+                { backgroundColor: "#FFD700", opacity: ctaDisabled ? 0.55 : 1 },
               ]}
               onPress={subscribe}
-              disabled={isLoading}
+              disabled={ctaDisabled}
               activeOpacity={0.85}
             >
               {isLoading ? (
                 <ActivityIndicator color="#070B12" size="small" />
+              ) : offeringsUnavailable ? (
+                <Text style={styles.subscribeBtnText}>Subscription unavailable</Text>
               ) : (
                 <>
                   <Zap size={18} color="#070B12" fill="#070B12" />
-                  <Text style={styles.subscribeBtnText}>Subscribe — $19.99/mo</Text>
+                  <Text style={styles.subscribeBtnText}>Subscribe — {priceText}/mo</Text>
                 </>
               )}
             </TouchableOpacity>
