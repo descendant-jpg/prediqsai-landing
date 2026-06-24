@@ -5,20 +5,29 @@ import { api } from "@/lib/api";
 
 type PermStatus = { granted: boolean; canAskAgain: boolean };
 
-// Lazily import expo-notifications only on native to avoid web crashes
+// Lazily import expo-notifications only on native to avoid web crashes.
+// Wrapped in try/catch because this runs at module-evaluation time (before React
+// mounts), so a failure here is NOT caught by the ErrorBoundary and would crash
+// the JS bundle on launch (black screen) if the native module fails to link.
 let Notifications: typeof import("expo-notifications") | null = null;
 if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  Notifications = require("expo-notifications");
-  Notifications!.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert:  true,
-      shouldPlaySound:  true,
-      shouldSetBadge:   true,
-      shouldShowBanner: true,
-      shouldShowList:   true,
-    }),
-  });
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Notifications = require("expo-notifications");
+    Notifications?.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert:  true,
+        shouldPlaySound:  true,
+        shouldSetBadge:   true,
+        shouldShowBanner: true,
+        shouldShowList:   true,
+      }),
+    });
+  } catch {
+    // Native module unavailable / failed to link — degrade gracefully.
+    // Push registration is skipped; the rest of the app still works.
+    Notifications = null;
+  }
 }
 
 export type PushRegistrationResult =

@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "674932625778",
+    "project_id": "prediqsai",
+    "storage_bucket": "prediqsai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674932625778:android:fc522d4577a741c8b60deb",
+        "android_client_info": {
+          "package_name": "com.prediqsai.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "674932625778-2f5j425b6i7d7hv6jat7vhskbqe322b1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.prediqsai.app",
+            "certificate_hash": "d6ae12bccfd29c80bd3475de03f9fa28c5d99083"
+          }
+        },
+        {
+          "client_id": "674932625778-s0s7otnbqu2e4gptpm1nore79850sb59.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvQNP3qptKwgKKPYuJstxAw-LXcuQsX1w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "674932625778-s0s7otnbqu2e4gptpm1nore79850sb59.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "674932625778-qhtpv3shu8i8mtvbs5ojpl93cbeot8tl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.prediqsai.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

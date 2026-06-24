@@ -1,0 +1,105 @@
+I want to build a highly premium, animated 10-screen onboarding/survey carousel for my app, Prediqs AI. It needs to look incredibly slick, similar to high-end apps. Please build this using Expo, React Native, and react-native-reanimated for smooth slide transitions.
+
+UI/UX DESIGN SPECS:
+- Theme: Deep dark mode background (almost black, e.g., #0A0A0A) with crisp white text for headers.
+- Accent Color: USE MY APP'S EXISTING PRIMARY ACCENT/BRAND COLOR. Please check my current theme, tailwind config, or constants file to find my primary color and apply it to the active progress bar, the "Next" button, active borders, and category text. Do not introduce new colors.
+- Top Header: "PREDIQS AI" logo text on the top left. A "SKIP" button on the top right.
+- Progress Indicator: Just below the header, a text indicator like "01 / 10 • WELCOME" (with the category word in the primary brand color) and a visual progress bar.
+- Layout: Header at the top, scrollable content in the middle, and a sticky footer at the bottom containing a "Back" arrow (if not on screen 1) and a large primary-colored "Next ->" button.
+- Cards/Options: List items and selectable options should look like floating cards with subtle dark gray borders. Each card should have an icon on the left, a bold white title, and gray subtext. 
+- Selection state: If a screen requires a choice, show a subtle warning banner using the primary brand color: "Please select one option to continue" with a clock/info icon. When a card is selected, its border should glow with the primary brand color.
+
+Here are the 10 screens to map out in the carousel. Please implement the data structure for these screens with the following exact copy:
+
+SCREEN 1: WELCOME TO PREDIQS AI
+Category: WELCOME
+Intro: "We built this quick guide to help you understand everything Prediqs AI has to offer. We'll walk you through our key features so you can get the most out of the app and beat the bookies."
+Banner: "This takes about 2 minutes. Feel free to skip anytime — you can always revisit from your profile."
+List Items (Everything Inside Prediqs AI):
+1. AI Predictions: Get highly trained AI analysis with the highest and surest odds to maximize your win rate.
+2. Learning Hub: Videos, lessons, and betting terminology to build your sports betting foundation.
+3. Auto Bet: AI-powered automated betting integrations with high winning probabilities.
+4. Betting Tracker: Real-time updates and ROI tracking on all your active slips.
+
+SCREEN 2: WHAT'S YOUR BETTING EXPERIENCE?
+Category: WHAT'S
+Intro: "This helps us personalize your experience and recommend the right betting markets for you." (Requires Selection)
+Options:
+- Beginner: I'm new to sports betting and want to learn the basics.
+- Intermediate: I understand odds, parlays, and have placed some bets.
+- Advanced: I bet regularly, understand bankroll management, and use data.
+- Professional: I bet full-time, hunt for arbitrage, and manage funds professionally.
+
+SCREEN 3: WHAT ARE YOUR PRIMARY GOALS?
+Category: GOALS
+Intro: "Tell us what you want to achieve so the Oracle AI can tailor its advice." (Requires Selection)
+Options:
+- Consistent ROI: I want slow, steady, data-driven profits.
+- Big Accumulators/Parlays: I want high-risk, high-reward lotto tickets.
+- Arbitrage & Value: I want to exploit bookmaker pricing errors.
+- Just for Fun: I just want to make watching sports more exciting.
+
+SCREEN 4: FAVORITE SPORTS TO BET ON?
+Category: SPORTS
+Intro: "Select the sports you follow the most. You can change this later." (Multi-Select)
+Options:
+- Soccer (Premier League, La Liga, Champions League)
+- American Football (NFL, NCAA)
+- Basketball (NBA, EuroLeague)
+- Baseball (MLB)
+- Tennis (ATP, WTA)
+- MMA/Boxing (UFC)
+
+SCREEN 5: HOW BETTING WORKS ON PREDIQS AI
+Category: HOW
+Intro: "Every prediction tells you exactly where the value is. Here is how our data feeds work so you never miss an edge."
+List Items:
+1. Using Prediqs Feed: A real-time stream of all active bets, line movements, and AI confidence shifts.
+2. VIP Betting Signals: Get push notifications the second our AI detects a massive value gap in the market.
+3. Bookmaker Odds: We scan 40+ sportsbooks to ensure you always get the absolute best price for your slip.
+
+SCREEN 6: AI-POWERED BETTING TOOLS
+Category: AI-POWERED
+Intro: "Our AI does the heavy lifting so you can bet smarter, not harder. Here are your premium tools."
+List Items:
+1. Slip Analyzer: Upload a screenshot of your bet slip, and our AI will instantly grade the risk and calculate the true win probability.
+2. Oracle AI Tutor: Ask any betting question. From 'What is Asian Handicap?' to 'Should I hedge this parlay?' — your personal mentor.
+3. Kelly Calculator: Enter your bankroll and the AI's win probability to instantly know the exact optimal stake size.
+
+SCREEN 7: UNDERSTANDING CONFIDENCE SCORES
+Category: METRICS
+Intro: "We don't just guess; we grade. Every match is assigned a strict risk and confidence profile."
+List Items:
+1. High Confidence (Low Risk): All statistical, market, and contextual factors align perfectly. Highly recommended.
+2. Medium Confidence (Med Risk): Most factors align, presenting a solid value bet opportunity.
+3. Avoid/Trap Game (High Risk): Conflicting data or sharp money movement. The AI recommends skipping this match.
+
+SCREEN 8: BANKROLL MANAGEMENT
+Category: STRATEGY
+Intro: "The secret to long-term betting success is protecting your capital. Prediqs AI helps you stay disciplined."
+List Items:
+1. Daily Loss Limits: Set a cap on your daily exposure to prevent chasing losses.
+2. Stake Recommendations: The AI suggests 'low', 'medium', or 'high' unit stakes based on the edge detected.
+3. Performance Tracking: Connect your bets to see your true Win Rate and Return on Investment (ROI) over 30 days.
+
+SCREEN 9: HOW DID YOU FIND US?
+Category: REFERRAL
+Intro: "Help us know where our winners are coming from." (Requires Selection)
+Options:
+- Social Media
+- Friends or Referral
+- YouTube
+- TikTok
+- Google Search
+- Advertisement
+- Other
+
+SCREEN 10: YOU'RE ALL SET!
+Category: FINISH
+Intro: "Your AI engine is calibrated and ready to go. Welcome to the future of sports betting."
+(This screen should just have a massive button using my primary brand color at the bottom saying "Enter Prediqs AI" which completes the onboarding and navigates to the main app dashboard).
+
+ADDITIONAL INSTRUCTION - PROFILE SCREEN UPDATE:
+After building the carousel, please update my Profile/Settings screen. Add a button named "Replay App Guide" that, when clicked, triggers this onboarding carousel to open again. 
+- It should have a 'Video Play' icon next to it.
+- It MUST be positioned directly below "Learning Hub" and directly above "Change Password" in the profile menu list.

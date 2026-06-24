@@ -39,3 +39,5 @@ yarn-error.*
 .vercel
 
 .env
+# Google service-account key — backend credential, must NOT be committed
+firebase.json
