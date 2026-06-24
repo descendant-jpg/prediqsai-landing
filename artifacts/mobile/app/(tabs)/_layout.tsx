@@ -3,8 +3,11 @@ import { BrainCircuit, Crosshair, DollarSign, LayoutGrid, User } from "lucide-re
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+
+const BASE_TAB_HEIGHT = 62;
 
 const CYAN    = "#00E5FF";
 const MUTED   = "#3A5060";
@@ -38,7 +41,11 @@ function TabIcon({
 
 export default function TabLayout() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const isIOS  = Platform.OS === "ios";
+
+  // Extra breathing room above Android's nav buttons; iOS home indicator already covered by inset.
+  const androidExtra = Platform.OS === "android" ? 10 : 0;
 
   return (
     <Tabs
@@ -52,7 +59,10 @@ export default function TabLayout() {
           borderTopWidth: 1,
           borderTopColor: "#131E2E",
           elevation: 0,
-          height: 62 + (isIOS ? 0 : 0),
+          // Grow the bar by the safe-area inset so icons keep their full BASE_TAB_HEIGHT…
+          height: BASE_TAB_HEIGHT + insets.bottom + androidExtra,
+          // …and push content above the system nav bar / home indicator.
+          paddingBottom: insets.bottom + androidExtra,
         },
         tabBarBackground: () =>
           isIOS ? (
