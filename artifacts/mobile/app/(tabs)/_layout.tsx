@@ -122,7 +122,6 @@ export default function TabLayout() {
       {/* Hidden screens — still accessible via router.push */}
       <Tabs.Screen name="soccer"       options={{ href: null }} />
       <Tabs.Screen name="performance"  options={{ href: null }} />
-      <Tabs.Screen name="learning-hub" options={{ href: null }} />
     </Tabs>
   );
 }
