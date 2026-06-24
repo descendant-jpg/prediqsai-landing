@@ -1,3 +1,4 @@
 - [git push workflow](git-push-workflow.md) — bash blocks push; commit/push via code_execution + GitHub token; how to purge a secret blocked by push protection.
 - [Secret hygiene](secret-hygiene.md) — never commit firebase.json (it's a service-account key here); mobile builds use google-services.json (client config) only; rotate if leaked.
 - [Expo SDK version alignment](expo-sdk-version-alignment.md) — expo-* pkg vs SDK mismatch = native startup crash (NoSuchMethodError in expo-modules-core ReturnTypeKt); fix with `expo install --check`/`--fix`.
+- [i18n reactivity (mobile)](i18n-reactivity.md) — i18n-js: consume `t` from useLanguage() (not the singleton) or strings won't re-render; interpolation is `%{var}`; Arabic RTL needs restart.
