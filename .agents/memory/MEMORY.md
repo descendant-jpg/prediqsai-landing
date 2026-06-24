@@ -1,2 +1,3 @@
 - [git push workflow](git-push-workflow.md) — bash blocks push; commit/push via code_execution + GitHub token; how to purge a secret blocked by push protection.
 - [Secret hygiene](secret-hygiene.md) — never commit firebase.json (it's a service-account key here); mobile builds use google-services.json (client config) only; rotate if leaked.
+- [Expo SDK version alignment](expo-sdk-version-alignment.md) — expo-* pkg vs SDK mismatch = native startup crash (NoSuchMethodError in expo-modules-core ReturnTypeKt); fix with `expo install --check`/`--fix`.
