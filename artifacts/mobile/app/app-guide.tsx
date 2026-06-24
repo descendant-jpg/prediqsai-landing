@@ -53,11 +53,20 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useApp, type BettingExperience } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { setItem, STORAGE_KEYS } from "@/lib/storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const TOTAL = 10;
+
+/** Maps the betting-experience option keys to the canonical capitalized levels
+ * consumed by the global AppContext (and forwarded to the backend AI persona). */
+const EXPERIENCE_BY_KEY: Record<string, BettingExperience> = {
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
+  professional: "Professional",
+};
 
 type LucideIcon = React.ComponentType<{ size?: number; color?: string }>;
 
@@ -85,6 +94,7 @@ type GuideScreen =
       title: string;
       intro: string;
       options: CardItem[];
+      purpose?: "experience";
     }
   | {
       kind: "multi";
@@ -134,6 +144,7 @@ const SCREENS: GuideScreen[] = [
     title: "What's Your Betting Experience?",
     intro:
       "This helps us personalize your experience and recommend the right betting markets for you.",
+    purpose: "experience",
     options: [
       {
         key: "beginner",
@@ -404,6 +415,7 @@ export default function AppGuideScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { setBettingExperience, markAppGuideSeen } = useApp();
   const accent = colors.primary;
 
   const [index, setIndex] = useState(0);
@@ -439,7 +451,7 @@ export default function AppGuideScreen() {
 
   async function complete() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await setItem(STORAGE_KEYS.appGuideComplete, true);
+    await markAppGuideSeen();
     router.replace("/(tabs)");
   }
 
@@ -452,6 +464,13 @@ export default function AppGuideScreen() {
   function selectSingle(i: number, key: string) {
     Haptics.selectionAsync();
     setSingle((prev) => ({ ...prev, [i]: key }));
+    // When the user picks their betting experience, save it globally right away so
+    // their onboarding choice instantly configures the backend AI persona.
+    const screen = SCREENS[i];
+    if (screen.kind === "single" && screen.purpose === "experience") {
+      const level = EXPERIENCE_BY_KEY[key];
+      if (level) void setBettingExperience(level);
+    }
   }
 
   function toggleSport(key: string) {

@@ -9,6 +9,7 @@ import React, {
 
 import { useAuth } from "@/context/AuthContext";
 import { api, setApiExperience, type ApiBankrollEntry } from "@/lib/api";
+import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { BankrollEntry, EntryType, Tier, UserProfile } from "@/types";
 
 export const BETTING_EXPERIENCE_KEY = "@betting_experience";
@@ -44,6 +45,8 @@ interface AppContextValue {
   refreshBankroll: () => Promise<void>;
   bettingExperience: BettingExperience;
   setBettingExperience: (level: BettingExperience) => Promise<void>;
+  appGuideSeen: boolean | null;
+  markAppGuideSeen: () => Promise<void>;
   isLoaded: boolean;
 }
 
@@ -65,6 +68,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [bettingExperience, setBettingExperienceState] =
     useState<BettingExperience>(DEFAULT_EXPERIENCE);
+  // null = still hydrating from storage; gate logic waits for a concrete value.
+  const [appGuideSeen, setAppGuideSeen] = useState<boolean | null>(null);
+
+  // Hydrate the "has seen the app guide" flag from storage on mount.
+  useEffect(() => {
+    (async () => {
+      const seen = await getItem<boolean>(STORAGE_KEYS.appGuideComplete, false);
+      setAppGuideSeen(seen);
+    })();
+  }, []);
+
+  const markAppGuideSeen = useCallback(async () => {
+    setAppGuideSeen(true);
+    await setItem(STORAGE_KEYS.appGuideComplete, true);
+  }, []);
 
   // Hydrate betting experience from storage on mount (independent of auth) and
   // keep the API layer's outbound header in sync.
@@ -157,6 +175,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refreshBankroll,
         bettingExperience,
         setBettingExperience,
+        appGuideSeen,
+        markAppGuideSeen,
         isLoaded,
       }}
     >

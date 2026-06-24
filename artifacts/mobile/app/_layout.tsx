@@ -12,7 +12,7 @@ import { BootScreen } from "@/components/BootScreen";
 import { DisclaimerModal } from "@/components/DisclaimerModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider, useApp } from "@/context/AppContext";
 import { IAPProvider } from "@/context/IAPContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
@@ -54,6 +54,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { user, isLoading, pendingOnboarding, setPendingOnboarding } = useAuth();
+  const { appGuideSeen } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
@@ -62,21 +63,36 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboarding = segments[0] === "onboarding";
+    const inGuide = segments[0] === "app-guide";
 
     if (!user) {
       if (!inAuthGroup) router.replace("/(auth)/login");
       return;
     }
 
-    if (inAuthGroup || inOnboarding) {
-      if (pendingOnboarding) {
+    // Freshly registered users still run the disclaimer/preferences onboarding first.
+    if (pendingOnboarding) {
+      if (!inOnboarding) {
         setPendingOnboarding(false);
         router.replace("/onboarding");
-      } else {
-        router.replace("/(tabs)");
       }
+      return;
     }
-  }, [user, isLoading, segments, pendingOnboarding]);
+
+    // Wait for the persisted "seen the app guide" flag to hydrate before gating.
+    if (appGuideSeen === null) return;
+
+    // Anyone who hasn't seen the App Guide is sent through it before the dashboard.
+    if (!appGuideSeen) {
+      if (!inGuide && !inOnboarding) router.replace("/app-guide");
+      return;
+    }
+
+    // Guide already seen → leave the auth/onboarding screens for the dashboard.
+    if (inAuthGroup || inOnboarding) {
+      router.replace("/(tabs)");
+    }
+  }, [user, isLoading, segments, pendingOnboarding, appGuideSeen]);
 
   return (
     <Stack screenOptions={{ headerBackTitle: "Back", headerShown: false }}>
