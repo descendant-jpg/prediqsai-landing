@@ -258,7 +258,9 @@ router.post("/auth/google", async (req, res) => {
   }
 
   const token = signToken(user.id);
-  res.json({ token, user: publicUser(user) });
+  // `isNew` lets the client force first-run onboarding for accounts created via
+  // Google sign-in (existing accounts skip it).
+  res.json({ token, user: publicUser(user), isNew: !existing });
 });
 
 router.get("/auth/verify-email", async (req, res) => {

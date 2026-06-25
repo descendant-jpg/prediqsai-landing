@@ -53,8 +53,8 @@ if (Platform.OS === "web") {
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
-  const { user, isLoading, pendingOnboarding, setPendingOnboarding } = useAuth();
-  const { appGuideSeen } = useApp();
+  const { user, isLoading } = useAuth();
+  const { appGuideSeen, onboardingSeen } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
@@ -78,12 +78,14 @@ function RootLayoutNav() {
       return;
     }
 
-    // Freshly registered users still run the disclaimer/preferences onboarding first.
-    if (pendingOnboarding) {
-      if (!inOnboarding) {
-        setPendingOnboarding(false);
-        router.replace("/onboarding");
-      }
+    // Wait for the persisted onboarding flag to hydrate before gating.
+    if (onboardingSeen === null) return;
+
+    // Every newly registered user (email or Google) runs the disclaimer/
+    // preferences onboarding first. Driven by a persisted flag so a freshly
+    // activated auth token never boots a new user straight into the app.
+    if (!onboardingSeen) {
+      if (!inOnboarding) router.replace("/onboarding");
       return;
     }
 
@@ -100,7 +102,7 @@ function RootLayoutNav() {
     if (inAuthGroup || inOnboarding || inVerifyEmail) {
       router.replace("/(tabs)");
     }
-  }, [user, isLoading, segments, pendingOnboarding, appGuideSeen]);
+  }, [user, isLoading, segments, onboardingSeen, appGuideSeen]);
 
   return (
     <Stack screenOptions={{ headerBackTitle: "Back", headerShown: false }}>

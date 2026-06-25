@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { GOOGLE_CANCELLED, GOOGLE_UNAVAILABLE } from "@/lib/google";
@@ -152,6 +153,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { login, register, loginWithGoogle } = useAuth();
+  const { resetOnboarding } = useApp();
   const { language, setLanguage } = useLanguage();
 
   const [mode, setMode] = useState<Mode>("signin");
@@ -218,6 +220,11 @@ export default function LoginScreen() {
     setSuLoading(true);
     try {
       await register(suUsername.trim(), suEmail.trim().toLowerCase(), suPassword);
+      // Force first-run onboarding for the new account. Runs only after a
+      // successful register so a failed signup never flags a later sign-in.
+      // Email accounts hit the verify-email gate first, so the flag is set well
+      // before the onboarding gate is evaluated — no redirect race.
+      await resetOnboarding();
     } catch (err) {
       setSuError(err instanceof Error ? err.message : "Sign up failed");
     } finally {
@@ -252,8 +259,10 @@ export default function LoginScreen() {
 
     setGoogleLoading(true);
     try {
-      await loginWithGoogle();
-      // Root guard routes the user into the app on success.
+      const { isNew } = await loginWithGoogle();
+      // First-time Google accounts must run onboarding too; existing accounts
+      // keep their completed flag. Root guard handles the actual navigation.
+      if (isNew) await resetOnboarding();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Google sign-in failed";
       if (msg === GOOGLE_CANCELLED) return;
