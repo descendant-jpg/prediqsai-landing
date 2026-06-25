@@ -36,6 +36,7 @@ import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { TierGate } from "@/components/TierGate";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type CoachData } from "@/lib/api";
 import type { BankrollEntry, EntryType } from "@/types";
@@ -44,11 +45,11 @@ type FinanceTab = "bankroll" | "performance" | "paper";
 
 type IconComp = React.ComponentType<{ size: number; color: string }>;
 
-const ENTRY_TYPES: { type: EntryType; label: string; Icon: IconComp; color: string }[] = [
-  { type: "deposit",    label: "Deposit",  Icon: PlusCircle,   color: "#00FF94" },
-  { type: "withdrawal", label: "Withdraw", Icon: MinusCircle,  color: "#FF6B35" },
-  { type: "win",        label: "Win",      Icon: TrendingUp,   color: "#00E5FF" },
-  { type: "loss",       label: "Loss",     Icon: TrendingDown, color: "#FF4D4D" },
+const ENTRY_TYPES: { type: EntryType; labelKey: string; Icon: IconComp; color: string }[] = [
+  { type: "deposit",    labelKey: "bankroll.typeDeposit",    Icon: PlusCircle,   color: "#00FF94" },
+  { type: "withdrawal", labelKey: "bankroll.typeWithdrawal", Icon: MinusCircle,  color: "#FF6B35" },
+  { type: "win",        labelKey: "bankroll.typeWin",        Icon: TrendingUp,   color: "#00E5FF" },
+  { type: "loss",       labelKey: "bankroll.typeLoss",       Icon: TrendingDown, color: "#FF4D4D" },
 ];
 
 function getColor(sport: string) {
@@ -62,6 +63,7 @@ function getColor(sport: string) {
 // ── Kelly Calculator ──────────────────────────────────────────────────────────
 function KellyCalculator() {
   const colors = useColors();
+  const { t } = useLanguage();
   const { profile } = useApp();
   const [odds,        setOdds]        = useState("");
   const [probability, setProbability] = useState("");
@@ -87,36 +89,36 @@ function KellyCalculator() {
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View style={styles.cardHeader}>
         <Cpu size={18} color={colors.cyan} />
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Statistical Stake Calculator</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t("bankroll.kellyTitle")}</Text>
       </View>
       <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
-        Calculate suggested stake using statistical analysis
+        {t("bankroll.kellyDesc")}
       </Text>
       <View style={styles.kellyInputs}>
         <View style={styles.kellyField}>
-          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>American Odds</Text>
+          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>{t("bankroll.kellyAmericanOdds")}</Text>
           <TextInput
             style={[styles.kellyInput, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
-            value={odds} onChangeText={setOdds} placeholder="e.g. -110" keyboardType="numeric" placeholderTextColor={colors.textMuted}
+            value={odds} onChangeText={setOdds} placeholder={t("bankroll.kellyOddsExample")} keyboardType="numeric" placeholderTextColor={colors.textMuted}
           />
         </View>
         <View style={styles.kellyField}>
-          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>Win Prob. (%)</Text>
+          <Text style={[styles.kellyLabel, { color: colors.textSecondary }]}>{t("bankroll.kellyWinProb")}</Text>
           <TextInput
             style={[styles.kellyInput, { color: colors.text, backgroundColor: colors.background, borderColor: colors.border }]}
-            value={probability} onChangeText={setProbability} placeholder="e.g. 65" keyboardType="numeric" placeholderTextColor={colors.textMuted}
+            value={probability} onChangeText={setProbability} placeholder={t("bankroll.kellyProbExample")} keyboardType="numeric" placeholderTextColor={colors.textMuted}
           />
         </View>
       </View>
       <TouchableOpacity style={[styles.calcBtn, { backgroundColor: colors.cyan }]} onPress={calculate} activeOpacity={0.85}>
-        <Text style={[styles.calcBtnText, { color: colors.background }]}>Calculate Stake</Text>
+        <Text style={[styles.calcBtnText, { color: colors.background }]}>{t("bankroll.kellyCalculate")}</Text>
       </TouchableOpacity>
       {result !== null && (
         <View style={[styles.kellyResult, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Text style={[styles.kellyResultLabel, { color: colors.textSecondary }]}>Recommended Stake</Text>
+          <Text style={[styles.kellyResultLabel, { color: colors.textSecondary }]}>{t("bankroll.kellyRecommended")}</Text>
           <Text style={[styles.kellyResultValue, { color: colors.cyan }]}>${result.toFixed(2)}</Text>
           <Text style={[styles.kellyResultPct, { color: colors.textMuted }]}>
-            {profile.bankroll > 0 ? ((result / profile.bankroll) * 100).toFixed(1) : "0.0"}% of bankroll
+            {t("bankroll.kellyOfBankroll", { pct: profile.bankroll > 0 ? ((result / profile.bankroll) * 100).toFixed(1) : "0.0" })}
           </Text>
         </View>
       )}
@@ -127,8 +129,9 @@ function KellyCalculator() {
 // ── Entry Row ─────────────────────────────────────────────────────────────────
 function EntryRow({ entry }: { entry: BankrollEntry }) {
   const colors = useColors();
+  const { t } = useLanguage();
   const isPositive = entry.type === "deposit" || entry.type === "win";
-  const config = ENTRY_TYPES.find((t) => t.type === entry.type)!;
+  const config = ENTRY_TYPES.find((e) => e.type === entry.type)!;
   return (
     <View style={[styles.entryRow, { borderBottomColor: colors.border }]}>
       <View style={[styles.entryIcon, { backgroundColor: `${config.color}18` }]}>
@@ -136,7 +139,7 @@ function EntryRow({ entry }: { entry: BankrollEntry }) {
       </View>
       <View style={styles.entryInfo}>
         <Text style={[styles.entryLabel, { color: colors.text }]}>
-          {config.label}{entry.description ? ` — ${entry.description}` : ""}
+          {t(config.labelKey)}{entry.description ? ` — ${entry.description}` : ""}
         </Text>
         <Text style={[styles.entryDate, { color: colors.textMuted }]}>
           {new Date(entry.createdAt).toLocaleDateString()}
@@ -152,6 +155,7 @@ function EntryRow({ entry }: { entry: BankrollEntry }) {
 // ── Bankroll Tab ──────────────────────────────────────────────────────────────
 function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
   const colors = useColors();
+  const { t, locale } = useLanguage();
   const { profile, bankrollEntries } = useApp();
   const { token } = useAuth();
   const [coachData, setCoachData] = useState<CoachData | null>(null);
@@ -175,13 +179,13 @@ function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
     <ScrollView contentContainerStyle={styles.tabContent} showsVerticalScrollIndicator={false}>
       {/* Balance Card */}
       <View style={[styles.balanceCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>Current Balance</Text>
+        <Text style={[styles.balanceLabel, { color: colors.textSecondary }]}>{t("bankroll.currentBalance")}</Text>
         <Text style={[styles.balance, { color: colors.gold }]}>
-          ${profile.bankroll.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          ${profile.bankroll.toLocaleString(locale, { minimumFractionDigits: 2 })}
         </Text>
         <View style={styles.limitSection}>
           <View style={styles.limitHeader}>
-            <Text style={[styles.limitLabel, { color: colors.textSecondary }]}>Daily Loss Limit</Text>
+            <Text style={[styles.limitLabel, { color: colors.textSecondary }]}>{t("bankroll.dailyLossLimit")}</Text>
             <Text style={[styles.limitValue, { color: lossPercent >= 80 ? colors.red : colors.textSecondary }]}>
               ${todayLoss.toFixed(0)} / ${profile.dailyLossLimit}
             </Text>
@@ -198,7 +202,7 @@ function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
             <View style={[styles.warningBanner, { backgroundColor: "rgba(255,77,77,0.1)", borderColor: "rgba(255,77,77,0.3)" }]}>
               <AlertTriangle size={14} color={colors.red} />
               <Text style={[styles.warningText, { color: colors.red }]}>
-                You've had a tough session. Consider taking a break.
+                {t("bankroll.toughSession")}
               </Text>
             </View>
           )}
@@ -209,9 +213,9 @@ function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
         <View style={[styles.emotionalBanner, { backgroundColor: "rgba(255,107,53,0.1)", borderColor: "rgba(255,107,53,0.3)" }]}>
           <AlertTriangle size={16} color="#FF6B35" />
           <View style={{ flex: 1, gap: 4 }}>
-            <Text style={[styles.emotionalTitle, { color: "#FF6B35" }]}>Emotional Decision Alert</Text>
+            <Text style={[styles.emotionalTitle, { color: "#FF6B35" }]}>{t("bankroll.emotionalTitle")}</Text>
             <Text style={[styles.emotionalText, { color: colors.textSecondary }]}>
-              {recentHourLosses.length} losses in 2 hours detected. Take a break before tracking more scenarios.
+              {t("bankroll.emotionalText", { count: recentHourLosses.length })}
             </Text>
           </View>
         </View>
@@ -223,28 +227,28 @@ function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
 
       {/* Action buttons */}
       <View style={styles.actionsRow}>
-        {ENTRY_TYPES.map((t) => (
+        {ENTRY_TYPES.map((et) => (
           <TouchableOpacity
-            key={t.type}
+            key={et.type}
             style={[styles.actionBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
             onPress={onAddEntry}
             activeOpacity={0.8}
           >
-            <t.Icon size={20} color={t.color} />
-            <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>{t.label}</Text>
+            <et.Icon size={20} color={et.color} />
+            <Text style={[styles.actionLabel, { color: colors.textSecondary }]}>{t(et.labelKey)}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <TierGate requiredTier="premium" customMessage="Kelly Criterion calculator requires Premium">
+      <TierGate requiredTier="premium" customMessage={t("bankroll.kellyGateMsg")}>
         <KellyCalculator />
       </TierGate>
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>History</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("bankroll.history")}</Text>
       {bankrollEntries.length === 0 ? (
         <View style={styles.emptyHistory}>
           <Inbox size={28} color={colors.textMuted} />
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No entries yet</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("bankroll.noEntries")}</Text>
         </View>
       ) : (
         <View style={[styles.historyList, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -261,6 +265,7 @@ function BankrollTab({ onAddEntry }: { onAddEntry: () => void }) {
 // ── Performance Tab ───────────────────────────────────────────────────────────
 function PerformanceTab() {
   const colors = useColors();
+  const { t } = useLanguage();
   const { token, user } = useAuth();
   const router = useRouter();
   const [data,      setData]      = useState<Awaited<ReturnType<typeof api.user.performance>> | null>(null);
@@ -271,7 +276,7 @@ function PerformanceTab() {
     if (!token) return;
     setError(""); setIsLoading(true);
     try { setData(await api.user.performance(token)); }
-    catch (e) { setError(e instanceof Error ? e.message : "Failed to load stats"); }
+    catch (e) { setError(e instanceof Error ? e.message : t("performance.loadError")); }
     finally   { setIsLoading(false); }
   }, [token]);
   useEffect(() => { load(); }, [load]);
@@ -286,10 +291,10 @@ function PerformanceTab() {
   const totalTierPicks = tiers.reduce((s, t) => s + t.count, 0);
 
   const overallStats = data ? [
-    { label: "Win Rate", value: hasActivity ? `${data.winRate}%` : "—",  sub: hasActivity ? `${data.totalBets} bets placed` : "No bets yet", positive: hasActivity ? data.winRate > 50 : null },
-    { label: "ROI",      value: hasActivity ? `${data.roi >= 0 ? "+" : ""}${data.roi}%` : "—", sub: "on deposited funds", positive: hasActivity ? data.roi > 0 : null },
-    { label: "AI Picks", value: `${data.predictionCount}`,              sub: `avg ${data.avgConfidence}% confidence`, positive: null },
-    { label: "Net P&L",  value: hasActivity ? `${data.netPnl >= 0 ? "+" : ""}$${Math.abs(data.netPnl).toFixed(0)}` : "—", sub: hasActivity ? (data.netPnl >= 0 ? "in profit" : "in losses") : "No activity", positive: hasActivity ? data.netPnl >= 0 : null },
+    { label: t("performance.winRate"), value: hasActivity ? `${data.winRate}%` : "—",  sub: hasActivity ? t("performance.betsPlaced", { count: data.totalBets }) : t("performance.noBetsYet"), positive: hasActivity ? data.winRate > 50 : null },
+    { label: t("performance.roi"),      value: hasActivity ? `${data.roi >= 0 ? "+" : ""}${data.roi}%` : "—", sub: t("performance.onDeposited"), positive: hasActivity ? data.roi > 0 : null },
+    { label: t("performance.aiPicks"), value: `${data.predictionCount}`,              sub: t("performance.avgConfidence", { pct: data.avgConfidence }), positive: null },
+    { label: t("performance.netPnl"),  value: hasActivity ? `${data.netPnl >= 0 ? "+" : ""}$${Math.abs(data.netPnl).toFixed(0)}` : "—", sub: hasActivity ? (data.netPnl >= 0 ? t("performance.inProfit") : t("performance.inLosses")) : t("performance.noActivity"), positive: hasActivity ? data.netPnl >= 0 : null },
   ] : [];
 
   return (
@@ -300,8 +305,8 @@ function PerformanceTab() {
     >
       <View style={styles.perfHeader}>
         <View>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance</Text>
-          <Text style={[styles.perfSubtitle, { color: colors.textSecondary }]}>Your analytics · 30-day window</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("performance.title")}</Text>
+          <Text style={[styles.perfSubtitle, { color: colors.textSecondary }]}>{t("performance.subtitle")}</Text>
         </View>
         <TouchableOpacity
           style={[styles.leaderboardBtn, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.35)" }]}
@@ -309,7 +314,7 @@ function PerformanceTab() {
           activeOpacity={0.8}
         >
           <Trophy size={14} color={colors.gold} />
-          <Text style={[styles.leaderboardBtnText, { color: colors.gold }]}>Leaderboard</Text>
+          <Text style={[styles.leaderboardBtnText, { color: colors.gold }]}>{t("performance.leaderboard")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -345,9 +350,9 @@ function PerformanceTab() {
 
       {!hasActivity && !isLoading && (
         <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.emptyCardTitle, { color: colors.text }]}>No activity yet</Text>
+          <Text style={[styles.emptyCardTitle, { color: colors.text }]}>{t("performance.noActivityTitle")}</Text>
           <Text style={[styles.emptyCardText, { color: colors.textSecondary }]}>
-            Log results in the Bankroll tab to track your performance here.
+            {t("performance.noActivityText")}
           </Text>
           <View style={{ flexDirection: "row", gap: 12 }}>
             <TrendingUp size={20} color={colors.green} />
@@ -358,7 +363,7 @@ function PerformanceTab() {
 
       {sportEntries.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>By Sport</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("performance.bySport")}</Text>
           <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             {sportEntries.map(([sport, stats], i) => {
               const color = getColor(sport);
@@ -371,9 +376,9 @@ function PerformanceTab() {
                     <View style={[styles.sportBarBg, { backgroundColor: colors.border }]}>
                       <View style={[styles.sportBarFill, { width: `${Math.min(pct, 100)}%` as never, backgroundColor: color }]} />
                     </View>
-                    <Text style={[styles.sportWinRate, { color }]}>{stats.picks} picks</Text>
+                    <Text style={[styles.sportWinRate, { color }]}>{t("performance.picksCount", { count: stats.picks })}</Text>
                   </View>
-                  <Text style={[styles.sportConf, { color: colors.textSecondary }]}>{stats.avgConfidence}% avg</Text>
+                  <Text style={[styles.sportConf, { color: colors.textSecondary }]}>{t("performance.avgShort", { pct: stats.avgConfidence })}</Text>
                 </View>
               );
             })}
@@ -383,12 +388,12 @@ function PerformanceTab() {
 
       {tiers.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Confidence Tiers</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("performance.confidenceTiers")}</Text>
           <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.tableHeaderText, { color: colors.textMuted, flex: 2 }]}>Tier</Text>
-              <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Picks</Text>
-              <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Share</Text>
+              <Text style={[styles.tableHeaderText, { color: colors.textMuted, flex: 2 }]}>{t("performance.colTier")}</Text>
+              <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>{t("performance.colPicks")}</Text>
+              <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>{t("performance.colShare")}</Text>
             </View>
             {tiers.map((row, i) => (
               <View key={i} style={[styles.tableRow, i < tiers.length - 1 && { borderBottomColor: colors.border, borderBottomWidth: 1 }]}>
@@ -410,7 +415,7 @@ function PerformanceTab() {
           activeOpacity={0.8}
         >
           <Settings size={16} color={colors.textMuted} />
-          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>API Keys Setup Guide</Text>
+          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>{t("performance.apiKeysGuide")}</Text>
           <ChevronRight size={14} color={colors.textMuted} />
         </TouchableOpacity>
       )}
@@ -423,18 +428,19 @@ function PerformanceTab() {
 // ── Paper Bets Tab ────────────────────────────────────────────────────────────
 function PaperBetsTab() {
   const colors = useColors();
+  const { t } = useLanguage();
   return (
     <ScrollView contentContainerStyle={[styles.tabContent, { alignItems: "center", paddingTop: 48 }]} showsVerticalScrollIndicator={false}>
       <Text style={{ fontSize: 52, marginBottom: 16 }}>📝</Text>
-      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Paper Bets</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t("bankroll.paperBets")}</Text>
       <Text style={[styles.cardDesc, { color: colors.textSecondary, textAlign: "center", maxWidth: 280 }]}>
-        Practice betting with virtual money — no risk, real learning.{"\n\n"}Track your strategy before committing real funds.
+        {t("bankroll.paperDesc")}
       </Text>
       <View style={[styles.comingSoonBadge, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: "rgba(0,229,255,0.2)" }]}>
-        <Text style={[styles.comingSoonText, { color: "#00E5FF" }]}>Coming Soon</Text>
+        <Text style={[styles.comingSoonText, { color: "#00E5FF" }]}>{t("bankroll.comingSoon")}</Text>
       </View>
       <View style={{ gap: 10, width: "100%", marginTop: 32 }}>
-        {["Virtual bankroll — start with $1,000", "Simulated P&L tracking", "Auto-settle against AI predictions", "Compare paper vs. real performance"].map((f) => (
+        {[t("bankroll.paperFeat1"), t("bankroll.paperFeat2"), t("bankroll.paperFeat3"), t("bankroll.paperFeat4")].map((f) => (
           <View key={f} style={[styles.featureRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={{ color: "#00E5FF", fontSize: 16 }}>✓</Text>
             <Text style={[styles.featureText, { color: colors.textSecondary }]}>{f}</Text>
@@ -448,6 +454,7 @@ function PaperBetsTab() {
 // ── Main Finance Screen ───────────────────────────────────────────────────────
 export default function FinanceScreen() {
   const colors = useColors();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { bankrollEntries, addEntry } = useApp();
 
@@ -470,37 +477,37 @@ export default function FinanceScreen() {
       await addEntry({ type: selectedType, amount: parsed, description: note.trim() || undefined });
       setAmount(""); setNote(""); setModalVisible(false);
     } catch (err) {
-      Alert.alert("Error", err instanceof Error ? err.message : "Failed to add entry");
+      Alert.alert(t("bankroll.errorTitle"), err instanceof Error ? err.message : t("bankroll.addEntryError"));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   const SUB_TABS: { key: FinanceTab; label: string }[] = [
-    { key: "bankroll",   label: "Bankroll"    },
-    { key: "performance", label: "Performance" },
-    { key: "paper",      label: "Paper Bets"  },
+    { key: "bankroll",   label: t("bankroll.tabBankroll")    },
+    { key: "performance", label: t("bankroll.tabPerformance") },
+    { key: "paper",      label: t("bankroll.tabPaper")  },
   ];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPadding + 16, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <Text style={[styles.screenTitle, { color: colors.text }]}>Finance</Text>
+        <Text style={[styles.screenTitle, { color: colors.text }]}>{t("bankroll.financeTitle")}</Text>
 
         {/* Sub-tab bar */}
         <View style={styles.subTabRow}>
-          {SUB_TABS.map((t) => {
-            const active = t.key === activeTab;
+          {SUB_TABS.map((st) => {
+            const active = st.key === activeTab;
             return (
               <TouchableOpacity
-                key={t.key}
+                key={st.key}
                 style={[styles.subTab, active && { borderBottomColor: "#00E5FF", borderBottomWidth: 2 }]}
-                onPress={() => setActiveTab(t.key)}
+                onPress={() => setActiveTab(st.key)}
                 activeOpacity={0.75}
               >
                 <Text style={[styles.subTabText, { color: active ? "#00E5FF" : colors.textSecondary }]}>
-                  {t.label}
+                  {st.label}
                 </Text>
               </TouchableOpacity>
             );
@@ -520,27 +527,27 @@ export default function FinanceScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Add Entry</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t("bankroll.addEntry")}</Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <X size={24} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
           <View style={styles.modalBody}>
             <View style={styles.typeRow}>
-              {ENTRY_TYPES.map((t) => (
+              {ENTRY_TYPES.map((et) => (
                 <TouchableOpacity
-                  key={t.type}
-                  style={[styles.typeBtn, { backgroundColor: selectedType === t.type ? `${t.color}22` : colors.card, borderColor: selectedType === t.type ? t.color : colors.border }]}
-                  onPress={() => setSelectedType(t.type)}
+                  key={et.type}
+                  style={[styles.typeBtn, { backgroundColor: selectedType === et.type ? `${et.color}22` : colors.card, borderColor: selectedType === et.type ? et.color : colors.border }]}
+                  onPress={() => setSelectedType(et.type)}
                   activeOpacity={0.8}
                 >
-                  <t.Icon size={16} color={t.color} />
-                  <Text style={[styles.typeBtnText, { color: selectedType === t.type ? t.color : colors.textSecondary }]}>{t.label}</Text>
+                  <et.Icon size={16} color={et.color} />
+                  <Text style={[styles.typeBtnText, { color: selectedType === et.type ? et.color : colors.textSecondary }]}>{t(et.labelKey)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <View style={styles.field}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Amount ($)</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t("bankroll.amountLabel")}</Text>
               <TextInput
                 style={[styles.fieldInput, { color: colors.text, backgroundColor: colors.card, borderColor: colors.border }]}
                 value={amount} onChangeText={setAmount} placeholder="0.00"
@@ -548,10 +555,10 @@ export default function FinanceScreen() {
               />
             </View>
             <View style={styles.field}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Note (optional)</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t("bankroll.noteLabel")}</Text>
               <TextInput
                 style={[styles.fieldInput, { color: colors.text, backgroundColor: colors.card, borderColor: colors.border }]}
-                value={note} onChangeText={setNote} placeholder="e.g. Chiefs vs Bills" placeholderTextColor={colors.textMuted}
+                value={note} onChangeText={setNote} placeholder={t("bankroll.notePlaceholder")} placeholderTextColor={colors.textMuted}
               />
             </View>
             <TouchableOpacity
@@ -559,7 +566,7 @@ export default function FinanceScreen() {
               onPress={handleAddEntry} disabled={!amount || isSubmitting} activeOpacity={0.85}
             >
               <Text style={[styles.submitText, { color: colors.background }]}>
-                {isSubmitting ? "Saving…" : "Add Entry"}
+                {isSubmitting ? t("bankroll.saving") : t("bankroll.addEntry")}
               </Text>
             </TouchableOpacity>
           </View>

@@ -20,68 +20,22 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 
 const TOOLS = [
-  {
-    id: "chat",
-    emoji: "💬",
-    Icon: MessageCircle,
-    title: "Oracle AI Chat",
-    desc: "Ask anything about sports, bets, or predictions",
-    route: "/oracle-chat",
-    color: "#00E5FF",
-  },
-  {
-    id: "slip",
-    emoji: "📋",
-    Icon: ScanLine,
-    title: "Slip Analyzer",
-    desc: "Upload your bet slip for instant AI review",
-    route: "/slip-analysis",
-    color: "#FFD700",
-  },
-  {
-    id: "arb",
-    emoji: "🔄",
-    Icon: RefreshCw,
-    title: "ARB Scanner",
-    desc: "Find guaranteed profit opportunities across bookmakers",
-    route: "/arbitrage",
-    color: "#00FF94",
-  },
-  {
-    id: "replay",
-    emoji: "📖",
-    Icon: BarChart2,
-    title: "Prediction Replay",
-    desc: "Review past AI predictions and accuracy breakdown",
-    route: "/performance",
-    color: "#FF6B35",
-  },
-  {
-    id: "bookmaker",
-    emoji: "🏦",
-    Icon: Search,
-    title: "Research Center",
-    desc: "World Cup 2026 insights, odds analysis & more",
-    route: "/worldcup",
-    color: "#A855F7",
-  },
-  {
-    id: "coaching",
-    emoji: "📚",
-    Icon: BookOpen,
-    title: "Betting Coach",
-    desc: "Personalised bankroll advice and risk coaching",
-    route: "/bankroll",
-    color: "#EC4899",
-  },
+  { id: "chat",      emoji: "💬", Icon: MessageCircle, route: "/oracle-chat",   color: "#00E5FF" },
+  { id: "slip",      emoji: "📋", Icon: ScanLine,      route: "/slip-analysis", color: "#FFD700" },
+  { id: "arb",       emoji: "🔄", Icon: RefreshCw,     route: "/arbitrage",     color: "#00FF94" },
+  { id: "replay",    emoji: "📖", Icon: BarChart2,     route: "/performance",   color: "#FF6B35" },
+  { id: "bookmaker", emoji: "🏦", Icon: Search,        route: "/worldcup",      color: "#A855F7" },
+  { id: "coaching",  emoji: "📚", Icon: BookOpen,      route: "/bankroll",      color: "#EC4899" },
 ] as const;
 
 export default function AssistantHubScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
@@ -99,10 +53,10 @@ export default function AssistantHubScreen() {
         </View>
         <Text style={[styles.title, { color: colors.text }]}>PrediQs AI</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Sports Intelligence Engine
+          {t("assistant.subtitle")}
         </Text>
         <View style={[styles.tagRow]}>
-          {["5 AI Models", "Real-time Data", "40+ Bookmakers"].map((tag) => (
+          {[t("assistant.tags.models"), t("assistant.tags.realtime"), t("assistant.tags.bookmakers")].map((tag) => (
             <View key={tag} style={[styles.tag, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: "rgba(0,229,255,0.2)" }]}>
               <Text style={[styles.tagText, { color: colors.cyan }]}>{tag}</Text>
             </View>
@@ -123,9 +77,9 @@ export default function AssistantHubScreen() {
               <Text style={{ fontSize: 22 }}>{tool.emoji}</Text>
             </View>
             <View style={styles.tileBody}>
-              <Text style={[styles.tileName, { color: colors.text }]}>{tool.title}</Text>
+              <Text style={[styles.tileName, { color: colors.text }]}>{t(`assistant.tools.${tool.id}.title`)}</Text>
               <Text style={[styles.tileDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                {tool.desc}
+                {t(`assistant.tools.${tool.id}.desc`)}
               </Text>
             </View>
             <ArrowRight size={16} color={colors.textMuted} />
@@ -141,16 +95,16 @@ export default function AssistantHubScreen() {
       >
         <Text style={{ fontSize: 20 }}>💬</Text>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.ctaTitle, { color: colors.cyan }]}>Start a conversation</Text>
+          <Text style={[styles.ctaTitle, { color: colors.cyan }]}>{t("assistant.startTitle")}</Text>
           <Text style={[styles.ctaDesc, { color: colors.textSecondary }]}>
-            Ask about tonight's picks, injury news, or betting strategies
+            {t("assistant.startDesc")}
           </Text>
         </View>
         <ArrowRight size={18} color={colors.cyan} />
       </TouchableOpacity>
 
       <Text style={[styles.disclaimer, { color: colors.textMuted }]}>
-        For informational and educational purposes only. Always gamble responsibly.
+        {t("assistant.disclaimer")}
       </Text>
     </ScrollView>
   );

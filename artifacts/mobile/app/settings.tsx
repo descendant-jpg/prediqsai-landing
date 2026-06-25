@@ -5,6 +5,7 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, T
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api } from "@/lib/api";
 
@@ -22,86 +23,41 @@ export const UPGRADE_PRICE: Record<Tier, string> = {
   premium: "$19.99/mo",
 };
 
-// ─── Tier card features (compact) ─────────────────────────────────────────────
+// ─── Tier card meta (colors/badges; labels & features come from i18n) ──────────
 
-const TIER_CARDS: {
+type TierMeta = {
   key: Tier;
-  label: string;
   color: string;
-  badge: string | null;
   badgeIcon: "star" | "crown" | null;
-  cardFeatures: string[];
-}[] = [
-  {
-    key: "free",
-    label: "Free",
-    color: "#94A3B8",
-    badge: null,
-    badgeIcon: null,
-    cardFeatures: [
-      "2 picks/day (soccer + PL only)",
-      "Basic confidence %",
-      "3 Oracle AI messages/day",
-      "Bankroll tracker (basic)",
-      "Leaderboard (view only)",
-    ],
-  },
-  {
-    key: "premium",
-    label: "Premium",
-    color: "#FFD700",
-    badge: "⭐ BEST VALUE",
-    badgeIcon: "star",
-    cardFeatures: [
-      "Unlimited picks all sports & leagues",
-      "Full AI reasoning + risk badges",
-      "ARB Scanner (40+ bookmakers)",
-      "Slip Analyzer (unlimited)",
-      "Unlimited Oracle AI",
-      "Full match detail, H2H & stats",
-      "Kelly Calculator + ROI charts",
-      "World Cup 2026 full coverage",
-      "All notifications & alerts",
-    ],
-  },
+  hasBadge: boolean;
+};
+
+const TIER_META: TierMeta[] = [
+  { key: "free",    color: "#94A3B8", badgeIcon: null,   hasBadge: false },
+  { key: "premium", color: "#FFD700", badgeIcon: "star", hasBadge: true  },
 ];
 
-// ─── Active features per tier ─────────────────────────────────────────────────
+// ─── Active feature flags per tier (labels come from i18n by index) ────────────
 
-type FeatureItem = { label: string; active: boolean; requiredTier?: "premium" };
+type FeatureFlag = { active: boolean; requiredTier?: "premium" };
+type FeatureItem = FeatureFlag & { label: string };
 
-const TIER_ACTIVE_FEATURES: Record<Tier, FeatureItem[]> = {
-  free: [
-    { label: "2 AI picks per day (soccer only)", active: true },
-    { label: "Premier League picks only", active: true },
-    { label: "Basic confidence %", active: true },
-    { label: "3 Oracle AI messages per day", active: true },
-    { label: "Leaderboard (view only)", active: true },
-    { label: "Bankroll tracker (basic)", active: true },
-    { label: "Unlimited picks all sports", active: false, requiredTier: "premium" },
-    { label: "Full AI reasoning & risk badges", active: false, requiredTier: "premium" },
-    { label: "ARB Scanner (40+ bookmakers)", active: false, requiredTier: "premium" },
-    { label: "Slip Analyzer (unlimited)", active: false, requiredTier: "premium" },
-    { label: "Match detail & H2H stats", active: false, requiredTier: "premium" },
-    { label: "Kelly Criterion calculator", active: false, requiredTier: "premium" },
-    { label: "Performance charts & ROI", active: false, requiredTier: "premium" },
-    { label: "World Cup 2026 predictions", active: false, requiredTier: "premium" },
-  ],
-  premium: [
-    { label: "Unlimited picks all sports & leagues", active: true },
-    { label: "Full AI reasoning + risk badges", active: true },
-    { label: "ARB Scanner (40+ bookmakers)", active: true },
-    { label: "Slip Analyzer (unlimited)", active: true },
-    { label: "Unlimited Oracle AI", active: true },
-    { label: "Full match detail, H2H & stats", active: true },
-    { label: "Kelly Criterion calculator", active: true },
-    { label: "Performance charts & ROI", active: true },
-    { label: "World Cup 2026 full coverage", active: true },
-    { label: "All notification types", active: true },
-    { label: "Community access + tipsters", active: true },
-    { label: "Priority support", active: true },
-  ],
-};
+const FREE_ACTIVE_FLAGS: FeatureFlag[] = [
+  { active: true },
+  { active: true },
+  { active: true },
+  { active: true },
+  { active: true },
+  { active: true },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+  { active: false, requiredTier: "premium" },
+];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -109,6 +65,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useLanguage();
   const { user, token, logout, refreshUser } = useAuth();
   const [isChangingTier, setIsChangingTier] = useState(false);
   const [annualMode, setAnnualMode] = useState(false);
@@ -143,10 +100,10 @@ export default function SettingsScreen() {
         setShowSecretModal(false);
         router.push("/admin");
       } else {
-        setSecretError("Incorrect password.");
+        setSecretError(t("settings.incorrectPassword"));
       }
     } catch {
-      setSecretError("Verification failed. Try again.");
+      setSecretError(t("settings.verifyFailed"));
     } finally {
       setSecretLoading(false);
     }
@@ -159,9 +116,9 @@ export default function SettingsScreen() {
     if (!token || tier === user?.tier || isChangingTier) return;
     if (!user?.isAdmin) {
       Alert.alert(
-        "Subscriptions Coming Soon",
-        "Full payment processing is launching very soon. You'll be notified when upgrades go live!",
-        [{ text: "Got it" }],
+        t("settings.subsComingTitle"),
+        t("settings.subsComingBody"),
+        [{ text: t("settings.gotIt") }],
       );
       return;
     }
@@ -170,7 +127,7 @@ export default function SettingsScreen() {
       await api.subscription.setTier(token, tier);
       await refreshUser();
     } catch (err) {
-      Alert.alert("Error", err instanceof Error ? err.message : "Failed to change tier");
+      Alert.alert(t("settings.errorTitle"), err instanceof Error ? err.message : t("settings.failedChangeTier"));
     } finally {
       setIsChangingTier(false);
     }
@@ -182,11 +139,11 @@ export default function SettingsScreen() {
       router.replace("/(auth)/login");
     } catch {
       if (Platform.OS === "web") {
-        window.alert("Something went wrong while signing out. Please try again.");
+        window.alert(t("settings.signOutFailedBody"));
       } else {
         Alert.alert(
-          "Sign Out Failed",
-          "Something went wrong while signing out. Please try again.",
+          t("settings.signOutFailedTitle"),
+          t("settings.signOutFailedBody"),
         );
       }
     }
@@ -196,38 +153,61 @@ export default function SettingsScreen() {
     // React Native Web's Alert.alert ignores the buttons array, so use the
     // browser's native confirm on web and the RN Alert on native devices.
     if (Platform.OS === "web") {
-      if (window.confirm("Are you sure you want to sign out?")) {
+      if (window.confirm(t("settings.signOutConfirm"))) {
         performLogout();
       }
       return;
     }
 
     Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
+      t("settings.signOutTitle"),
+      t("settings.signOutConfirm"),
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Sign Out", style: "destructive", onPress: performLogout },
+        { text: t("settings.cancel"), style: "cancel" },
+        { text: t("settings.signOut"), style: "destructive", onPress: performLogout },
       ],
     );
   }
 
   const rawTier = user?.tier ?? "free";
   const currentTier: Tier = rawTier === "premium" ? "premium" : "free";
-  const currentCard = TIER_CARDS.find((t) => t.key === currentTier)!;
-  const activeFeatures = TIER_ACTIVE_FEATURES[currentTier];
+
+  const tierLabel: Record<Tier, string> = {
+    free:    t("settings.tierFree"),
+    premium: t("settings.tierPremium"),
+  };
+  const tierCardFeatures: Record<Tier, string[]> = {
+    free:    t("settings.freeCardFeatures") as unknown as string[],
+    premium: t("settings.premiumCardFeatures") as unknown as string[],
+  };
+
+  const tierCards = TIER_META.map((meta) => ({
+    ...meta,
+    label: tierLabel[meta.key],
+    badge: meta.hasBadge ? t("settings.bestValue") : null,
+    cardFeatures: tierCardFeatures[meta.key],
+  }));
+
+  const currentCardMeta = tierCards.find((tc) => tc.key === currentTier)!;
+
+  const freeLabels = t("settings.freeActiveFeatures") as unknown as string[];
+  const premiumLabels = t("settings.premiumActiveFeatures") as unknown as string[];
+  const activeFeatures: FeatureItem[] =
+    currentTier === "premium"
+      ? premiumLabels.map((label) => ({ label, active: true }))
+      : freeLabels.map((label, i) => ({ label, ...FREE_ACTIVE_FLAGS[i] }));
 
   function priceLabel(key: Tier): string {
-    if (key === "free") return "$0 forever";
+    if (key === "free") return t("settings.freeForever");
     const p = TIER_PRICING[key];
-    if (annualMode) return `$${p.annual}/year`;
-    return `$${p.monthly}/mo`;
+    if (annualMode) return t("settings.priceAnnual", { amount: p.annual });
+    return t("settings.priceMonthly", { amount: p.monthly });
   }
 
   function annualSaveLabel(key: Tier): string | null {
     if (key === "free") return null;
     const p = TIER_PRICING[key];
-    return annualMode ? `💚 Save $${p.annualSave.toFixed(2)}/year with annual` : null;
+    return annualMode ? t("settings.annualSaveLabel", { amount: p.annualSave.toFixed(2) }) : null;
   }
 
   return (
@@ -241,7 +221,7 @@ export default function SettingsScreen() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <ArrowLeft size={22} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.pageTitle, { color: colors.text }]}>Settings</Text>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>{t("settings.title")}</Text>
           <View style={{ width: 22 }} />
         </View>
 
@@ -250,9 +230,9 @@ export default function SettingsScreen() {
           <View style={[styles.betaBanner, { backgroundColor: "rgba(255,107,53,0.08)", borderColor: "rgba(255,107,53,0.25)" }]}>
             <Zap size={16} color="#FF6B35" />
             <View style={styles.betaText}>
-              <Text style={[styles.betaTitle, { color: "#FF6B35" }]}>Admin / Dev Mode Active</Text>
+              <Text style={[styles.betaTitle, { color: "#FF6B35" }]}>{t("settings.adminModeTitle")}</Text>
               <Text style={[styles.betaSub, { color: colors.textSecondary }]}>
-                You can switch tiers freely. This banner is only visible to admins.
+                {t("settings.adminModeSub")}
               </Text>
             </View>
           </View>
@@ -269,16 +249,16 @@ export default function SettingsScreen() {
             <Text style={[styles.profileName, { color: colors.text }]}>{user?.username ?? "—"}</Text>
             <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{user?.email ?? "—"}</Text>
           </View>
-          <View style={[styles.tierPill, { backgroundColor: `${currentCard.color}20`, borderColor: `${currentCard.color}50` }]}>
-            <Text style={[styles.tierPillText, { color: currentCard.color }]}>{currentCard.label}</Text>
+          <View style={[styles.tierPill, { backgroundColor: `${currentCardMeta.color}20`, borderColor: `${currentCardMeta.color}50` }]}>
+            <Text style={[styles.tierPillText, { color: currentCardMeta.color }]}>{currentCardMeta.label}</Text>
           </View>
         </View>
 
         {/* Subscription section */}
         <View style={styles.sectionLabel}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Plan</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("settings.yourPlan")}</Text>
           <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>
-            Compare plans and unlock more AI-powered features
+            {t("settings.yourPlanSub")}
           </Text>
         </View>
 
@@ -292,23 +272,23 @@ export default function SettingsScreen() {
                 onPress={() => setAnnualMode(false)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.toggleBtnText, { color: !annualMode ? colors.background : colors.textSecondary }]}>Monthly</Text>
+                <Text style={[styles.toggleBtnText, { color: !annualMode ? colors.background : colors.textSecondary }]}>{t("settings.monthly")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.toggleBtn, annualMode && { backgroundColor: "#00FF94", borderRadius: 8 }]}
                 onPress={() => setAnnualMode(true)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.toggleBtnText, { color: annualMode ? colors.background : colors.textSecondary }]}>Annual</Text>
+                <Text style={[styles.toggleBtnText, { color: annualMode ? colors.background : colors.textSecondary }]}>{t("settings.annual")}</Text>
                 <View style={[styles.savePill, { backgroundColor: annualMode ? "rgba(0,0,0,0.15)" : "rgba(0,255,148,0.15)" }]}>
-                  <Text style={[styles.savePillText, { color: annualMode ? colors.background : "#00FF94" }]}>Save ~10%</Text>
+                  <Text style={[styles.savePillText, { color: annualMode ? colors.background : "#00FF94" }]}>{t("settings.savePct")}</Text>
                 </View>
               </TouchableOpacity>
             </View>
 
             {/* Tier cards */}
             <View style={styles.tierGrid}>
-              {TIER_CARDS.map((tier) => {
+              {tierCards.map((tier) => {
                 const isActive = currentTier === tier.key;
                 const save = annualSaveLabel(tier.key);
                 return (
@@ -347,7 +327,7 @@ export default function SettingsScreen() {
                     <Text style={[styles.tierCardPrice, { color: isActive ? tier.color : colors.text }]}>{priceLabel(tier.key)}</Text>
                     {save && <Text style={[styles.annualSave, { color: "#00FF94" }]}>{save}</Text>}
                     {tier.key === "premium" && !annualMode && (
-                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>$216/year — save ~10%</Text>
+                      <Text style={[styles.annualHint, { color: colors.textMuted }]}>{t("settings.annualHint")}</Text>
                     )}
                     <View style={styles.tierFeatures}>
                       {tier.cardFeatures.map((f, i) => (
@@ -365,12 +345,12 @@ export default function SettingsScreen() {
         )}
 
         {/* Active features for current tier */}
-        <View style={[styles.activeCard, { backgroundColor: colors.card, borderColor: `${currentCard.color}30` }]}>
-          <Text style={[styles.activeCardTitle, { color: currentCard.color }]}>{currentCard.label} — Active Features</Text>
+        <View style={[styles.activeCard, { backgroundColor: colors.card, borderColor: `${currentCardMeta.color}30` }]}>
+          <Text style={[styles.activeCardTitle, { color: currentCardMeta.color }]}>{t("settings.activeFeaturesTitle", { tier: currentCardMeta.label })}</Text>
           {activeFeatures.map((item, i) => (
             <View key={i} style={styles.featureRow}>
               {item.active ? (
-                <CheckCircle size={14} color={currentCard.color} />
+                <CheckCircle size={14} color={currentCardMeta.color} />
               ) : (
                 <X size={14} color={colors.textMuted} />
               )}
@@ -378,7 +358,7 @@ export default function SettingsScreen() {
                 {item.label}
                 {!item.active && item.requiredTier ? (
                   <Text style={{ color: "#FFD700" }}>
-                    {" "}(Upgrade to Premium — $19.99/mo)
+                    {t("settings.upgradeInline")}
                   </Text>
                 ) : null}
               </Text>
@@ -394,21 +374,21 @@ export default function SettingsScreen() {
             activeOpacity={0.8}
           >
             <Star size={15} color="#FFD700" fill="#FFD700" />
-            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>⭐ Upgrade to Premium — $19.99/mo</Text>
+            <Text style={[styles.upgradeBtnText, { color: "#FFD700" }]}>{t("settings.upgradeCta")}</Text>
           </TouchableOpacity>
         )}
 
         {/* Admin */}
         {user?.isAdmin && (
           <>
-            <Text style={[styles.adminLabel, { color: colors.textMuted }]}>ADMIN</Text>
+            <Text style={[styles.adminLabel, { color: colors.textMuted }]}>{t("settings.admin")}</Text>
             <TouchableOpacity
               style={[styles.rowBtn, { backgroundColor: "rgba(168,85,247,0.08)", borderColor: "rgba(168,85,247,0.35)" }]}
               onPress={() => router.push("/admin")}
               activeOpacity={0.8}
             >
               <Shield size={18} color="#A855F7" />
-              <Text style={[styles.rowBtnText, { color: "#A855F7" }]}>Admin Panel</Text>
+              <Text style={[styles.rowBtnText, { color: "#A855F7" }]}>{t("settings.adminPanel")}</Text>
               <ChevronRight size={16} color="#A855F7" />
             </TouchableOpacity>
             <TouchableOpacity
@@ -417,21 +397,21 @@ export default function SettingsScreen() {
               activeOpacity={0.8}
             >
               <Settings size={18} color={colors.textSecondary} />
-              <Text style={[styles.rowBtnText, { color: colors.text }]}>API Keys Setup Guide</Text>
+              <Text style={[styles.rowBtnText, { color: colors.text }]}>{t("settings.apiKeysGuide")}</Text>
               <ChevronRight size={16} color={colors.textMuted} />
             </TouchableOpacity>
           </>
         )}
 
         {/* Legal */}
-        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>LEGAL</Text>
+        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>{t("settings.legal")}</Text>
         <TouchableOpacity
           style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
           onPress={() => router.push("/terms-of-service" as any)}
           activeOpacity={0.8}
         >
           <Text style={{ fontSize: 16 }}>📄</Text>
-          <Text style={[styles.rowBtnText, { color: colors.text }]}>Terms of Service</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>{t("settings.terms")}</Text>
           <ChevronRight size={16} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -440,7 +420,7 @@ export default function SettingsScreen() {
           activeOpacity={0.8}
         >
           <Shield size={18} color={colors.textSecondary} />
-          <Text style={[styles.rowBtnText, { color: colors.text }]}>Privacy Policy</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>{t("settings.privacy")}</Text>
           <ChevronRight size={16} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -449,7 +429,7 @@ export default function SettingsScreen() {
           activeOpacity={0.8}
         >
           <Text style={{ fontSize: 16 }}>🛡️</Text>
-          <Text style={[styles.rowBtnText, { color: colors.text }]}>Responsible Gambling</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>{t("settings.responsibleGambling")}</Text>
           <ChevronRight size={16} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -458,36 +438,36 @@ export default function SettingsScreen() {
           activeOpacity={0.8}
         >
           <Mail size={18} color={colors.textSecondary} />
-          <Text style={[styles.rowBtnText, { color: colors.text }]}>Contact Us</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>{t("settings.contactUs")}</Text>
           <Text style={[styles.rowBtnSub, { color: colors.textMuted }]}>support@prediqsai.com</Text>
         </TouchableOpacity>
 
         {/* App Info */}
-        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>APP INFO</Text>
+        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>{t("settings.appInfo")}</Text>
         <TouchableOpacity
           style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
           onPress={() => router.push("/about")}
           activeOpacity={0.8}
         >
           <Info size={18} color={colors.textSecondary} />
-          <Text style={[styles.rowBtnText, { color: colors.text }]}>About PrediQs AI</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>{t("settings.about")}</Text>
           <ChevronRight size={16} color={colors.textMuted} />
         </TouchableOpacity>
 
         {/* Account */}
-        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>ACCOUNT</Text>
+        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>{t("settings.account")}</Text>
         <TouchableOpacity
           style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
           onPress={handleLogout}
           activeOpacity={0.8}
         >
           <LogOut size={18} color="#FF4D4D" />
-          <Text style={[styles.rowBtnText, { color: "#FF4D4D" }]}>Sign Out</Text>
+          <Text style={[styles.rowBtnText, { color: "#FF4D4D" }]}>{t("settings.signOut")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleVersionTap} activeOpacity={0.8}>
           <Text style={[styles.footer, { color: versionTaps > 0 ? colors.cyan : colors.textMuted }]}>
-            PrediQs AI v1.0 — Beta{versionTaps > 0 ? ` (${7 - versionTaps} more…)` : ""}
+            {t("settings.versionFooter")}{versionTaps > 0 ? ` ${t("settings.moreCount", { count: 7 - versionTaps })}` : ""}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -498,12 +478,12 @@ export default function SettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: "rgba(168,85,247,0.4)" }]}>
             <Shield size={28} color="#A855F7" />
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Admin Access</Text>
-            <Text style={[styles.modalSub, { color: colors.textMuted }]}>Enter the admin password to continue</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t("settings.adminAccess")}</Text>
+            <Text style={[styles.modalSub, { color: colors.textMuted }]}>{t("settings.adminAccessSub")}</Text>
             <TextInput
               style={[styles.modalInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
               secureTextEntry
-              placeholder="Admin password"
+              placeholder={t("settings.adminPasswordPlaceholder")}
               placeholderTextColor={colors.textMuted}
               value={secretPassword}
               onChangeText={setSecretPassword}
@@ -516,14 +496,14 @@ export default function SettingsScreen() {
                 style={[styles.modalBtn, { borderColor: colors.border, backgroundColor: colors.background }]}
                 onPress={() => setShowSecretModal(false)}
               >
-                <Text style={{ color: colors.textMuted }}>Cancel</Text>
+                <Text style={{ color: colors.textMuted }}>{t("settings.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: "#A855F7", borderColor: "#A855F7", opacity: secretLoading ? 0.7 : 1 }]}
                 onPress={handleSecretLogin}
                 disabled={secretLoading}
               >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>{secretLoading ? "Checking…" : "Enter"}</Text>
+                <Text style={{ color: "#fff", fontWeight: "700" }}>{secretLoading ? t("settings.checking") : t("settings.enter")}</Text>
               </TouchableOpacity>
             </View>
           </View>

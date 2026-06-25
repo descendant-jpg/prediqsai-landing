@@ -16,6 +16,7 @@ import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { TierGate } from "@/components/TierGate";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 import { api, type PerformanceData } from "@/lib/api";
 
 const SPORT_COLORS: Record<string, string> = {
@@ -34,6 +35,7 @@ export default function PerformanceScreen() {
   const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [data, setData] = useState<PerformanceData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function PerformanceScreen() {
       const result = await api.user.performance(token);
       setData(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load stats");
+      setError(e instanceof Error ? e.message : t("performance.loadError"));
     } finally {
       setIsLoading(false);
     }
@@ -65,29 +67,29 @@ export default function PerformanceScreen() {
   const overallStats = data
     ? [
         {
-          label: "Win Rate",
+          label: t("performance.winRate"),
           value: hasActivity ? `${data.winRate}%` : "—",
-          sub: hasActivity ? `${data.totalBets} bets placed` : "No bets yet",
+          sub: hasActivity ? t("performance.betsPlaced", { count: data.totalBets }) : t("performance.noBetsYet"),
           positive: hasActivity ? data.winRate > 50 : null,
         },
         {
-          label: "ROI",
+          label: t("performance.roi"),
           value: hasActivity ? `${data.roi >= 0 ? "+" : ""}${data.roi}%` : "—",
-          sub: "on deposited funds",
+          sub: t("performance.onDeposited"),
           positive: hasActivity ? data.roi > 0 : null,
         },
         {
-          label: "AI Picks",
+          label: t("performance.aiPicks"),
           value: `${data.predictionCount}`,
-          sub: `avg ${data.avgConfidence}% confidence`,
+          sub: t("performance.avgConfidence", { pct: data.avgConfidence }),
           positive: null,
         },
         {
-          label: "Net P&L",
+          label: t("performance.netPnl"),
           value: hasActivity
             ? `${data.netPnl >= 0 ? "+" : ""}$${Math.abs(data.netPnl).toFixed(0)}`
             : "—",
-          sub: hasActivity ? (data.netPnl >= 0 ? "in profit" : "in losses") : "No activity",
+          sub: hasActivity ? (data.netPnl >= 0 ? t("performance.inProfit") : t("performance.inLosses")) : t("performance.noActivity"),
           positive: hasActivity ? data.netPnl >= 0 : null,
         },
       ]
@@ -127,8 +129,8 @@ export default function PerformanceScreen() {
     >
       <View style={styles.titleRow}>
         <View>
-          <Text style={[styles.title, { color: colors.text }]}>Performance</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your analytics · 30-day window</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("performance.title")}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("performance.subtitle")}</Text>
         </View>
         <TouchableOpacity
           style={[styles.leaderboardBtn, { backgroundColor: "rgba(255,215,0,0.1)", borderColor: "rgba(255,215,0,0.35)" }]}
@@ -136,7 +138,7 @@ export default function PerformanceScreen() {
           activeOpacity={0.8}
         >
           <Trophy size={14} color={colors.gold} />
-          <Text style={[styles.leaderboardBtnText, { color: colors.gold }]}>Leaderboard</Text>
+          <Text style={[styles.leaderboardBtnText, { color: colors.gold }]}>{t("performance.leaderboard")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -186,9 +188,9 @@ export default function PerformanceScreen() {
 
       {!hasActivity && !isLoading && (
         <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No activity yet</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t("performance.noActivityTitle")}</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Log results in the Sports Finance tab to track your performance here.
+            {t("performance.noActivityText")}
           </Text>
           <View style={styles.emptyIcons}>
             <TrendingUp size={20} color={colors.green} />
@@ -198,9 +200,9 @@ export default function PerformanceScreen() {
       )}
 
       {sportEntries.length > 0 && (
-        <TierGate requiredTier="premium" customMessage="Sport breakdown chart requires Premium">
+        <TierGate requiredTier="premium" customMessage={t("performance.bySportGate")}>
           <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>By Sport</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("performance.bySport")}</Text>
             <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               {sportEntries.map(([sport, stats], i) => {
                 const color = getColor(sport);
@@ -219,9 +221,9 @@ export default function PerformanceScreen() {
                       <View style={[styles.sportBarBg, { backgroundColor: colors.border }]}>
                         <View style={[styles.sportBarFill, { width: `${Math.min(pct, 100)}%` as never, backgroundColor: color }]} />
                       </View>
-                      <Text style={[styles.sportWinRate, { color: color }]}>{stats.picks} picks</Text>
+                      <Text style={[styles.sportWinRate, { color: color }]}>{t("performance.picksCount", { count: stats.picks })}</Text>
                     </View>
-                    <Text style={[styles.sportConf, { color: colors.textSecondary }]}>{stats.avgConfidence}% avg</Text>
+                    <Text style={[styles.sportConf, { color: colors.textSecondary }]}>{t("performance.avgShort", { pct: stats.avgConfidence })}</Text>
                   </View>
                 );
               })}
@@ -231,14 +233,14 @@ export default function PerformanceScreen() {
       )}
 
       {tiers.length > 0 && (
-        <TierGate requiredTier="premium" customMessage="Confidence tier breakdown requires Premium">
+        <TierGate requiredTier="premium" customMessage={t("performance.confidenceTiersGate")}>
           <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Confidence Tiers</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("performance.confidenceTiers")}</Text>
             <View style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.tableHeaderText, { color: colors.textMuted, flex: 2 }]}>Tier</Text>
-                <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Picks</Text>
-                <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>Share</Text>
+                <Text style={[styles.tableHeaderText, { color: colors.textMuted, flex: 2 }]}>{t("performance.colTier")}</Text>
+                <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>{t("performance.colPicks")}</Text>
+                <Text style={[styles.tableHeaderText, { color: colors.textMuted }]}>{t("performance.colShare")}</Text>
               </View>
               {tiers.map((row, i) => (
                 <View
@@ -267,7 +269,7 @@ export default function PerformanceScreen() {
           activeOpacity={0.8}
         >
           <Settings size={16} color={colors.textMuted} />
-          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>API Keys Setup Guide</Text>
+          <Text style={[styles.adminLinkText, { color: colors.textSecondary }]}>{t("performance.apiKeysGuide")}</Text>
           <ChevronRight size={14} color={colors.textMuted} />
         </TouchableOpacity>
       )}

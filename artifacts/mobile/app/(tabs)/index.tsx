@@ -26,6 +26,7 @@ import { PredictionFeedCard } from "@/components/dashboard/PredictionFeedCard";
 import { SportFilterChips } from "@/components/dashboard/SportFilterChips";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type ApiPrediction } from "@/lib/api";
 import {
@@ -93,12 +94,13 @@ const miniStyles = StyleSheet.create({
 
 function Countdown({ isoDate }: { isoDate: string }) {
   const colors = useColors();
+  const { t } = useLanguage();
   const [label, setLabel] = useState("");
 
   useEffect(() => {
     function update() {
       const diff = new Date(isoDate).getTime() - Date.now();
-      if (diff <= 0) { setLabel("Started"); return; }
+      if (diff <= 0) { setLabel(t("dashboard.countdownStarted")); return; }
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       setLabel(h > 0 ? `${h}h ${m}m` : `${m}m`);
@@ -106,7 +108,7 @@ function Countdown({ isoDate }: { isoDate: string }) {
     update();
     const id = setInterval(update, 30000);
     return () => clearInterval(id);
-  }, [isoDate]);
+  }, [isoDate, t]);
 
   return (
     <View style={[countdownStyles.badge, { backgroundColor: "rgba(0,229,255,0.08)", borderColor: colors.border }]}>
@@ -159,6 +161,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { profile } = useApp();
   const { token, user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -213,7 +216,7 @@ export default function DashboardScreen() {
       const data = await api.predictions.list(token);
       setPredictions(data.map(mapPrediction));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load predictions");
+      setError(err instanceof Error ? err.message : t("dashboard.loadError"));
     } finally {
       setIsLoading(false);
     }
@@ -252,7 +255,7 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-            {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
+            {new Date().getHours() < 12 ? t("dashboard.greetingMorning") : new Date().getHours() < 17 ? t("dashboard.greetingAfternoon") : t("dashboard.greetingEvening")},{" "}
             <Text style={{ color: colors.text }}>{profile.username}</Text>
           </Text>
           <Text style={[styles.appName, { color: colors.cyan }]}>PrediQs AI</Text>
@@ -291,7 +294,7 @@ export default function DashboardScreen() {
           activeOpacity={0.85}
         >
           <AlertTriangle size={14} color={ORANGE} />
-          <Text style={[styles.setupBannerText, { color: ORANGE }]}>Setup incomplete — configure API keys</Text>
+          <Text style={[styles.setupBannerText, { color: ORANGE }]}>{t("dashboard.setupIncomplete")}</Text>
           <ChevronRight size={14} color={ORANGE} />
         </TouchableOpacity>
       )}
@@ -300,7 +303,7 @@ export default function DashboardScreen() {
         <View style={[styles.setupBanner, { backgroundColor: "rgba(255,165,0,0.1)", borderColor: "rgba(255,165,0,0.3)", marginBottom: 12 }]}>
           <AlertTriangle size={14} color="#FFA500" />
           <Text style={[styles.setupBannerText, { color: "#FFA500", flex: 1 }]}>
-            Late night alert: Take breaks, avoid chasing losses, and only track within your preset limits.
+            {t("dashboard.lateNightAlert")}
           </Text>
         </View>
       )}
@@ -320,10 +323,10 @@ export default function DashboardScreen() {
             activeOpacity={0.85}
           >
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={[styles.wcBannerTitle, { color: "#FFD700" }]}>🏆 FIFA World Cup 2026</Text>
-              <Text style={[styles.wcBannerSub, { color: colors.textSecondary }]}>USA · Canada · Mexico · June 11 – July 19</Text>
+              <Text style={[styles.wcBannerTitle, { color: "#FFD700" }]}>{t("dashboard.wcTitle")}</Text>
+              <Text style={[styles.wcBannerSub, { color: colors.textSecondary }]}>{t("dashboard.wcSub")}</Text>
               <View style={{ flexDirection: "row", gap: 16, marginTop: 4 }}>
-                {([[days, "DAYS"], [hours, "HRS"], [mins, "MINS"]] as [number, string][]).map(([val, label]) => (
+                {([[days, t("dashboard.wcDays")], [hours, t("dashboard.wcHrs")], [mins, t("dashboard.wcMins")]] as [number, string][]).map(([val, label]) => (
                   <View key={label} style={{ alignItems: "center", gap: 1 }}>
                     <Text style={{ fontSize: 22, color: "#FFD700", letterSpacing: -0.5 }}>{val}</Text>
                     <Text style={{ fontSize: 8, color: colors.textMuted, letterSpacing: 0.5 }}>{label}</Text>
@@ -333,9 +336,9 @@ export default function DashboardScreen() {
             </View>
             <View style={{ alignItems: "flex-end", gap: 6 }}>
               <View style={{ backgroundColor: "rgba(255,215,0,0.15)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                <Text style={{ color: "#FFD700", fontSize: 9, letterSpacing: 0.5 }}>104 MATCHES</Text>
+                <Text style={{ color: "#FFD700", fontSize: 9, letterSpacing: 0.5 }}>{t("dashboard.wcMatches")}</Text>
               </View>
-              <Text style={{ color: "#FFD700", fontSize: 13 }}>Preview →</Text>
+              <Text style={{ color: "#FFD700", fontSize: 13 }}>{t("dashboard.wcPreview")}</Text>
             </View>
           </TouchableOpacity>
         );
@@ -346,10 +349,10 @@ export default function DashboardScreen() {
         <SkeletonStatRow />
       ) : (
         <View style={styles.statsRow}>
-          <MiniStat label="TODAY'S PICKS" value={String(todayPicks.length)} sub="available" valueColor={colors.cyan} />
-          <MiniStat label="WIN RATE" value={`${winRate}%`} sub="30 days" valueColor={colors.green} />
-          <MiniStat label="STREAK" value={`🔥${streakCount}`} sub="high conf" valueColor={colors.orange} />
-          <MiniStat label="VALUE" value={`+${valuePicks.length}`} sub="found" valueColor={colors.gold} />
+          <MiniStat label={t("dashboard.statTodayPicks")} value={String(todayPicks.length)} sub={t("dashboard.statAvailable")} valueColor={colors.cyan} />
+          <MiniStat label={t("dashboard.statWinRate")} value={`${winRate}%`} sub={t("dashboard.stat30Days")} valueColor={colors.green} />
+          <MiniStat label={t("dashboard.statStreak")} value={`🔥${streakCount}`} sub={t("dashboard.statHighConf")} valueColor={colors.orange} />
+          <MiniStat label={t("dashboard.statValue")} value={`+${valuePicks.length}`} sub={t("dashboard.statFound")} valueColor={colors.gold} />
         </View>
       )}
 
@@ -361,8 +364,8 @@ export default function DashboardScreen() {
       >
         <Text style={{ fontSize: 20 }}>🎟️</Text>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.slipBtnTitle, { color: colors.cyan }]}>Analyze My Slip</Text>
-          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>Upload your slip for instant educational review</Text>
+          <Text style={[styles.slipBtnTitle, { color: colors.cyan }]}>{t("dashboard.analyzeSlip")}</Text>
+          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>{t("dashboard.analyzeSlipSub")}</Text>
         </View>
         <ChevronRight size={18} color={colors.cyan} />
       </TouchableOpacity>
@@ -375,8 +378,8 @@ export default function DashboardScreen() {
       >
         <Text style={{ fontSize: 20 }}>🔄</Text>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.slipBtnTitle, { color: "#00FF94" }]}>ARB Scanner</Text>
-          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>Find guaranteed profit across bookmakers</Text>
+          <Text style={[styles.slipBtnTitle, { color: "#00FF94" }]}>{t("dashboard.arbScanner")}</Text>
+          <Text style={[styles.slipBtnSub, { color: colors.textSecondary }]}>{t("dashboard.arbScannerSub")}</Text>
         </View>
         <ChevronRight size={18} color="#00FF94" />
       </TouchableOpacity>
@@ -392,12 +395,12 @@ export default function DashboardScreen() {
 
       {/* Daily Prediction Feed (Features 1 + 3 + 10) */}
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Predictions</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("dashboard.dailyPredictions")}</Text>
         <PulseDot color={colors.gold} />
-        <Text style={[styles.liveText, { color: colors.gold }]}>AI FEED</Text>
+        <Text style={[styles.liveText, { color: colors.gold }]}>{t("dashboard.aiFeed")}</Text>
         <View style={{ flex: 1 }} />
         <TouchableOpacity onPress={() => router.push("/rankings")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={[styles.seeAll, { color: colors.cyan }]}>🏆 Ranks →</Text>
+          <Text style={[styles.seeAll, { color: colors.cyan }]}>{t("dashboard.ranks")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -408,7 +411,7 @@ export default function DashboardScreen() {
       {feedPredictions.length === 0 ? (
         <View style={[styles.avoidBanner, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.avoidBannerText, { color: colors.textMuted }]}>
-            No predictions for this sport right now. Try another filter.
+            {t("dashboard.noPredictions")}
           </Text>
         </View>
       ) : (
@@ -433,7 +436,7 @@ export default function DashboardScreen() {
           activeOpacity={0.8}
         >
           <WifiOff size={14} color={colors.red} />
-          <Text style={[styles.errorText, { color: colors.red }]}>{error} — tap to retry</Text>
+          <Text style={[styles.errorText, { color: colors.red }]}>{error} — {t("dashboard.tapToRetry")}</Text>
         </TouchableOpacity>
       )}
 
@@ -448,9 +451,9 @@ export default function DashboardScreen() {
       ) : featuredPick ? (
         <>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Pick</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("dashboard.featuredPick")}</Text>
             <PulseDot color={colors.green} />
-            <Text style={[styles.liveText, { color: colors.green }]}>LIVE AI</Text>
+            <Text style={[styles.liveText, { color: colors.green }]}>{t("dashboard.liveAi")}</Text>
             <View style={{ flex: 1 }} />
             <Countdown isoDate={featuredPick.matchDate} />
           </View>
@@ -462,7 +465,7 @@ export default function DashboardScreen() {
               {featuredPick.valueDetected && (
                 <View style={[styles.valueBadge, { borderColor: colors.gold }]}>
                   <Text style={[styles.valueText, { color: colors.gold }]}>
-                    VALUE +{featuredPick.aiProbability - featuredPick.bookmakerProbability}%
+                    {t("dashboard.valueBadge")} +{featuredPick.aiProbability - featuredPick.bookmakerProbability}%
                   </Text>
                 </View>
               )}
@@ -470,7 +473,7 @@ export default function DashboardScreen() {
 
             <View style={styles.featuredMatchup}>
               <Text style={[styles.featuredTeam, { color: colors.text }]}>{featuredPick.homeTeam}</Text>
-              <Text style={[styles.featuredVs, { color: colors.textMuted }]}>vs</Text>
+              <Text style={[styles.featuredVs, { color: colors.textMuted }]}>{t("dashboard.vs")}</Text>
               <Text style={[styles.featuredTeam, { color: colors.text }]}>{featuredPick.awayTeam}</Text>
             </View>
 
@@ -497,7 +500,7 @@ export default function DashboardScreen() {
               onPress={() => router.push("/(tabs)/picks")}
               activeOpacity={0.8}
             >
-              <Text style={[styles.viewAnalysisText, { color: colors.cyan }]}>View Full Analysis →</Text>
+              <Text style={[styles.viewAnalysisText, { color: colors.cyan }]}>{t("dashboard.viewFullAnalysis")}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -508,7 +511,7 @@ export default function DashboardScreen() {
         <>
           <View style={styles.sectionHeader}>
             <TrendingUp size={15} color={colors.textSecondary} />
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Sharp Money Moves</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("dashboard.sharpMoneyMoves")}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }}>
             {marketMovers.map((m, i) => <MarketMoverCard key={i} mover={m} />)}
@@ -521,18 +524,18 @@ export default function DashboardScreen() {
         <>
           <View style={[styles.sectionHeader, { marginTop: 8 }]}>
             <AlertTriangle size={16} color={colors.red} />
-            <Text style={[styles.sectionTitle, { color: colors.red }]}>High Risk — Avoid Today ({avoidPicks.length})</Text>
+            <Text style={[styles.sectionTitle, { color: colors.red }]}>{t("dashboard.highRiskAvoid", { count: avoidPicks.length })}</Text>
           </View>
           <View style={[styles.avoidBanner, { backgroundColor: "rgba(255,77,77,0.04)", borderColor: "rgba(255,77,77,0.15)" }]}>
             <Text style={[styles.avoidBannerText, { color: colors.textMuted }]}>
-              Our AI flagged {avoidPicks.length} game{avoidPicks.length > 1 ? "s" : ""} as high risk scenarios to avoid today.
+              {t("dashboard.avoidFlagged", { count: avoidPicks.length })}
             </Text>
           </View>
           {avoidPicks.map((p) => (
             <View key={p.id} style={[styles.avoidCard, { backgroundColor: "rgba(255,77,77,0.06)", borderColor: "rgba(255,77,77,0.25)" }]}>
               <View style={styles.avoidCardHeader}>
                 <SportBadge sport={p.sport} size="sm" />
-                <Text style={[styles.avoidTeams, { color: colors.text }]}>{p.homeTeam} vs {p.awayTeam}</Text>
+                <Text style={[styles.avoidTeams, { color: colors.text }]}>{p.homeTeam} {t("dashboard.vs")} {p.awayTeam}</Text>
               </View>
               <Text style={[styles.avoidReason, { color: colors.red }]}>{p.avoidReason}</Text>
             </View>
@@ -544,9 +547,9 @@ export default function DashboardScreen() {
       {!isLoading && todayPicks.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Picks</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("dashboard.todaysPicks")}</Text>
             <TouchableOpacity onPress={() => router.push("/(tabs)/picks")}>
-              <Text style={[styles.seeAll, { color: colors.cyan }]}>See all →</Text>
+              <Text style={[styles.seeAll, { color: colors.cyan }]}>{t("dashboard.seeAll")}</Text>
             </TouchableOpacity>
           </View>
           {todayPicks.slice(0, 3).map((p) => <PredictionCard key={p.id} prediction={p} />)}
