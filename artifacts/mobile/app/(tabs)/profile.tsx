@@ -127,7 +127,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, locale } = useLanguage();
   const { unreadCount } = useNotifications();
   const { bettingExperience, setBettingExperience } = useApp();
 
@@ -219,6 +219,7 @@ export default function ProfileScreen() {
   return (
     <>
       <ScrollView
+        key={locale}
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={{ paddingTop: topPadding + 16, paddingBottom: insets.bottom + 80 }}
         showsVerticalScrollIndicator={false}
