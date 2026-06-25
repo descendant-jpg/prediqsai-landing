@@ -12,6 +12,7 @@ Rules that are easy to get wrong:
 - **RTL (Arabic) needs a reload to take effect.** `I18nManager.forceRTL` only reflows after an app restart, so the context shows a restart `Alert` on user-initiated direction change, but stays silent at boot (`silent` flag). Web skips forceRTL.
 - **Locale fallback:** `enableFallback = true` + `defaultLocale = "en"`. Variant locales fall back to base then en (e.g. `pt-BR` → `pt` → `en`). Only en/fr/es/pt/de/it/ar are fully translated; everything else falls back to en.
 - **Outbound locale:** `lib/api.ts` keeps a module-level `currentLanguage` set via `setApiLanguage()` (called by `LanguageContext`) and sends it as `Accept-Language` on every `apiFetch`. Dependency is one-way (context → api), no import cycle.
+- **Instant global re-render is guaranteed by a `version` counter, not just `[language]`.** `LanguageContext` bumps a `version` state on every `setLanguage` (and at bootstrap) and uses it as the dep for the memoized `t`; the provider `value` is `useMemo`'d on `[language, setLanguage, t]`. This forces a fresh `t` identity + value object on every change so even re-selecting the same Language object (or any blurred/memoized consumer) re-renders without an app reload.
 
 **Why:** these are the non-obvious failure modes — silent non-reactivity, wrong interpolation braces, and RTL needing a reload — that cost time when adding new localized screens.
 
