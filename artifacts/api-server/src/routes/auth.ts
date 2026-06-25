@@ -7,7 +7,7 @@ import { OAuth2Client } from "google-auth-library";
 import { z } from "zod/v4";
 
 import { db, users } from "@workspace/db";
-import { sendVerificationEmail } from "../lib/email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
 import { signToken, verifyToken } from "../lib/jwt";
 import { requireAuth } from "../middleware/auth";
 
@@ -21,6 +21,7 @@ const GOOGLE_WEB_CLIENT_ID =
 const googleClient = new OAuth2Client(GOOGLE_WEB_CLIENT_ID);
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1h
 
 const registerSchema = z.object({
   username: z.string().min(2).max(50),
@@ -35,6 +36,15 @@ const loginSchema = z.object({
 
 const googleSchema = z.object({
   idToken: z.string().min(10),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(10),
+  password: z.string().min(8),
 });
 
 function publicUser(u: typeof users.$inferSelect) {
@@ -58,6 +68,14 @@ function newVerificationToken() {
   };
 }
 
+/** crypto.randomBytes(32).toString("hex") produces exactly 64 hex chars. */
+const RESET_TOKEN_RE = /^[a-f0-9]{64}$/;
+
+/** SHA-256 of a token so password-reset tokens are never stored in plaintext. */
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 /** Public base URL used to build the email verification link. */
 function publicBase(req: { get: (h: string) => string | undefined }): string {
   if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/$/, "");
@@ -76,6 +94,51 @@ function htmlPage(title: string, message: string, ok: boolean): string {
       <h1 style="color:${ok ? "#FFD700" : "#FF6B6B"};font-size:22px;margin:0 0 8px">${title}</h1>
       <p style="color:#9FB1C1;font-size:15px;line-height:1.5;margin:0">${message}</p>
     </div>
+  </body></html>`;
+}
+
+/** Browser-facing page (opened from the reset email link) to set a new password. */
+function resetFormPage(token: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Reset Password</title></head>
+  <body style="margin:0;background:#070B12;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#E0EAF5;display:flex;min-height:100vh;align-items:center;justify-content:center">
+    <div style="max-width:420px;width:100%;box-sizing:border-box;padding:32px;background:#0C1422;border:1px solid #1A2535;border-radius:16px;margin:16px">
+      <h1 style="color:#FFD700;font-size:22px;margin:0 0 8px">Reset your password</h1>
+      <p style="color:#9FB1C1;font-size:14px;line-height:1.5;margin:0 0 20px">Choose a new password for your PrediQs AI account.</p>
+      <form id="f">
+        <input id="pw" type="password" placeholder="New password (min 8 chars)" minlength="8" required
+          style="width:100%;box-sizing:border-box;background:#131E2E;border:1px solid #1A2535;border-radius:10px;padding:14px;color:#E0EAF5;font-size:15px;margin-bottom:12px"/>
+        <button type="submit" id="b"
+          style="width:100%;background:#FFD700;color:#070B12;font-weight:700;border:none;padding:14px;border-radius:10px;font-size:15px;cursor:pointer">Update Password</button>
+      </form>
+      <p id="msg" style="font-size:13px;line-height:1.5;margin:16px 0 0"></p>
+    </div>
+    <script>
+      var token = ${JSON.stringify(token)};
+      var f = document.getElementById('f'), pw = document.getElementById('pw'), b = document.getElementById('b'), msg = document.getElementById('msg');
+      f.addEventListener('submit', function(e){
+        e.preventDefault();
+        if (pw.value.length < 8) { msg.style.color='#FF6B6B'; msg.textContent='Password must be at least 8 characters.'; return; }
+        b.disabled = true; b.textContent = 'Updating...';
+        fetch('/api/auth/reset-password', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ token: token, password: pw.value })
+        }).then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+        .then(function(res){
+          if (res.ok) {
+            f.style.display='none';
+            msg.style.color='#4ADE80';
+            msg.textContent='✅ Your password has been updated. Return to the PrediQs AI app and sign in with your new password.';
+          } else {
+            b.disabled=false; b.textContent='Update Password';
+            msg.style.color='#FF6B6B';
+            msg.textContent='⚠️ ' + (res.j && res.j.error ? res.j.error : 'Something went wrong. Please request a new reset link.');
+          }
+        }).catch(function(){
+          b.disabled=false; b.textContent='Update Password';
+          msg.style.color='#FF6B6B'; msg.textContent='⚠️ Network error. Please try again.';
+        });
+      });
+    </script>
   </body></html>`;
 }
 
@@ -342,6 +405,103 @@ router.post("/auth/login", async (req, res) => {
 
   const token = signToken(finalUser.id);
   res.json({ token, user: publicUser(finalUser) });
+});
+
+router.post("/auth/forgot-password", async (req, res) => {
+  const body = forgotPasswordSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "A valid email is required" });
+    return;
+  }
+  const email = body.data.email.toLowerCase();
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  // Only password accounts can reset a password; Google accounts have no
+  // usable password. Either way we respond with a generic success below so
+  // the endpoint never reveals whether an email is registered.
+  if (user && user.authProvider === "password") {
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+    await db
+      .update(users)
+      .set({ passwordResetToken: hashToken(rawToken), passwordResetExpires: expires })
+      .where(eq(users.id, user.id));
+
+    const resetUrl = `${publicBase(req)}/api/auth/reset-password?token=${rawToken}`;
+    await sendPasswordResetEmail(user.email, user.username, resetUrl, req.log);
+  } else if (user) {
+    req.log.info({ email }, "Password reset requested for a non-password account");
+  }
+
+  res.json({ ok: true });
+});
+
+router.get("/auth/reset-password", async (req, res) => {
+  const token = typeof req.query.token === "string" ? req.query.token : "";
+  // Strict format check: rejects malformed input and prevents any untrusted
+  // string from reaching the inline-script reset form.
+  if (!RESET_TOKEN_RE.test(token)) {
+    res.status(400).send(htmlPage("Invalid link", "This reset link is invalid or malformed.", false));
+    return;
+  }
+
+  const [user] = await db
+    .select({ expires: users.passwordResetExpires })
+    .from(users)
+    .where(eq(users.passwordResetToken, hashToken(token)))
+    .limit(1);
+
+  if (!user) {
+    res.status(400).send(htmlPage("Link not valid", "This reset link is invalid or has already been used.", false));
+    return;
+  }
+  if (user.expires && user.expires.getTime() < Date.now()) {
+    res.status(400).send(htmlPage("Link expired", "This reset link has expired. Open the app and request a new one.", false));
+    return;
+  }
+
+  res.send(resetFormPage(token));
+});
+
+router.post("/auth/reset-password", async (req, res) => {
+  const body = resetPasswordSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Token and a password of at least 8 characters are required" });
+    return;
+  }
+  const { token, password } = body.data;
+  if (!RESET_TOKEN_RE.test(token)) {
+    res.status(400).json({ error: "This reset link is invalid or has already been used" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.passwordResetToken, hashToken(token)))
+    .limit(1);
+
+  if (!user) {
+    res.status(400).json({ error: "This reset link is invalid or has already been used" });
+    return;
+  }
+  if (user.passwordResetExpires && user.passwordResetExpires.getTime() < Date.now()) {
+    res.status(400).json({ error: "This reset link has expired. Please request a new one." });
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await db
+    .update(users)
+    .set({ passwordHash, passwordResetToken: null, passwordResetExpires: null })
+    .where(eq(users.id, user.id));
+
+  res.json({ ok: true });
 });
 
 export default router;

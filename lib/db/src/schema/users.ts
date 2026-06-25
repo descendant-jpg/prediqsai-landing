@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationToken: text("email_verification_token"),
   emailVerificationExpires: timestamp("email_verification_expires", { withTimezone: true }),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires", { withTimezone: true }),
   authProvider: text("auth_provider").notNull().default("password"),
   bankroll: real("bankroll").notNull().default(1000),
   dailyLossLimit: real("daily_loss_limit").notNull().default(200),

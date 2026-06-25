@@ -8,7 +8,7 @@ const RESEND_ENDPOINT = "https://api.resend.com/emails";
  * sender, which only delivers reliably to the account owner in test mode.
  */
 function fromAddress(): string {
-  return process.env.EMAIL_FROM ?? "PrediQs AI <onboarding@resend.dev>";
+  return process.env.EMAIL_FROM ?? "PrediQs AI <noreply@api.prediqsai.com>";
 }
 
 /**
@@ -68,6 +68,67 @@ export async function sendVerificationEmail(
     return true;
   } catch (err) {
     log?.warn({ err }, "Resend verification email threw");
+    return false;
+  }
+}
+
+/**
+ * Send the password-reset message via the Resend REST API.
+ * Returns true on success. Never throws — callers respond generically
+ * regardless so they don't leak whether an email is registered.
+ */
+export async function sendPasswordResetEmail(
+  to: string,
+  username: string,
+  resetUrl: string,
+  log?: Logger,
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    log?.warn("RESEND_API_KEY not set — skipping password reset email");
+    return false;
+  }
+
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#070B12;padding:32px;color:#E0EAF5">
+      <div style="max-width:480px;margin:0 auto;background:#0C1422;border:1px solid #1A2535;border-radius:16px;padding:32px">
+        <h1 style="color:#FFD700;font-size:22px;margin:0 0 8px">Reset your password</h1>
+        <p style="color:#9FB1C1;font-size:15px;line-height:1.5;margin:0 0 24px">
+          Hi ${escapeHtml(username)}, we received a request to reset your PrediQs AI password. Tap the button below to choose a new one.
+        </p>
+        <a href="${resetUrl}" style="display:inline-block;background:#FFD700;color:#070B12;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px">
+          Reset Password
+        </a>
+        <p style="color:#3A5060;font-size:12px;line-height:1.5;margin:24px 0 0">
+          If the button doesn't work, paste this link into your browser:<br/>
+          <span style="color:#9FB1C1;word-break:break-all">${resetUrl}</span>
+        </p>
+        <p style="color:#3A5060;font-size:12px;margin:16px 0 0">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+      </div>
+    </div>`;
+
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress(),
+        to,
+        subject: "Reset your PrediQs AI password",
+        html,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      log?.warn({ status: res.status, detail }, "Resend password reset email failed");
+      return false;
+    }
+    return true;
+  } catch (err) {
+    log?.warn({ err }, "Resend password reset email threw");
     return false;
   }
 }

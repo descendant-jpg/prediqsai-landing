@@ -708,6 +708,11 @@ export const api = {
         "/auth/resend-verification",
         { method: "POST", token },
       ),
+    forgotPassword: (email: string) =>
+      apiFetch<{ ok: boolean }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
   },
   user: {
     me: (token: string) => apiFetch<UserData>("/user/me", { token }),

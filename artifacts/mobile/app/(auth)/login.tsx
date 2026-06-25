@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import { GOOGLE_CANCELLED, GOOGLE_UNAVAILABLE } from "@/lib/google";
 import { LANGUAGES, useLanguage } from "@/context/LanguageContext";
 
@@ -179,6 +180,7 @@ export default function LoginScreen() {
   const [showForgot, setShowForgot]       = useState(false);
   const [forgotEmail, setForgotEmail]     = useState("");
   const [forgotSent, setForgotSent]       = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const isSignInReady = siEmail.trim().length > 0 && siPassword.length > 0;
   const isSignUpReady =
@@ -220,6 +222,21 @@ export default function LoginScreen() {
       setSuError(err instanceof Error ? err.message : "Sign up failed");
     } finally {
       setSuLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    const email = forgotEmail.trim().toLowerCase();
+    if (!email || forgotLoading) return;
+    setForgotLoading(true);
+    try {
+      await api.auth.forgotPassword(email);
+    } catch {
+      // The server always responds generically (to avoid revealing whether an
+      // email is registered), so surface the same success state regardless.
+    } finally {
+      setForgotLoading(false);
+      setForgotSent(true);
     }
   }
 
@@ -587,14 +604,16 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                 />
                 <TouchableOpacity
-                  style={[s.primaryBtn, !forgotEmail.trim() && s.primaryBtnDisabled]}
-                  onPress={() => setForgotSent(true)}
-                  disabled={!forgotEmail.trim()}
+                  style={[s.primaryBtn, (!forgotEmail.trim() || forgotLoading) && s.primaryBtnDisabled]}
+                  onPress={handleForgotPassword}
+                  disabled={!forgotEmail.trim() || forgotLoading}
                   activeOpacity={0.85}
                 >
-                  <Text style={[s.primaryBtnText, !forgotEmail.trim() && s.disabledBtnText]}>
-                    Send Reset Link
-                  </Text>
+                  {forgotLoading
+                    ? <ActivityIndicator color={BG} />
+                    : <Text style={[s.primaryBtnText, !forgotEmail.trim() && s.disabledBtnText]}>
+                        Send Reset Link
+                      </Text>}
                 </TouchableOpacity>
               </View>
             )}
