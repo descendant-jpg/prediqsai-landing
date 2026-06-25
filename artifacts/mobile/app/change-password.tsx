@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   Alert,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -108,7 +108,7 @@ export default function ChangePasswordScreen() {
         <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollViewCompat
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -153,7 +153,7 @@ export default function ChangePasswordScreen() {
             {loading ? "Saving…" : "Update Password"}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
     </View>
   );
 }

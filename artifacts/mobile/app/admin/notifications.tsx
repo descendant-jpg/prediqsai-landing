@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AdminTabBar } from "@/components/AdminTabBar";
@@ -96,7 +97,7 @@ export default function AdminNotificationsScreen() {
         <Text style={[s.headerTitle, { color: colors.text }]}>📣 Send Notifications</Text>
       </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={[s.content, { paddingBottom: 80 }]}>
+      <KeyboardAwareScrollViewCompat style={s.scroll} contentContainerStyle={[s.content, { paddingBottom: 80 }]}>
         {/* Compose card */}
         <View style={[s.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[s.sectionTitle, { color: colors.textMuted }]}>COMPOSE</Text>
@@ -187,7 +188,7 @@ export default function AdminNotificationsScreen() {
             </View>
           ))
         )}
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
 
       <AdminTabBar />
     </View>

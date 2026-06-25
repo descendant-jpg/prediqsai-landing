@@ -543,6 +543,10 @@ export default function LoginScreen() {
 
       {/* ── Country Modal ── */}
       <Modal visible={showCountry} transparent animationType="slide" onRequestClose={() => setShowCountry(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <TouchableOpacity style={s.modalOverlay} onPress={() => setShowCountry(false)} activeOpacity={1}>
           <View style={[s.bottomSheet, { maxHeight: "75%" }]}>
             <View style={s.sheetHandle} />
@@ -572,10 +576,15 @@ export default function LoginScreen() {
             />
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Forgot Password Modal ── */}
       <Modal visible={showForgot} transparent animationType="slide" onRequestClose={() => setShowForgot(false)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <TouchableOpacity style={s.modalOverlay} onPress={() => setShowForgot(false)} activeOpacity={1}>
           <View style={[s.bottomSheet, { paddingBottom: insets.bottom + 24 }]}>
             <View style={s.sheetHandle} />
@@ -619,6 +628,7 @@ export default function LoginScreen() {
             )}
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </KeyboardAvoidingView>
   );

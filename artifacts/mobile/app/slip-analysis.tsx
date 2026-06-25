@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { api } from "@/lib/api";
@@ -303,7 +304,7 @@ export default function SlipAnalysisScreen() {
           <Text style={[styles.navTitle, { color: colors.text }]}>Enter Slip Manually</Text>
           <View style={{ width: 22 }} />
         </View>
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+        <KeyboardAwareScrollViewCompat contentContainerStyle={{ padding: 20, gap: 16 }}>
           <Text style={[styles.manualInstructions, { color: colors.textSecondary }]}>
             Type or paste your selections — team names, markets, and odds. Example:{"\n\n"}
             Arsenal vs Chelsea — Arsenal Win @ 1.85{"\n"}
@@ -334,7 +335,7 @@ export default function SlipAnalysisScreen() {
               Analyse with AI
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       </View>
     );
   }

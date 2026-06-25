@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -182,6 +183,7 @@ export default function JournalScreen() {
       </ScrollView>
 
       <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <Pressable style={styles.backdrop} onPress={() => setModalOpen(false)}>
           <Pressable
             style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
@@ -225,6 +227,7 @@ export default function JournalScreen() {
             </TouchableOpacity>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

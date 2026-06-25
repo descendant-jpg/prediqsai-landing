@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, CheckCircle, ChevronRight, Code2, Crown, Info, LogOut, Mail, Settings, Shield, Star, X, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
-import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
@@ -494,6 +494,7 @@ export default function SettingsScreen() {
 
       {/* Secret Admin Password Modal */}
       <Modal visible={showSecretModal} transparent animationType="fade">
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: "rgba(168,85,247,0.4)" }]}>
             <Shield size={28} color="#A855F7" />
@@ -527,6 +528,7 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

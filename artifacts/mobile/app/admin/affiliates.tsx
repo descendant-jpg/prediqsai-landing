@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 import { AdminTabBar } from "@/components/AdminTabBar";
 import { useAuth } from "@/context/AuthContext";
@@ -264,7 +265,7 @@ function PartnerFormModal({
             <Text style={{ color: colors.textMuted }}>Cancel</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView contentContainerStyle={[s.formBody, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollViewCompat contentContainerStyle={[s.formBody, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
           <Text style={labelStyle}>Book Name *</Text>
           <TextInput style={inputStyle} value={bookName} onChangeText={setBookName} placeholder="e.g. Bet365" placeholderTextColor={colors.textMuted} />
 
@@ -369,7 +370,7 @@ function PartnerFormModal({
           >
             {saving ? <ActivityIndicator color={colors.background} size="small" /> : <Text style={[s.saveBtnText, { color: colors.background }]}>Save Partner</Text>}
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       </View>
     </Modal>
   );
@@ -427,7 +428,7 @@ function LogEarningModal({
           <Text style={[s.formTitle, { color: colors.text }]}>Log Earning</Text>
           <TouchableOpacity onPress={onClose}><Text style={{ color: colors.textMuted }}>Cancel</Text></TouchableOpacity>
         </View>
-        <ScrollView contentContainerStyle={[s.formBody, { paddingBottom: insets.bottom + 32 }]}>
+        <KeyboardAwareScrollViewCompat contentContainerStyle={[s.formBody, { paddingBottom: insets.bottom + 32 }]}>
           <Text style={[s.formLabel, { color: colors.textMuted }]}>Select Partner</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -470,7 +471,7 @@ function LogEarningModal({
           <TouchableOpacity style={[s.saveBtn, { backgroundColor: "#00FF94", opacity: saving ? 0.7 : 1 }]} onPress={save} disabled={saving} activeOpacity={0.85}>
             {saving ? <ActivityIndicator color="#000" size="small" /> : <Text style={[s.saveBtnText, { color: "#000" }]}>Log Earning</Text>}
           </TouchableOpacity>
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       </View>
     </Modal>
   );

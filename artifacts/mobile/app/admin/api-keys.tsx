@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -342,7 +342,7 @@ export default function AdminApiKeysScreen() {
       {loading ? (
         <ActivityIndicator size="large" color={colors.cyan} style={{ marginTop: 60 }} />
       ) : (
-        <ScrollView
+        <KeyboardAwareScrollViewCompat
           contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 32 }]}
           showsVerticalScrollIndicator={false}
         >
@@ -365,7 +365,7 @@ export default function AdminApiKeysScreen() {
               onSave={() => handleSave(ks.name)}
             />
           ))}
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       )}
       <AdminTabBar />
     </View>

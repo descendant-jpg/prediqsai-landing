@@ -30,6 +30,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useAuth } from "@/context/AuthContext";
@@ -438,7 +439,7 @@ function CalcModal({
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.modalBody, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollViewCompat style={{ flex: 1 }} contentContainerStyle={[styles.modalBody, { paddingBottom: insets.bottom + 32 }]} showsVerticalScrollIndicator={false}>
           <View style={{ gap: 6 }}>
             <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Currency</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -567,7 +568,7 @@ function CalcModal({
               </View>
             </>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollViewCompat>
       </View>
     </Modal>
   );

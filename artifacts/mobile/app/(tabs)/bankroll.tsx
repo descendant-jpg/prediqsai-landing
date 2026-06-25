@@ -19,6 +19,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Modal,
+  KeyboardAvoidingView,
   Platform,
   RefreshControl,
   ScrollView,
@@ -516,6 +517,7 @@ export default function FinanceScreen() {
 
       {/* ── Add Entry Modal ── */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setModalVisible(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={[styles.modal, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Add Entry</Text>
@@ -562,6 +564,7 @@ export default function FinanceScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
