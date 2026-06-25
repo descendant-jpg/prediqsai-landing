@@ -47,9 +47,6 @@ interface AppContextValue {
   setBettingExperience: (level: BettingExperience) => Promise<void>;
   appGuideSeen: boolean | null;
   markAppGuideSeen: () => Promise<void>;
-  onboardingSeen: boolean | null;
-  markOnboardingSeen: () => Promise<void>;
-  resetOnboarding: () => Promise<void>;
   isLoaded: boolean;
 }
 
@@ -73,36 +70,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     useState<BettingExperience>(DEFAULT_EXPERIENCE);
   // null = still hydrating from storage; gate logic waits for a concrete value.
   const [appGuideSeen, setAppGuideSeen] = useState<boolean | null>(null);
-  const [onboardingSeen, setOnboardingSeen] = useState<boolean | null>(null);
 
-  // Hydrate the first-run gating flags from storage on mount.
+  // Hydrate the "has seen the app guide" flag from storage on mount.
   useEffect(() => {
     (async () => {
-      const [guideSeen, onbSeen] = await Promise.all([
-        getItem<boolean>(STORAGE_KEYS.appGuideComplete, false),
-        getItem<boolean>(STORAGE_KEYS.onboardingComplete, false),
-      ]);
-      setAppGuideSeen(guideSeen);
-      setOnboardingSeen(onbSeen);
+      const seen = await getItem<boolean>(STORAGE_KEYS.appGuideComplete, false);
+      setAppGuideSeen(seen);
     })();
   }, []);
 
   const markAppGuideSeen = useCallback(async () => {
     setAppGuideSeen(true);
     await setItem(STORAGE_KEYS.appGuideComplete, true);
-  }, []);
-
-  // Mark onboarding finished (called when the user completes the last step).
-  const markOnboardingSeen = useCallback(async () => {
-    setOnboardingSeen(true);
-    await setItem(STORAGE_KEYS.onboardingComplete, true);
-  }, []);
-
-  // Force a fresh user back through onboarding (called on every new signup so the
-  // device-level flag from a previous account never lets a new user skip it).
-  const resetOnboarding = useCallback(async () => {
-    setOnboardingSeen(false);
-    await setItem(STORAGE_KEYS.onboardingComplete, false);
   }, []);
 
   // Hydrate betting experience from storage on mount (independent of auth) and
@@ -198,9 +177,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setBettingExperience,
         appGuideSeen,
         markAppGuideSeen,
-        onboardingSeen,
-        markOnboardingSeen,
-        resetOnboarding,
         isLoaded,
       }}
     >

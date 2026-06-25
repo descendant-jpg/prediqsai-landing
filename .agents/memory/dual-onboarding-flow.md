@@ -5,16 +5,13 @@ description: Why the app has TWO separate new-user flows that chain, and the sha
 
 The mobile app intentionally has **two distinct new-user flows** that run in sequence:
 
-1. `app/onboarding.tsx` — 6-step disclaimer / 18+ age-gate / sports + daily-limit prefs. Has legal value (age gate + disclaimer) — do NOT remove it when touching onboarding.
+1. `app/onboarding.tsx` — 6-step disclaimer / 18+ age-gate / sports + daily-limit prefs. Triggered by the in-memory `pendingOnboarding` flag set in `AuthContext.register()`. Has legal value (age gate + disclaimer) — do NOT remove it when touching onboarding.
 2. `app/app-guide.tsx` — 10-step feature tour. Its Step 2 captures the user's betting experience.
 
 **Routing decision (in `RootLayoutNav`, `app/_layout.tsx`):** for a new user the order is
-signup → (email only: `/verify-email`) → `/onboarding` (while `!onboardingSeen`) → `/(tabs)` → gate sees the guide unseen → `/app-guide` → `/(tabs)`.
+register → `/onboarding` (while `pendingOnboarding`) → `/(tabs)` → gate sees the guide unseen → `/app-guide` → `/(tabs)`.
 
-**Both gates use a PERSISTED context flag, never ephemeral in-memory state.** Onboarding is gated by `onboardingSeen: boolean|null` and the guide by `appGuideSeen: boolean|null`, both in `AppContext`, both hydrated from AsyncStorage (`STORAGE_KEYS.onboardingComplete` / `appGuideComplete`), with `markOnboardingSeen()` / `markAppGuideSeen()` and a `resetOnboarding()`.
-**Why persisted, not in-memory:** the old design gated onboarding on an in-memory `pendingOnboarding` set only in `AuthContext.register()` — Google sign-ups never set it, so new Google users skipped onboarding entirely, and any reload lost the flag. A persisted flag fixes both.
-**Why a shared context value (not an independent AsyncStorage read in the gate):** the gate AND the completion screen's `finish()`/`complete()` must read/write the *same* context state. If the gate reads AsyncStorage independently, completing a step → `replace('/(tabs)')` re-fires the gate with stale state and **bounces the user back (infinite loop)**.
-**Enforcing first-run for EVERY new account on a device that already has the flag true:** call `resetOnboarding()` on every genuinely-new signup. Email: call it AFTER a successful `register()` (a failed signup must not flag a later sign-in; the verify-email gate covers the window so there's no redirect race). Google: the server `/auth/google` returns `isNew = !existing`; only reset when `isNew`, else returning Google users get re-onboarded.
+**Why a shared flag:** the "has seen the guide" state lives in `AppContext` as `appGuideSeen: boolean|null` (hydrated from `STORAGE_KEYS.appGuideComplete`) with `markAppGuideSeen()`. Both the root-layout gate AND the guide's `complete()` read/write the *same* context value. If you instead read AsyncStorage independently in the gate, completing the guide → `replace('/(tabs)')` would re-fire the gate with stale state and **bounce the user back into the guide (infinite loop)**.
 
 **How to apply:**
 - `null` means still hydrating — the gate must wait (return) on it to avoid a flash/early redirect.

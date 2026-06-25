@@ -13,9 +13,11 @@ interface AuthContextValue {
   user: UserData | null;
   token: string | null;
   isLoading: boolean;
+  pendingOnboarding: boolean;
+  setPendingOnboarding: (v: boolean) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<{ isNew: boolean }>;
+  loginWithGoogle: () => Promise<void>;
   resendVerification: () => Promise<void>;
   checkEmailVerified: () => Promise<boolean>;
   logout: () => Promise<void>;
@@ -28,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingOnboarding, setPendingOnboarding] = useState(false);
 
   useEffect(() => {
     async function restoreSession() {
@@ -63,18 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       await tokenStorage.set(t);
       setToken(t);
+      setPendingOnboarding(true);
       setUser(u);
     },
     [],
   );
 
-  const loginWithGoogle = useCallback(async (): Promise<{ isNew: boolean }> => {
+  const loginWithGoogle = useCallback(async () => {
     const idToken = await signInWithGoogle();
-    const { token: t, user: u, isNew } = await api.auth.google(idToken);
+    const { token: t, user: u } = await api.auth.google(idToken);
     await tokenStorage.set(t);
     setToken(t);
     setUser(u);
-    return { isNew };
   }, []);
 
   const resendVerification = useCallback(async () => {
@@ -94,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await tokenStorage.remove();
     setToken(null);
     setUser(null);
+    setPendingOnboarding(false);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -110,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isLoading,
+        pendingOnboarding,
+        setPendingOnboarding,
         login,
         register,
         loginWithGoogle,

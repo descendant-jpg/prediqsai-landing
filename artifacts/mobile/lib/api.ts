@@ -699,7 +699,7 @@ export const api = {
         token,
       }),
     google: (idToken: string) =>
-      apiFetch<{ token: string; user: UserData; isNew: boolean }>("/auth/google", {
+      apiFetch<{ token: string; user: UserData }>("/auth/google", {
         method: "POST",
         body: JSON.stringify({ idToken }),
       }),

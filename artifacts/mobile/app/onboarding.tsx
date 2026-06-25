@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AlertTriangle, ArrowRight, Check, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -310,7 +311,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { updateBankroll, markOnboardingSeen } = useApp();
+  const { updateBankroll } = useApp();
 
   const [step, setStep] = useState(0);
   const [ageChecked, setAgeChecked] = useState(false);
@@ -352,6 +353,9 @@ export default function OnboardingScreen() {
 
   async function goToStep(next: number) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (step === 0 && next === 1) {
+      await AsyncStorage.setItem("onboardingComplete", "true");
+    }
     setStep(next);
     flatListRef.current?.scrollToIndex({ index: next, animated: true });
     Animated.timing(progress, { toValue: (next + 1) / TOTAL_STEPS, duration: 300, useNativeDriver: false }).start();
@@ -363,8 +367,7 @@ export default function OnboardingScreen() {
 
   async function finish() {
     try { await updateBankroll(0); } catch {}
-    // Flip the persisted onboarding flag so the root guard lets the user through.
-    await markOnboardingSeen();
+    await AsyncStorage.setItem("onboardingComplete", "true");
     router.replace("/(tabs)");
   }
 
