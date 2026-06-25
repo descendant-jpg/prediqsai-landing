@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Alert, I18nManager, Platform } from "react-native";
 
 import i18n, { RTL_LANGUAGES } from "@/lib/i18n";
@@ -79,6 +79,10 @@ function applyDirection(code: string, silent: boolean, t: (k: string) => string)
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(LANGUAGES[0]);
+  // Bumped on every locale change. Drives `t`'s identity so EVERY consumer
+  // re-renders the instant the language changes — even when the same Language
+  // object is re-selected or i18n's mutable `locale` is changed elsewhere.
+  const [version, setVersion] = useState(0);
 
   // Bootstrap persisted language (with one-time migration from the legacy key).
   useEffect(() => {
@@ -96,17 +100,21 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       const initial = found ?? LANGUAGES[0];
       applyLocale(initial.code);
       applyDirection(initial.code, true, (k) => i18n.t(k));
-      if (mounted) setLanguageState(initial);
+      if (mounted) {
+        setLanguageState(initial);
+        setVersion((v) => v + 1);
+      }
     })();
     return () => {
       mounted = false;
     };
   }, []);
 
+  // New identity on every language change (via `version`) so memoized/blurred
+  // consumers cannot hold on to a stale translator.
   const t = useCallback(
     (key: string, options?: TranslateOptions) => i18n.t(key, options),
-    // language is intentionally in deps so consumers re-render on change
-    [language],
+    [version],
   );
 
   const setLanguage = useCallback((lang: Language) => {
@@ -114,21 +122,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, lang.code);
     applyDirection(lang.code, false, (k) => i18n.t(k));
     setLanguageState(lang);
+    setVersion((v) => v + 1);
   }, []);
 
-  return (
-    <LanguageContext.Provider
-      value={{
-        language,
-        setLanguage,
-        t,
-        locale: language.code,
-        isRTL: RTL_LANGUAGES.includes(language.code),
-      }}
-    >
-      {children}
-    </LanguageContext.Provider>
+  // Memoize so the provider hands consumers a fresh value object only when the
+  // language (or translator identity) actually changes — and always does so then.
+  const value = useMemo(
+    () => ({
+      language,
+      setLanguage,
+      t,
+      locale: language.code,
+      isRTL: RTL_LANGUAGES.includes(language.code),
+    }),
+    [language, setLanguage, t],
   );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
