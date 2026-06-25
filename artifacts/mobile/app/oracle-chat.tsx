@@ -29,6 +29,40 @@ function generateId(): string {
 const FREE_MSG_LIMIT = 3;
 const TIMEOUT_MS = 30_000;
 
+type ThemeColors = ReturnType<typeof useColors>;
+
+function MessageBubble({ message, colors }: { message: ChatMessage; colors: ThemeColors }) {
+  const isUser = message.role === "user";
+  return (
+    <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
+      {!isUser && (
+        <View style={[styles.aiAvatar, { backgroundColor: colors.cyan }]}>
+          <Zap size={12} color={colors.background} />
+        </View>
+      )}
+      <View
+        style={[
+          styles.bubbleContent,
+          isUser
+            ? { backgroundColor: colors.cyan }
+            : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
+        ]}
+      >
+        {!isUser && message.content === "" ? (
+          <View style={styles.typingRow}>
+            <ActivityIndicator size="small" color={colors.cyan} />
+            <Text style={[styles.typingText, { color: colors.textSecondary }]}>PrediQs AI is analyzing...</Text>
+          </View>
+        ) : (
+          <Text style={[styles.bubbleText, { color: isUser ? colors.background : colors.text }]}>
+            {message.content}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function OracleChatScreen() {
   const colors  = useColors();
   const insets  = useSafeAreaInsets();
@@ -123,38 +157,6 @@ export default function OracleChatScreen() {
     }
   }
 
-  function MessageBubble({ message }: { message: ChatMessage }) {
-    const isUser = message.role === "user";
-    return (
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        {!isUser && (
-          <View style={[styles.aiAvatar, { backgroundColor: colors.cyan }]}>
-            <Zap size={12} color={colors.background} />
-          </View>
-        )}
-        <View
-          style={[
-            styles.bubbleContent,
-            isUser
-              ? { backgroundColor: colors.cyan }
-              : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 },
-          ]}
-        >
-          {!isUser && message.content === "" ? (
-            <View style={styles.typingRow}>
-              <ActivityIndicator size="small" color={colors.cyan} />
-              <Text style={[styles.typingText, { color: colors.textSecondary }]}>PrediQs AI is analyzing...</Text>
-            </View>
-          ) : (
-            <Text style={[styles.bubbleText, { color: isUser ? colors.background : colors.text }]}>
-              {message.content}
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPadding + 12, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
@@ -179,7 +181,7 @@ export default function OracleChatScreen() {
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <MessageBubble message={item} />}
+          renderItem={({ item }) => <MessageBubble message={item} colors={colors} />}
           inverted
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}

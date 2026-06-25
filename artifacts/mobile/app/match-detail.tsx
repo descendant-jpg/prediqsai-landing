@@ -331,17 +331,6 @@ function PrematchTab({
   const bestDraw  = Math.max(...oddsTable.map((b) => b.draw));
   const bestAway  = Math.max(...oddsTable.map((b) => b.away));
 
-  function EdgeRow({ label, edge }: { label: string; edge: number }) {
-    const color = edge > 0 ? colors.green : colors.red;
-    return (
-      <View style={[tabs.edgeRow, { borderBottomColor: colors.border }]}>
-        <Text style={[tabs.edgeLabel, { color: colors.text }]}>{label}</Text>
-        <Text style={[tabs.edgeValue, { color }]}>{edge > 0 ? "+" : ""}{edge}%</Text>
-        <Feather name="chevron-right" size={14} color={colors.textMuted} />
-      </View>
-    );
-  }
-
   return (
     <View style={tabs.wrap}>
       {/* ── Oracle Match Preview ── */}
@@ -509,12 +498,13 @@ function PrematchTab({
       {/* ── Outcomes Report ── */}
       <View style={[tabs.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         <Text style={[tabs.sectionTitle, { color: colors.cyan }]}>Outcomes Report</Text>
-        <EdgeRow label={`1X2 — ${mainPick}`} edge={edge1X2} />
-        <EdgeRow label="Over 2.5 Goals" edge={edgeOver} />
-        <EdgeRow label="Both Teams to Score" edge={edgeBTTS} />
+        <EdgeRow label={`1X2 — ${mainPick}`} edge={edge1X2} colors={colors} />
+        <EdgeRow label="Over 2.5 Goals" edge={edgeOver} colors={colors} />
+        <EdgeRow label="Both Teams to Score" edge={edgeBTTS} colors={colors} />
         <EdgeRow
           label={`Asian Handicap — ${prediction.prediction === "away_win" ? prediction.awayTeam : prediction.homeTeam}`}
           edge={ahEdge}
+          colors={colors}
         />
       </View>
 
@@ -782,6 +772,17 @@ function StatsTab({
           </Text>
         )}
       </View>
+    </View>
+  );
+}
+
+function EdgeRow({ label, edge, colors }: { label: string; edge: number; colors: Colors }) {
+  const color = edge > 0 ? colors.green : colors.red;
+  return (
+    <View style={[tabs.edgeRow, { borderBottomColor: colors.border }]}>
+      <Text style={[tabs.edgeLabel, { color: colors.text }]}>{label}</Text>
+      <Text style={[tabs.edgeValue, { color }]}>{edge > 0 ? "+" : ""}{edge}%</Text>
+      <Feather name="chevron-right" size={14} color={colors.textMuted} />
     </View>
   );
 }

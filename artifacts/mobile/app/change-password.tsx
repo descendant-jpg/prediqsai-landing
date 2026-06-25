@@ -17,6 +17,44 @@ import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { api } from "@/lib/api";
 
+type ThemeColors = ReturnType<typeof useColors>;
+
+function PasswordInput({
+  label, value, onChange, show, toggleShow, placeholder, colors,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  toggleShow: () => void;
+  placeholder: string;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={styles.fieldWrap}>
+      <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Lock size={16} color={colors.textMuted} style={styles.inputIcon} />
+        <TextInput
+          style={[styles.input, { color: colors.text }]}
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          secureTextEntry={!show}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <TouchableOpacity onPress={toggleShow} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          {show
+            ? <EyeOff size={16} color={colors.textMuted} />
+            : <Eye    size={16} color={colors.textMuted} />}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 export default function ChangePasswordScreen() {
   const colors  = useColors();
   const insets  = useSafeAreaInsets();
@@ -63,41 +101,6 @@ export default function ChangePasswordScreen() {
     }
   }
 
-  function PasswordInput({
-    label, value, onChange, show, toggleShow, placeholder,
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    show: boolean;
-    toggleShow: () => void;
-    placeholder: string;
-  }) {
-    return (
-      <View style={styles.fieldWrap}>
-        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{label}</Text>
-        <View style={[styles.inputRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Lock size={16} color={colors.textMuted} style={styles.inputIcon} />
-          <TextInput
-            style={[styles.input, { color: colors.text }]}
-            value={value}
-            onChangeText={onChange}
-            placeholder={placeholder}
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry={!show}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity onPress={toggleShow} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            {show
-              ? <EyeOff size={16} color={colors.textMuted} />
-              : <Eye    size={16} color={colors.textMuted} />}
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPadding + 12, borderBottomColor: colors.border }]}>
@@ -121,6 +124,7 @@ export default function ChangePasswordScreen() {
             show={showCur}
             toggleShow={() => setShowCur((v) => !v)}
             placeholder="Enter current password"
+            colors={colors}
           />
           <PasswordInput
             label="New Password"
@@ -129,6 +133,7 @@ export default function ChangePasswordScreen() {
             show={showNext}
             toggleShow={() => setShowNext((v) => !v)}
             placeholder="At least 8 characters"
+            colors={colors}
           />
           <PasswordInput
             label="Confirm New Password"
@@ -137,6 +142,7 @@ export default function ChangePasswordScreen() {
             show={showConf}
             toggleShow={() => setShowConf((v) => !v)}
             placeholder="Repeat new password"
+            colors={colors}
           />
         </View>
 
