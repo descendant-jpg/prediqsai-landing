@@ -26,3 +26,7 @@ description: How to correctly buy a subscription with react-native-iap v15 so An
 - Gate the buy button on real availability, but keep web / Expo Go enabled (IAP module is absent there) so the explanatory alert still fires. Expo Go can't load the Nitro module at all — guard with `Constants.appOwnership === "expo"` and `Platform.OS !== "web"`.
 
 The product/SKU string must match App Store Connect AND Google Play Console exactly, and Google Play needs an active base plan on that subscription.
+
+**Product ID lives in TWO synced places — change both together:** the client constant (`IAP_PRODUCT_ID` in `context/IAPContext.tsx`) AND the server constant (`PRODUCT_ID` in `api-server/src/routes/subscription.ts`). The server rejects any purchase whose `productId` doesn't equal its constant during verify/restore, so a client-only change makes every real purchase fail verification silently. Grep the whole repo for the old id after any change.
+
+**The full IAP flow is already centralized in `IAPContext` (one `initConnection` + one listener pair).** Do NOT add `initConnection`/`purchaseUpdatedListener` directly in a screen — that creates a second connection and double-fires purchases. Note also: `finishTransaction({ purchase, isConsumable: false })` IS the Android acknowledgement (replaces the old `acknowledgePurchaseAndroid()`); `fetchProducts` replaces `getSubscriptions`; `requestPurchase` replaces `requestSubscription`.
