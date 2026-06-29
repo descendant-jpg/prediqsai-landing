@@ -7,7 +7,7 @@ import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
-const PRODUCT_ID = "prediqsai_premium_monthly";
+const PRODUCT_ID = "prediqsai_pro_monthly";
 
 const PLANS = {
   free: {

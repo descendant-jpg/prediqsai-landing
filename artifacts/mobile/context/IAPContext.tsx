@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 // App Store Connect AND Google Play Console *exactly*. On Google Play the
 // product must also have an active base plan — the Android offer token used
 // for the purchase is read from that base plan at runtime.
-export const IAP_PRODUCT_ID = "prediqsai_premium_monthly";
+export const IAP_PRODUCT_ID = "prediqsai_pro_monthly";
 
 // ─── Environment detection ────────────────────────────────────────────────────
 
