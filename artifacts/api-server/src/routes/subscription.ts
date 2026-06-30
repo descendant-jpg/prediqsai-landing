@@ -70,12 +70,16 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
 
 // ─── IAP: Verify purchase ────────────────────────────────────────────────────
 
+// Allowed access durations (months) — one per base plan: monthly / semi-annual / annual.
+const planMonthsSchema = z.union([z.literal(1), z.literal(6), z.literal(12)]);
+
 const verifyIAPSchema = z.object({
   platform: z.enum(["ios", "android"]),
   productId: z.string(),
   transactionId: z.string(),
   purchaseToken: z.string().optional(),
   transactionReceipt: z.string().optional(),
+  planMonths: planMonthsSchema.optional(),
 });
 
 router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
@@ -85,7 +89,7 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     return;
   }
 
-  const { platform, productId, transactionId } = body.data;
+  const { platform, productId, transactionId, planMonths } = body.data;
 
   if (productId !== PRODUCT_ID) {
     res.status(400).json({ error: "Invalid product ID" });
@@ -97,8 +101,10 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
   // Android: Google Play Developer API with service account credentials
   // For now we trust the client and store the transaction for audit purposes.
 
+  // All three base plans share the same product ID; the client reports which one
+  // was purchased so we grant the correct access window (default monthly).
   const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + 1);
+  expiresAt.setMonth(expiresAt.getMonth() + (planMonths ?? 1));
 
   const [updated] = await db
     .update(users)
@@ -123,6 +129,7 @@ const restoreIAPSchema = z.object({
       productId: z.string(),
       transactionId: z.string(),
       purchaseToken: z.string().optional(),
+      planMonths: planMonthsSchema.optional(),
     }),
   ),
 });
@@ -143,7 +150,7 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   }
 
   const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + 1);
+  expiresAt.setMonth(expiresAt.getMonth() + (validPurchase.planMonths ?? 1));
 
   const [updated] = await db
     .update(users)

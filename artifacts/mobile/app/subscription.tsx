@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, RefreshCw, Shield, Star, Zap } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useIAP } from "@/context/IAPContext";
+import { useIAP, type TierKey } from "@/context/IAPContext";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -37,17 +37,19 @@ export default function SubscriptionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { subscribe, restore, isLoading, error, clearError, productsReady, priceLabel, iapSupported } =
+  const { subscribe, restore, isLoading, error, clearError, productsReady, tiers, iapSupported } =
     useIAP();
   const { profile } = useApp();
 
   const isPremium = profile.tier === "premium";
 
+  const [selectedTier, setSelectedTier] = useState<TierKey>("monthly");
+  const activeTier = tiers.find((t) => t.key === selectedTier) ?? tiers[0];
+
   // Only block the button when IAP is genuinely available but offerings failed
   // to load. On web / Expo Go we leave it enabled so the explanatory alert fires.
   const offeringsUnavailable = iapSupported && !productsReady;
   const ctaDisabled = isLoading || offeringsUnavailable;
-  const priceText = priceLabel ?? "$19.99";
 
   useEffect(() => {
     clearError();
@@ -108,16 +110,54 @@ export default function SubscriptionScreen() {
           ))}
         </View>
 
-        {/* Price card */}
+        {/* Plan selector */}
         {!isPremium && (
-          <View style={[styles.priceCard, { backgroundColor: "rgba(255,215,0,0.06)", borderColor: "rgba(255,215,0,0.25)" }]}>
-            <View style={styles.priceRow}>
-              <Text style={[styles.price, { color: "#FFD700" }]}>{priceText}</Text>
-              <Text style={[styles.pricePer, { color: colors.textSecondary }]}>/month</Text>
-            </View>
-            <Text style={[styles.priceSub, { color: colors.textMuted }]}>
-              Charged monthly · Cancel anytime via App Store or Google Play
-            </Text>
+          <View style={styles.tierList}>
+            {tiers.map((tier) => {
+              const selected = tier.key === selectedTier;
+              return (
+                <TouchableOpacity
+                  key={tier.key}
+                  style={[
+                    styles.tierBox,
+                    {
+                      backgroundColor: selected ? "rgba(255,215,0,0.06)" : colors.card,
+                      borderColor: selected ? "#FFD700" : colors.cardBorder,
+                      borderWidth: selected ? 2 : 1,
+                    },
+                  ]}
+                  onPress={() => setSelectedTier(tier.key)}
+                  activeOpacity={0.85}
+                >
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      { borderColor: selected ? "#FFD700" : colors.textMuted },
+                    ]}
+                  >
+                    {selected && <View style={styles.radioInner} />}
+                  </View>
+
+                  <View style={styles.tierInfo}>
+                    <View style={styles.tierLabelRow}>
+                      <Text style={[styles.tierLabel, { color: colors.text }]}>{tier.label}</Text>
+                      {tier.saveLabel && (
+                        <View style={styles.saveBadge}>
+                          <Text style={styles.saveText}>{tier.saveLabel}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={styles.tierPriceCol}>
+                    <Text style={[styles.tierPrice, { color: "#FFD700" }]}>{tier.price}</Text>
+                    <Text style={[styles.tierPeriod, { color: colors.textMuted }]}>
+                      {tier.periodLabel}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
@@ -136,7 +176,7 @@ export default function SubscriptionScreen() {
                 styles.subscribeBtn,
                 { backgroundColor: "#FFD700", opacity: ctaDisabled ? 0.55 : 1 },
               ]}
-              onPress={subscribe}
+              onPress={() => subscribe(selectedTier)}
               disabled={ctaDisabled}
               activeOpacity={0.85}
             >
@@ -147,7 +187,10 @@ export default function SubscriptionScreen() {
               ) : (
                 <>
                   <Zap size={18} color="#070B12" fill="#070B12" />
-                  <Text style={styles.subscribeBtnText}>Subscribe — {priceText}/mo</Text>
+                  <Text style={styles.subscribeBtnText}>
+                    Subscribe — {activeTier?.price}
+                    {activeTier?.buttonPeriod}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -221,17 +264,41 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   featureIcon: { fontSize: 16, width: 22, textAlign: "center" },
   featureText: { flex: 1, fontSize: 13, lineHeight: 18 },
-  priceCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
+  tierList: { gap: 10 },
+  tierBox: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 12,
+    borderRadius: 14,
+    padding: 16,
   },
-  priceRow: { flexDirection: "row", alignItems: "baseline", gap: 4 },
-  price: { fontSize: 38, fontFamily: "Inter_700Bold", letterSpacing: -1 },
-  pricePer: { fontSize: 16 },
-  priceSub: { fontSize: 12, textAlign: "center", lineHeight: 17 },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#FFD700",
+  },
+  tierInfo: { flex: 1 },
+  tierLabelRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  tierLabel: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  saveBadge: {
+    backgroundColor: "rgba(0,255,148,0.12)",
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  saveText: { fontSize: 11, fontFamily: "Inter_700Bold", color: "#00FF94" },
+  tierPriceCol: { alignItems: "flex-end" },
+  tierPrice: { fontSize: 20, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  tierPeriod: { fontSize: 12, marginTop: 1 },
   errorCard: { borderRadius: 12, borderWidth: 1, padding: 12 },
   errorText: { fontSize: 13, color: "#FF4D4D", textAlign: "center" },
   subscribeBtn: {

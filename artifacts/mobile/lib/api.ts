@@ -830,6 +830,7 @@ export const api = {
         transactionId: string;
         purchaseToken?: string;
         transactionReceipt?: string;
+        planMonths?: 1 | 6 | 12;
       },
     ) =>
       apiFetch<{ tier: string; success: boolean; expiresAt: string }>(
@@ -840,7 +841,12 @@ export const api = {
       token: string,
       data: {
         platform: "ios" | "android";
-        purchases: Array<{ productId: string; transactionId: string; purchaseToken?: string }>;
+        purchases: Array<{
+          productId: string;
+          transactionId: string;
+          purchaseToken?: string;
+          planMonths?: 1 | 6 | 12;
+        }>;
       },
     ) =>
       apiFetch<{ tier: string; restored: boolean }>(
