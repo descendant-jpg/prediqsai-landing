@@ -78,6 +78,14 @@ export default function Privacy() {
               (collectively, the "Service").
             </p>
             <p style={{ marginTop: 12 }}>
+              <strong style={{ color: TEXT }}>
+                Please note: PrediQs AI is a sports information, analytics, and tracking tool. We do
+                not operate a sportsbook, and our Service does not accept real-money wagers,
+                facilitate gambling transactions, or distribute prize money. All bankroll tracking is
+                for personal informational purposes only.
+              </strong>
+            </p>
+            <p style={{ marginTop: 12 }}>
               Please read this policy carefully. If you do not agree with the terms of this Privacy Policy,
               please discontinue use of our Service.
             </p>
@@ -90,8 +98,9 @@ export default function Privacy() {
               <li><strong style={{ color: TEXT }}>Profile data:</strong> Bankroll settings, betting preferences, and notification preferences.</li>
               <li><strong style={{ color: TEXT }}>Transaction data:</strong> Bankroll entries, bet records, and financial tracking data you input.</li>
               <li><strong style={{ color: TEXT }}>Communications:</strong> Messages you send to our AI assistant or support team.</li>
-              <li><strong style={{ color: TEXT }}>Device information:</strong> Device type, operating system, app version, and crash data.</li>
+              <li><strong style={{ color: TEXT }}>Device information:</strong> Device type, operating system, app version, and crash data. If you interact with advertisements within our Service, we may collect mobile advertising identifiers (such as Google Advertising ID) to provide relevant content.</li>
               <li><strong style={{ color: TEXT }}>Usage data:</strong> Features used, pages viewed, time spent, and interaction data.</li>
+              <li><strong style={{ color: TEXT }}>Device Permissions:</strong> With your explicit consent, we may request access to your device's push notification system or other native features to provide alerts and predictions. You can revoke this access at any time through your device settings.</li>
             </ul>
           </Section>
 
@@ -122,19 +131,27 @@ export default function Privacy() {
               We do not sell your personal information. We may share your information with:
             </p>
             <ul style={{ paddingLeft: 20, listStyle: "disc", display: "flex", flexDirection: "column", gap: 8 }}>
-              <li><strong style={{ color: TEXT }}>Service providers:</strong> Third-party vendors who help us deliver our Service (e.g., payment processors, analytics providers, hosting).</li>
+              <li><strong style={{ color: TEXT }}>Service providers:</strong> Third-party vendors who help us deliver our Service (e.g., payment processors, hosting).</li>
+              <li><strong style={{ color: TEXT }}>Analytics and Crash Reporting:</strong> Third-party services (such as Google Analytics or Firebase) to collect crash reports and usage metrics to improve app stability.</li>
               <li><strong style={{ color: TEXT }}>AI providers:</strong> Anthropic for AI chat and prediction features.</li>
               <li><strong style={{ color: TEXT }}>Legal authorities:</strong> When required by law, court order, or government regulation.</li>
               <li><strong style={{ color: TEXT }}>Business transfers:</strong> In connection with a merger, acquisition, or sale of assets.</li>
             </ul>
           </Section>
 
-          <Section title="6. Data Retention">
+          <Section title="6. Data Retention & Account Deletion">
             <p>
               We retain your personal information for as long as your account is active or as needed to
-              provide services. You may request deletion of your account and associated data at any time
-              by contacting us at support@prediqsai.com. Some data may be retained for legal compliance
-              purposes for up to 7 years.
+              provide services. Some data may be retained for legal compliance purposes for up to 7 years.
+            </p>
+            <p style={{ marginTop: 12 }}>
+              <strong style={{ color: TEXT }}>Account and Data Deletion:</strong> You have the right to
+              request the complete deletion of your account and all associated personal data. You can
+              initiate this process directly within the app by navigating to your account settings to
+              delete your profile, or by submitting a verifiable request to{" "}
+              <a href="mailto:support@prediqsai.com" style={{ color: CYAN }}>support@prediqsai.com</a>.
+              Upon request, we will securely erase your profile, bankroll data, and chat history, except
+              where retention is strictly required for legal compliance.
             </p>
           </Section>
 
