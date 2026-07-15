@@ -1,0 +1,72 @@
+Please update the content of the Terms of Service page on the website to reflect the following updated text. Ensure the formatting (headings, bullet points, and bold text) is properly rendered in the frontend component, and push the commit to GitHub once completed.
+
+Here is the updated text:
+
+# Terms of Service
+**Last updated:** May 22, 2026
+
+### 1. Acceptance of Terms
+By downloading, installing, or using the PrediQs AI mobile application or website (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Service.
+You must be at least 18 years of age to use this Service. By using the Service, you represent and warrant that you are 18 or older and that the laws of your jurisdiction permit you to access sports betting-related information.
+
+### 2. Description of Service
+PrediQs AI provides AI-powered sports analytics, predictions, odds comparison, and bankroll management tools for informational and entertainment purposes. We use the Anthropic Claude AI model to generate predictions and analysis based on publicly available sports data.
+
+**IMPORTANT DISCLAIMER:** PrediQs AI is NOT a gambling operator, bookmaker, or betting exchange. We do not accept wagers or process gambling transactions. All predictions and analysis are provided for informational purposes only and do not constitute gambling advice or guarantees of outcome. 
+
+**Platform Independence:** Google LLC, Google Play, and Apple Inc. are not sponsors of, nor are they involved in any way with, the Service, any predictions, bankroll tracking, or any promotional activities provided within the application.
+
+### 3. User Accounts
+When you create an account, you agree to:
+* Provide accurate and complete registration information
+* Maintain the security of your password and account
+* Notify us immediately of any unauthorised use of your account
+* Take responsibility for all activities under your account
+* Not share your account credentials with others
+
+**Account Deletion:** You have the right to terminate your account at any time. To request the complete deletion of your account and all associated personal data from our systems, please contact our support team at **support@prediqsai.com**.
+
+### 4. Subscription and Payments
+PrediQs AI offers the following subscription tiers:
+* **Free:** Limited access with 5 AI predictions per day at no cost.
+* **Premium Monthly:** $29.99/month, full access to all features.
+* **Premium Annual:** $319/year (billed annually), full access to all features.
+* **Lifetime:** $299 one-time payment, permanent full access.
+
+Subscriptions auto-renew unless cancelled at least 24 hours before the renewal date. You may cancel at any time through your device's subscription management settings. Refunds are subject to the applicable app store's refund policy.
+
+### 5. Responsible Gambling
+⚠️ **Responsible Gambling Warning**
+Gambling can be addictive and cause financial and personal harm. PrediQs AI strongly encourages responsible gambling. Never bet more than you can afford to lose. If you believe you may have a gambling problem, seek help immediately.
+**National Problem Gambling Helpline:** 1-800-522-4700 (available 24/7)
+**Website:** www.ncpgambling.org
+
+### 6. Intellectual Property
+The Service and its original content, features, and functionality are owned by PrediQs AI and are protected by international copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, modify, create derivative works of, publicly display, or exploit any of the content without our express written permission.
+
+### 7. Prohibited Uses
+You agree not to:
+* Use the Service in any jurisdiction where sports betting analysis is prohibited by law
+* Reverse-engineer, decompile, or disassemble any part of the Service
+* Use automated tools to scrape, crawl, or extract data from the Service
+* Resell or redistribute AI predictions or proprietary data to third parties
+* Attempt to gain unauthorised access to our systems or networks
+* Use the Service for any illegal or unauthorised purpose
+* Harass, abuse, or harm other users
+
+### 8. Disclaimer of Warranties
+THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, WE DISCLAIM ALL WARRANTIES, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+WE DO NOT WARRANT THAT AI PREDICTIONS ARE ACCURATE, RELIABLE, OR WILL RESULT IN PROFITABLE OUTCOMES. SPORTS OUTCOMES ARE INHERENTLY UNCERTAIN AND PAST PERFORMANCE IS NOT INDICATIVE OF FUTURE RESULTS.
+
+### 9. Limitation of Liability
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, PREDIQSAI SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, LOSS OF FUNDS WAGERED, OR ANY OTHER LOSSES ARISING FROM YOUR USE OF THE SERVICE, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+### 10. Governing Law
+These Terms shall be governed by and construed in accordance with applicable law. Any disputes arising under these Terms shall be subject to binding arbitration.
+
+### 11. Changes to Terms
+We reserve the right to modify these Terms at any time. We will notify you of material changes by updating the "Last updated" date and providing notice through the Service. Continued use of the Service after changes constitutes acceptance of the revised Terms.
+
+### 12. Contact
+For questions about these Terms, contact us at **support@prediqsai.com**.

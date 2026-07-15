@@ -96,6 +96,12 @@ export default function Terms() {
               provided for informational purposes only and do not constitute gambling advice or guarantees
               of outcome.
             </p>
+            <p style={{ marginTop: 12 }}>
+              <strong style={{ color: TEXT }}>Platform Independence:</strong> Google LLC, Google Play,
+              and Apple Inc. are not sponsors of, nor are they involved in any way with, the Service,
+              any predictions, bankroll tracking, or any promotional activities provided within the
+              application.
+            </p>
           </Section>
 
           <Section title="3. User Accounts">
@@ -107,6 +113,14 @@ export default function Terms() {
               <li>Take responsibility for all activities under your account</li>
               <li>Not share your account credentials with others</li>
             </ul>
+            <p style={{ marginTop: 12 }}>
+              <strong style={{ color: TEXT }}>Account Deletion:</strong> You have the right to terminate
+              your account at any time. To request the complete deletion of your account and all
+              associated personal data from our systems, please contact our support team at{" "}
+              <a href="mailto:support@prediqsai.com" style={{ color: CYAN }}>
+                <strong>support@prediqsai.com</strong>
+              </a>.
+            </p>
           </Section>
 
           <Section title="4. Subscription and Payments">
