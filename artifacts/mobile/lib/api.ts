@@ -56,10 +56,12 @@ AsyncStorage.getItem(EXPERIENCE_KEY)
   })
   .catch(() => {});
 
+const PRODUCTION_API_URL = "https://api.prediqsai.com";
+
 export function getApiBaseUrl(): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}`;
-  return "";
+  return PRODUCTION_API_URL;
 }
 
 export function chatUrl(): string {

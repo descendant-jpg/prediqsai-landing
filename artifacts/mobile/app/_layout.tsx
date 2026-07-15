@@ -18,9 +18,11 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 import { RegionProvider } from "@/context/RegionContext";
 
-if (process.env.EXPO_PUBLIC_DOMAIN) {
-  setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
-}
+setBaseUrl(
+  process.env.EXPO_PUBLIC_DOMAIN
+    ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
+    : "https://api.prediqsai.com",
+);
 
 // Only lock the splash on native; web hides it immediately to avoid the white overlay
 if (Platform.OS !== "web") {
