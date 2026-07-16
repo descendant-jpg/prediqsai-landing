@@ -28,15 +28,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
-import { api, type ApiPrediction } from "@/lib/api";
+import { api, type ApiPrediction, type MatchOfDayData } from "@/lib/api";
 import {
   FREE_FEED_LIMIT,
-  getMatchOfDay,
   NOTIFICATIONS,
-  PREDICTIONS,
   SIMULATED_NEW_IDS,
+  type MatchOfDay,
+  type MockPrediction,
   type SportFilter,
+  type SportKey,
 } from "@/lib/mockData";
+import { pickLabel } from "@/lib/pickLabel";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
 
@@ -71,6 +73,71 @@ function mapPrediction(p: ApiPrediction): Prediction {
     simulationData: p.simulationData ?? null,
     agentScores: p.agentScores ?? null,
     publicBacking: p.publicBacking ?? null,
+  };
+}
+
+function dbSportToKey(sport: string): SportKey {
+  switch (sport.toLowerCase()) {
+    case "soccer": case "football": return "football";
+    case "nba": case "basketball": return "basketball";
+    case "mlb": case "baseball": return "baseball";
+    case "nfl": return "nfl";
+    case "nhl": case "hockey": return "hockey";
+    case "tennis": return "tennis";
+    default: return "football";
+  }
+}
+
+/** Decimal odds implied by the bookmaker probability (e.g. 54% → 1.85). */
+function impliedOdds(bookmakerProbability: number): number {
+  if (!bookmakerProbability || bookmakerProbability <= 0) return 0;
+  return Math.round((100 / bookmakerProbability) * 100) / 100;
+}
+
+function formatMatchTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (sameDay) return `Today · ${time}`;
+    return `${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} · ${time}`;
+  } catch {
+    return "";
+  }
+}
+
+/** Map a real API prediction onto the shape the feed card renders. */
+function toFeedItem(p: Prediction): MockPrediction {
+  return {
+    id: p.id,
+    match: `${p.homeTeam} vs ${p.awayTeam}`,
+    homeTeam: p.homeTeam,
+    awayTeam: p.awayTeam,
+    sport: dbSportToKey(p.sport),
+    league: p.league,
+    pick: pickLabel(p.prediction, p.homeTeam, p.awayTeam),
+    confidence: p.confidence,
+    bookmaker: "Market consensus",
+    odds: impliedOdds(p.bookmakerProbability),
+    time: formatMatchTime(p.matchDate),
+    analysis: p.reasoning,
+    keyStats: (p.keyFactors ?? []).slice(0, 3),
+  };
+}
+
+function motdFromApi(m: MatchOfDayData): MatchOfDay {
+  return {
+    id: m.id,
+    sport: dbSportToKey(m.sport),
+    match: m.match,
+    competition: m.competition,
+    time: formatMatchTime(m.matchDate),
+    pick: pickLabel(m.pick, m.homeTeam, m.awayTeam),
+    confidence: m.confidence,
+    analysis: m.analysis,
+    keyStats: m.keyStats,
+    bookmaker: "Live market consensus",
   };
 }
 
@@ -199,14 +266,31 @@ export default function DashboardScreen() {
     }, [refreshUnread]),
   );
 
-  const feedPredictions =
-    sportFilter === "all" ? PREDICTIONS : PREDICTIONS.filter((p) => p.sport === sportFilter);
-  const matchOfDay = getMatchOfDay(sportFilter);
+  // Live daily prediction feed, driven by the real API data.
+  const feedPredictions = (
+    sportFilter === "all"
+      ? predictions
+      : predictions.filter((p) => dbSportToKey(p.sport) === sportFilter)
+  )
+    .filter((p) => !p.avoidMatch)
+    .map(toFeedItem);
 
   // Global FREE unlock policy: the first FREE_FEED_LIMIT predictions overall are
   // free. Lock state is keyed by prediction id so switching sport chips can never
   // reveal more than the daily limit of free cards.
-  const unlockedIds = new Set(PREDICTIONS.slice(0, FREE_FEED_LIMIT).map((p) => p.id));
+  const unlockedIds = new Set(predictions.slice(0, FREE_FEED_LIMIT).map((p) => p.id));
+
+  // Match of the Day, fetched from the live API per selected sport.
+  const [matchOfDay, setMatchOfDay] = useState<MatchOfDay | null>(null);
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    api.predictions
+      .matchOfDay(token, sportFilter)
+      .then((m) => { if (active) setMatchOfDay(m ? motdFromApi(m) : null); })
+      .catch(() => { if (active) setMatchOfDay(null); });
+    return () => { active = false; };
+  }, [token, sportFilter]);
 
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
@@ -387,8 +471,10 @@ export default function DashboardScreen() {
       {/* Live Odds Ticker (Feature 2) */}
       <OddsTicker />
 
-      {/* Match of the Day (Feature 6) */}
-      <MatchOfTheDay motd={matchOfDay} isPro={isPro} onUpgrade={() => router.push("/subscription")} />
+      {/* Match of the Day (Feature 6) — live data only */}
+      {matchOfDay && (
+        <MatchOfTheDay motd={matchOfDay} isPro={isPro} onUpgrade={() => router.push("/subscription")} />
+      )}
 
       {/* Achievements (Feature 4) */}
       <AchievementsRow />

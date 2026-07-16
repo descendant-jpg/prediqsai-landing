@@ -45,6 +45,65 @@ router.get("/predictions", requireAuth, async (req, res) => {
   }
 });
 
+// Mobile sport-filter keys → DB sport values
+const SPORT_FILTER_MAP: Record<string, string[]> = {
+  football: ["soccer"],
+  basketball: ["nba", "basketball"],
+  nfl: ["nfl"],
+  baseball: ["mlb", "baseball"],
+  hockey: ["nhl", "hockey"],
+  tennis: ["tennis"],
+};
+
+router.get("/predictions/match-of-day", requireAuth, async (req, res) => {
+  try {
+    const [user] = await db
+      .select({
+        tier: users.tier,
+        manualTierOverride: users.manualTierOverride,
+        freeTrialUntil: users.freeTrialUntil,
+      })
+      .from(users)
+      .where(eq(users.id, req.userId!))
+      .limit(1);
+
+    const sportFilter = typeof req.query.sport === "string" ? req.query.sport : "all";
+    const allowedSports = sportFilter === "all" ? null : SPORT_FILTER_MAP[sportFilter] ?? null;
+
+    const preds = await getPredictions();
+    const candidates = preds
+      .filter((p) => !p.avoidMatch)
+      .filter((p) => !allowedSports || allowedSports.includes(p.sport.toLowerCase()))
+      .sort((a, b) => b.confidence - a.confidence);
+
+    const top = candidates[0] ?? null;
+    if (!top) {
+      res.json(null);
+      return;
+    }
+
+    const premium = isPremium(user);
+    res.json({
+      id: top.id,
+      sport: top.sport,
+      match: `${top.homeTeam} vs ${top.awayTeam}`,
+      homeTeam: top.homeTeam,
+      awayTeam: top.awayTeam,
+      competition: top.league,
+      matchDate: top.matchDate,
+      pick: top.prediction,
+      confidence: top.confidence,
+      analysis: premium ? top.reasoning : "",
+      keyStats: premium ? (top.keyFactors ?? []).slice(0, 3) : [],
+      valueDetected: top.valueDetected,
+      locked: !premium,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get match of the day");
+    res.status(500).json({ error: "Failed to fetch match of the day" });
+  }
+});
+
 router.post("/predictions/refresh", requireAuth, async (req, res) => {
   try {
     const preds = await refreshPredictions();

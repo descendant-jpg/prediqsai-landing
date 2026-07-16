@@ -1,8 +1,27 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { initTelegramBot } from "./telegram-bot";
+import { getPredictions, refreshPredictions } from "./services/prediction-engine";
 import { db, users } from "@workspace/db";
 import { eq } from "drizzle-orm";
+
+const PREDICTION_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+
+function startPredictionScheduler() {
+  // Warm the cache shortly after boot (getPredictions self-refreshes when stale),
+  // then refresh on a fixed 6-hour cadence.
+  setTimeout(() => {
+    getPredictions()
+      .then((preds) => logger.info({ count: preds.length }, "Prediction warm-up complete"))
+      .catch((err) => logger.error({ err }, "Prediction warm-up failed"));
+  }, 15_000);
+
+  setInterval(() => {
+    refreshPredictions()
+      .then((rows) => logger.info({ count: rows.length }, "Scheduled prediction refresh complete"))
+      .catch((err) => logger.error({ err }, "Scheduled prediction refresh failed"));
+  }, PREDICTION_REFRESH_INTERVAL_MS);
+}
 
 async function autoBootstrapAdmin() {
   const adminEmail = process.env.ADMIN_EMAIL;
@@ -44,4 +63,5 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   autoBootstrapAdmin();
   initTelegramBot();
+  startPredictionScheduler();
 });

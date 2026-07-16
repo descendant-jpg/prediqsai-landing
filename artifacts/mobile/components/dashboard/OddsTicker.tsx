@@ -2,14 +2,39 @@ import { TrendingDown, TrendingUp, X } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { ODDS_TICKER, type OddsTickerItem } from "@/lib/mockData";
+import { api, type OddsTickerApiItem } from "@/lib/api";
+
+type OddsTickerItem = OddsTickerApiItem;
 
 export function OddsTicker() {
   const colors = useColors();
+  const { token } = useAuth();
   const translateX = useRef(new Animated.Value(0)).current;
   const [setWidth, setSetWidth] = useState(0);
   const [selected, setSelected] = useState<OddsTickerItem | null>(null);
+  const [items, setItems] = useState<OddsTickerItem[]>([]);
+
+  // Fetch live odds on mount and refresh every 3 minutes.
+  useEffect(() => {
+    if (!token) {
+      setItems([]);
+      return;
+    }
+    let active = true;
+    async function load() {
+      try {
+        const data = await api.odds.ticker(token!);
+        if (active) setItems(data.items);
+      } catch {
+        if (active) setItems([]);
+      }
+    }
+    load();
+    const iv = setInterval(load, 3 * 60_000);
+    return () => { active = false; clearInterval(iv); };
+  }, [token]);
 
   useEffect(() => {
     if (setWidth <= 0) return;
@@ -27,6 +52,9 @@ export function OddsTicker() {
     return () => anim.stop();
   }, [setWidth, translateX]);
 
+  // Nothing to show until real odds arrive.
+  if (items.length === 0) return null;
+
   return (
     <View style={[styles.bar, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View style={[styles.liveTag, { backgroundColor: "rgba(255,215,0,0.14)" }]}>
@@ -37,12 +65,12 @@ export function OddsTicker() {
         <Animated.View style={[styles.track, { transform: [{ translateX }] }]}>
           {/* First set is measured; the duplicate creates the seamless loop */}
           <View style={styles.set} onLayout={(e) => setSetWidth(e.nativeEvent.layout.width)}>
-            {ODDS_TICKER.map((item) => (
+            {items.map((item) => (
               <TickerCell key={item.id} item={item} onPress={() => setSelected(item)} />
             ))}
           </View>
           <View style={styles.set}>
-            {ODDS_TICKER.map((item) => (
+            {items.map((item) => (
               <TickerCell key={`dup-${item.id}`} item={item} onPress={() => setSelected(item)} />
             ))}
           </View>

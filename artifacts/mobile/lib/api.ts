@@ -213,6 +213,32 @@ export interface ApiPrediction {
   publicBacking: PublicBacking | null;
 }
 
+export interface MatchOfDayData {
+  id: string;
+  sport: string;
+  match: string;
+  homeTeam: string;
+  awayTeam: string;
+  competition: string;
+  matchDate: string;
+  pick: string;
+  confidence: number;
+  analysis: string;
+  keyStats: string[];
+  valueDetected: boolean;
+  locked: boolean;
+}
+
+export interface OddsTickerApiItem {
+  id: string;
+  icon: string;
+  match: string;
+  market: string;
+  odds: number;
+  direction: "up" | "down";
+  detail: string;
+}
+
 export interface AccuracyStats {
   accuracy: number | null;
   wins: number;
@@ -738,6 +764,15 @@ export const api = {
         token,
       }),
     accuracy: (token: string) => apiFetch<AccuracyStats>("/predictions/accuracy", { token }),
+    matchOfDay: (token: string, sport: string) =>
+      apiFetch<MatchOfDayData | null>(
+        `/predictions/match-of-day?sport=${encodeURIComponent(sport)}`,
+        { token },
+      ),
+  },
+  odds: {
+    ticker: (token: string) =>
+      apiFetch<{ items: OddsTickerApiItem[] }>("/odds/ticker", { token }),
   },
   sports: {
     today: (token: string) => apiFetch<AllSportsResponse>("/sports/today", { token }),

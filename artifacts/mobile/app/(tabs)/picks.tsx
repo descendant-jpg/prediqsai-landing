@@ -46,6 +46,7 @@ import {
   type ProPick,
   type SportKey,
 } from "@/lib/mockData";
+import { pickLabel } from "@/lib/pickLabel";
 import { sharePick, shareSlip } from "@/lib/share";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
@@ -87,6 +88,64 @@ function mapPrediction(p: ApiPrediction): Prediction {
     simulationData: p.simulationData ?? null, agentScores: p.agentScores ?? null,
     publicBacking: p.publicBacking ?? null,
   };
+}
+
+/** Convert a real API prediction into the ProPick shape the hero card renders. */
+function predictionToProPick(p: Prediction): ProPick {
+  const impliedOdds =
+    p.bookmakerProbability > 0
+      ? Math.round((100 / p.bookmakerProbability) * 100) / 100
+      : 0;
+  const risk = (p.riskLevel ?? "medium").toLowerCase();
+  return {
+    id: `potd-${p.id}`,
+    sport: dbSportToSportKey(p.sport),
+    competition: p.league,
+    homeTeam: p.homeTeam,
+    awayTeam: p.awayTeam,
+    aiPick: pickLabel(p.prediction, p.homeTeam, p.awayTeam),
+    confidence: p.confidence,
+    odds: impliedOdds,
+    bookmaker: "Market consensus",
+    isLive: false,
+    currentScore: "",
+    isValue: p.valueDetected,
+    type: "hot",
+    reasoning: p.reasoning,
+    keyStats: (p.keyFactors ?? []).slice(0, 4),
+    riskLevel: risk === "low" ? "Low" : risk === "high" ? "High" : "Medium",
+    proTip: p.sharpMoneySignal ?? "",
+    bookmakerOdds: [],
+    kickoffTime: formatKickoffDay(p.matchDate),
+    homeForm: "",
+    awayForm: "",
+    headToHead: "",
+    avgGoals: "",
+    bookmakerUrl: "",
+    liveAnalysis: "",
+  };
+}
+
+function dbSportToSportKey(sport: string): SportKey {
+  switch (sport.toLowerCase()) {
+    case "soccer": case "football": return "football";
+    case "nba": case "basketball": return "basketball";
+    case "mlb": case "baseball": return "baseball";
+    case "nfl": return "nfl";
+    case "nhl": case "hockey": return "hockey";
+    case "tennis": return "tennis";
+    default: return "football";
+  }
+}
+
+function formatKickoffDay(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return d.toDateString() === new Date().toDateString()
+      ? `Today · ${time}`
+      : `${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} · ${time}`;
+  } catch { return ""; }
 }
 
 function formatKickoff(dateStr: string): string {
@@ -517,6 +576,12 @@ export default function PicksScreen() {
   const byStatus  = filterByStatus(predictions, statusFilter);
   const displayed = filterBySport(byStatus, sportFilter);
 
+  // Real AI Pick of the Day: highest-confidence live prediction (excluding avoids).
+  const topPrediction = predictions
+    .filter((p) => !p.avoidMatch)
+    .sort((a, b) => b.confidence - a.confidence)[0];
+  const pickOfTheDay = topPrediction ? predictionToProPick(topPrediction) : null;
+
   // ── Enhanced AI picks: filter by Hot/Value/ARB + sport chip, live first ──
   const sportKey = sportChipToKey(sportFilter);
   const filteredProPicks = PRO_PICKS
@@ -531,12 +596,14 @@ export default function PicksScreen() {
         <Text style={[styles.aiSubtitle, { color: colors.textSecondary }]}>{t("picks.poweredBy")}</Text>
       </View>
 
-      <PickOfTheDayCard
-        pick={PICK_OF_THE_DAY}
-        isPro={isPro}
-        onPress={() => setReasoningPick(PICK_OF_THE_DAY)}
-        onUpgrade={() => router.push("/subscription")}
-      />
+      {pickOfTheDay && (
+        <PickOfTheDayCard
+          pick={pickOfTheDay}
+          isPro={isPro}
+          onPress={() => setReasoningPick(pickOfTheDay)}
+          onUpgrade={() => router.push("/subscription")}
+        />
+      )}
 
       <View style={styles.tabsWrap}>
         <PickTypeTabs value={picksFilter} onChange={changePicksFilter} />
