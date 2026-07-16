@@ -14,6 +14,9 @@ const TICKER_SPORTS: { key: string; icon: string }[] = [
   { key: "americanfootball_nfl", icon: "🏈" },
   { key: "baseball_mlb", icon: "⚾" },
   { key: "icehockey_nhl", icon: "🏒" },
+  { key: "aussierules_afl", icon: "🏉" },
+  { key: "rugbyleague_nrl", icon: "🏉" },
+  { key: "mma_mixed_martial_arts", icon: "🥊" },
 ];
 
 interface TickerItem {

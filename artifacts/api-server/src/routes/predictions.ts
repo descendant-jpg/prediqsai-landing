@@ -53,6 +53,13 @@ const SPORT_FILTER_MAP: Record<string, string[]> = {
   baseball: ["mlb", "baseball"],
   hockey: ["nhl", "hockey"],
   tennis: ["tennis"],
+  afl: ["afl"],
+  rugby: ["rugby"],
+  handball: ["handball"],
+  volleyball: ["volleyball"],
+  mma: ["mma"],
+  formula1: ["formula1"],
+  f1: ["formula1"],
 };
 
 router.get("/predictions/match-of-day", requireAuth, async (req, res) => {

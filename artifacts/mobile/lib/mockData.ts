@@ -9,7 +9,13 @@ export type SportKey =
   | "tennis"
   | "nfl"
   | "baseball"
-  | "hockey";
+  | "hockey"
+  | "afl"
+  | "rugby"
+  | "handball"
+  | "volleyball"
+  | "mma"
+  | "formula1";
 
 export type SportFilter = "all" | SportKey;
 
@@ -20,6 +26,12 @@ export const SPORT_ICONS: Record<SportKey, string> = {
   nfl: "🏈",
   baseball: "⚾",
   hockey: "🏒",
+  afl: "🏉",
+  rugby: "🏉",
+  handball: "🤾",
+  volleyball: "🏐",
+  mma: "🥊",
+  formula1: "🏎️",
 };
 
 export interface SportChip {
@@ -31,11 +43,16 @@ export interface SportChip {
 export const SPORT_CHIPS: SportChip[] = [
   { key: "all", label: "All", icon: "🌟" },
   { key: "football", label: "Football", icon: "⚽" },
-  { key: "basketball", label: "Basketball", icon: "🏀" },
-  { key: "tennis", label: "Tennis", icon: "🎾" },
+  { key: "basketball", label: "NBA", icon: "🏀" },
   { key: "nfl", label: "NFL", icon: "🏈" },
   { key: "baseball", label: "Baseball", icon: "⚾" },
   { key: "hockey", label: "Hockey", icon: "🏒" },
+  { key: "afl", label: "AFL", icon: "🏉" },
+  { key: "rugby", label: "Rugby", icon: "🏉" },
+  { key: "mma", label: "MMA", icon: "🥊" },
+  { key: "formula1", label: "F1", icon: "🏎️" },
+  { key: "handball", label: "Handball", icon: "🤾" },
+  { key: "volleyball", label: "Volleyball", icon: "🏐" },
 ];
 
 // ---------------------------------------------------------------------------

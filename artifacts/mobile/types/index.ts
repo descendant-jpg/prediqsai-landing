@@ -1,5 +1,16 @@
 export type Tier = "free" | "premium";
-export type SportType = "nfl" | "nba" | "mlb" | "soccer";
+export type SportType =
+  | "nfl"
+  | "nba"
+  | "mlb"
+  | "soccer"
+  | "hockey"
+  | "afl"
+  | "rugby"
+  | "handball"
+  | "volleyball"
+  | "mma"
+  | "formula1";
 export type RiskLevel = "low" | "medium" | "high";
 export type PredictionType = "home_win" | "away_win" | "draw" | "over" | "under";
 export type EntryType = "deposit" | "withdrawal" | "win" | "loss";

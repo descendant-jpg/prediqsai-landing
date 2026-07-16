@@ -9,23 +9,46 @@ const ODDS_API_KEY = process.env.ODDS_API_KEY;
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 
-const SPORTS = [
+interface SportConfig {
+  sport: string;
+  league: string;
+  apiSportsBase: string;
+  apiSportsPath: string;
+  /** "teams" = home/away shape, "f1" = races, "mma" = fights */
+  kind: "teams" | "f1" | "mma";
+  /** Primary sports always run (with demo fallback); secondary sports only run when real events exist. */
+  priority: boolean;
+  /** The Odds API sport key — empty string when the sport isn't covered. */
+  oddsKey: string;
+  /** ESPN enrichment — empty strings when ESPN has no equivalent league. */
+  espnSport: string;
+  espnLeague: string;
+  outdoor: boolean;
+  newsQuery: string;
+}
+
+const SPORTS: SportConfig[] = [
+  // ── Primary sports (always analysed) ──
   {
-    sport: "nfl",
-    league: "NFL",
-    apiSportsBase: "https://v1.american-football.api-sports.io",
-    apiSportsPath: "/games",
-    oddsKey: "americanfootball_nfl",
-    espnSport: "football",
-    espnLeague: "nfl",
+    sport: "soccer",
+    league: "Soccer",
+    apiSportsBase: "https://v3.football.api-sports.io",
+    apiSportsPath: "/fixtures",
+    kind: "teams",
+    priority: true,
+    oddsKey: "soccer_epl",
+    espnSport: "soccer",
+    espnLeague: "eng.1",
     outdoor: true,
-    newsQuery: "NFL football injury trade",
+    newsQuery: "Premier League La Liga Bundesliga soccer injury suspension lineup",
   },
   {
     sport: "nba",
     league: "NBA",
     apiSportsBase: "https://v2.nba.api-sports.io",
     apiSportsPath: "/games",
+    kind: "teams",
+    priority: true,
     oddsKey: "basketball_nba",
     espnSport: "basketball",
     espnLeague: "nba",
@@ -33,28 +56,124 @@ const SPORTS = [
     newsQuery: "NBA basketball injury roster",
   },
   {
+    sport: "nfl",
+    league: "NFL",
+    apiSportsBase: "https://v1.american-football.api-sports.io",
+    apiSportsPath: "/games",
+    kind: "teams",
+    priority: true,
+    oddsKey: "americanfootball_nfl",
+    espnSport: "football",
+    espnLeague: "nfl",
+    outdoor: true,
+    newsQuery: "NFL football injury trade",
+  },
+  {
     sport: "mlb",
     league: "MLB",
     apiSportsBase: "https://v1.baseball.api-sports.io",
     apiSportsPath: "/games",
+    kind: "teams",
+    priority: true,
     oddsKey: "baseball_mlb",
     espnSport: "baseball",
     espnLeague: "mlb",
     outdoor: true,
     newsQuery: "MLB baseball injury pitcher",
   },
+  // ── Secondary sports (run only when live events exist) ──
   {
-    sport: "soccer",
-    league: "Soccer",
-    apiSportsBase: "https://v3.football.api-sports.io",
-    apiSportsPath: "/fixtures",
-    oddsKey: "soccer_epl",
-    espnSport: "soccer",
-    espnLeague: "eng.1",
-    outdoor: true,
-    newsQuery: "Premier League La Liga Bundesliga soccer injury suspension lineup",
+    sport: "hockey",
+    league: "Hockey",
+    apiSportsBase: "https://v1.hockey.api-sports.io",
+    apiSportsPath: "/games",
+    kind: "teams",
+    priority: false,
+    oddsKey: "icehockey_nhl",
+    espnSport: "hockey",
+    espnLeague: "nhl",
+    outdoor: false,
+    newsQuery: "NHL hockey injury lineup goalie",
   },
-] as const;
+  {
+    sport: "afl",
+    league: "AFL",
+    apiSportsBase: "https://v1.afl.api-sports.io",
+    apiSportsPath: "/games",
+    kind: "teams",
+    priority: false,
+    oddsKey: "aussierules_afl",
+    espnSport: "",
+    espnLeague: "",
+    outdoor: true,
+    newsQuery: "AFL Australian football injury team news",
+  },
+  {
+    sport: "rugby",
+    league: "Rugby",
+    apiSportsBase: "https://v1.rugby.api-sports.io",
+    apiSportsPath: "/games",
+    kind: "teams",
+    priority: false,
+    oddsKey: "rugbyleague_nrl",
+    espnSport: "",
+    espnLeague: "",
+    outdoor: true,
+    newsQuery: "rugby NRL Six Nations injury team news",
+  },
+  {
+    sport: "handball",
+    league: "Handball",
+    apiSportsBase: "https://v1.handball.api-sports.io",
+    apiSportsPath: "/games",
+    kind: "teams",
+    priority: false,
+    oddsKey: "",
+    espnSport: "",
+    espnLeague: "",
+    outdoor: false,
+    newsQuery: "handball EHF Champions League injury",
+  },
+  {
+    sport: "volleyball",
+    league: "Volleyball",
+    apiSportsBase: "https://v1.volleyball.api-sports.io",
+    apiSportsPath: "/games",
+    kind: "teams",
+    priority: false,
+    oddsKey: "",
+    espnSport: "",
+    espnLeague: "",
+    outdoor: false,
+    newsQuery: "volleyball league injury roster",
+  },
+  {
+    sport: "mma",
+    league: "MMA",
+    apiSportsBase: "https://v1.mma.api-sports.io",
+    apiSportsPath: "/fights",
+    kind: "mma",
+    priority: false,
+    oddsKey: "mma_mixed_martial_arts",
+    espnSport: "",
+    espnLeague: "",
+    outdoor: false,
+    newsQuery: "UFC MMA fight injury weigh-in",
+  },
+  {
+    sport: "formula1",
+    league: "Formula 1",
+    apiSportsBase: "https://v1.formula-1.api-sports.io",
+    apiSportsPath: "/races",
+    kind: "f1",
+    priority: false,
+    oddsKey: "",
+    espnSport: "",
+    espnLeague: "",
+    outdoor: true,
+    newsQuery: "Formula 1 F1 qualifying grid penalty",
+  },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -225,17 +344,12 @@ async function fetchApiSportsGames(
   path: string,
   sport: string,
   leagueId?: number,
+  kind: "teams" | "f1" | "mma" = "teams",
 ): Promise<GameInfo[]> {
   if (!API_SPORTS_KEY) return [];
   try {
     const today = new Date().toISOString().split("T")[0];
-    let url = `${base}${path}?date=${today}`;
-
-    if (sport === "soccer") {
-      // Do NOT pass league or season filter — API-Sports free plan blocks specific season
-      // queries for recent seasons. The date-only query returns all available fixtures.
-      url = `${base}${path}?date=${today}`;
-    }
+    const url = `${base}${path}?date=${today}`;
 
     const resp = await fetch(url, {
       headers: { "x-apisports-key": API_SPORTS_KEY },
@@ -251,6 +365,42 @@ async function fetchApiSportsGames(
 
     const now2 = new Date();
     const season = now2.getMonth() >= 6 ? now2.getFullYear() : now2.getFullYear() - 1;
+
+    if (kind === "f1") {
+      // Races: keep only actual race sessions (skip practice/qualifying)
+      return (items as Record<string, unknown>[])
+        .filter((r) => typeof r.type === "string" && (r.type as string).toLowerCase() === "race")
+        .slice(0, 4)
+        .map((r) => {
+          const competition = r.competition as Record<string, unknown> | undefined;
+          const circuit = r.circuit as Record<string, unknown> | undefined;
+          const location = competition?.location as Record<string, unknown> | undefined;
+          const raceName = (competition?.name as string) ?? "Grand Prix";
+          return {
+            homeTeam: raceName,
+            awayTeam: "Field",
+            date: (r.date as string) ?? today,
+            venue: circuit?.name as string | undefined,
+            city: location?.city as string | undefined,
+            fixtureId: r.id != null ? String(r.id) : undefined,
+          };
+        });
+    }
+
+    if (kind === "mma") {
+      return (items as Record<string, unknown>[]).slice(0, 6).map((f) => {
+        const fighters = f.fighters as Record<string, unknown> | undefined;
+        const first = fighters?.first as Record<string, unknown> | undefined;
+        const second = fighters?.second as Record<string, unknown> | undefined;
+        return {
+          homeTeam: (first?.name as string) ?? "Fighter 1",
+          awayTeam: (second?.name as string) ?? "Fighter 2",
+          date: (f.date as string) ?? today,
+          venue: (f.category as string) ?? undefined,
+          fixtureId: f.id != null ? String(f.id) : undefined,
+        };
+      });
+    }
 
     if (sport === "soccer") {
       return (items as Record<string, unknown>[]).slice(0, 6).map((g) => {
@@ -840,9 +990,10 @@ async function enrichGames(
   espnLeague: string,
   apiSportsBase: string,
 ): Promise<EnrichedGame[]> {
+  const hasEspn = Boolean(espnSport && espnLeague);
   const [standings, espnInjuries] = await Promise.all([
-    fetchESPNStandings(espnSport, espnLeague),
-    fetchESPNInjuries(espnSport, espnLeague),
+    hasEspn ? fetchESPNStandings(espnSport, espnLeague) : Promise.resolve([]),
+    hasEspn ? fetchESPNInjuries(espnSport, espnLeague) : Promise.resolve(new Map<string, string[]>()),
   ]);
 
   const normalized = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -1666,41 +1817,39 @@ function findMatchingOdds(odds: GameOdds[], game: GameInfo): GameOdds | undefine
 
 // ─── Sport generator ──────────────────────────────────────────────────────────
 
-async function generateForSport(
-  sport: string,
-  league: string,
-  apiSportsBase: string,
-  apiSportsPath: string,
-  oddsKey: string,
-  espnSport: string,
-  espnLeague: string,
-  outdoor: boolean,
-  newsQuery: string,
-) {
+async function generateForSport(cfg: SportConfig) {
+  const { sport, league, apiSportsBase, apiSportsPath, kind, priority, oddsKey, espnSport, espnLeague, outdoor, newsQuery } = cfg;
+
   // Fetch everything in parallel — for soccer, fan out across top leagues
   const SOCCER_LEAGUE_IDS = [39, 140, 78, 135, 61, 2, 3, 253, 88];
   const [apiSportsGames, odds, newsHeadlines, espnNews] = await Promise.all([
     sport === "soccer"
       ? Promise.allSettled(
-          SOCCER_LEAGUE_IDS.map((id) => fetchApiSportsGames(apiSportsBase, apiSportsPath, sport, id)),
+          SOCCER_LEAGUE_IDS.map((id) => fetchApiSportsGames(apiSportsBase, apiSportsPath, sport, id, kind)),
         ).then((results) =>
           results
             .filter((r): r is PromiseFulfilledResult<GameInfo[]> => r.status === "fulfilled")
             .flatMap((r) => r.value)
             .slice(0, 12),
         )
-      : fetchApiSportsGames(apiSportsBase, apiSportsPath, sport),
-    fetchOdds(oddsKey),
+      : fetchApiSportsGames(apiSportsBase, apiSportsPath, sport, undefined, kind),
+    oddsKey ? fetchOdds(oddsKey) : Promise.resolve([]),
     fetchNewsApi(newsQuery),
-    fetchESPNNews(espnSport, espnLeague),
+    espnSport && espnLeague ? fetchESPNNews(espnSport, espnLeague) : Promise.resolve([]),
   ]);
 
-  // Use API-Sports if available, otherwise fall back to ESPN
+  // Use API-Sports if available, otherwise fall back to ESPN (when ESPN covers the sport)
   let games = apiSportsGames;
   let dataSource = "API-Sports (real-time)";
-  if (games.length === 0) {
+  if (games.length === 0 && espnSport && espnLeague) {
     games = await fetchESPNGames(espnSport, espnLeague);
     dataSource = "ESPN scoreboard";
+  }
+
+  // Secondary sports run only when real events exist — never generate fictional picks.
+  if (games.length === 0 && !priority) {
+    logger.info({ sport }, "No live events — skipping secondary sport");
+    return [];
   }
 
   // Enrich games with form, standings, injuries, H2H, lineup, referee — all in parallel
@@ -2019,24 +2168,29 @@ export async function refreshPredictions() {
 
   const rows: (typeof predictionsTable.$inferInsert)[] = [];
 
-  await Promise.allSettled(
-    SPORTS.map(async ({ sport, league, apiSportsBase, apiSportsPath, oddsKey, espnSport, espnLeague, outdoor, newsQuery }) => {
-      try {
-        const preds = await generateForSport(
-          sport, league, apiSportsBase, apiSportsPath, oddsKey,
-          espnSport, espnLeague, outdoor, newsQuery,
-        );
-        rows.push(...preds);
-      } catch (err) {
-        logger.error({ err, sport }, "Prediction generation failed for sport");
-      }
-    }),
-  );
+  const runWave = async (configs: SportConfig[]) => {
+    const waveRows: (typeof predictionsTable.$inferInsert)[] = [];
+    await Promise.allSettled(
+      configs.map(async (cfg) => {
+        try {
+          const preds = await generateForSport(cfg);
+          waveRows.push(...preds);
+        } catch (err) {
+          logger.error({ err, sport: cfg.sport }, "Prediction generation failed for sport");
+        }
+      }),
+    );
+    if (waveRows.length > 0) {
+      await db.insert(predictionsTable).values(waveRows);
+      logger.info({ count: waveRows.length }, "Predictions stored in DB");
+    }
+    rows.push(...waveRows);
+  };
 
-  if (rows.length > 0) {
-    await db.insert(predictionsTable).values(rows);
-    logger.info({ count: rows.length }, "Real predictions stored in DB");
-  }
+  // Wave 1: primary sports (soccer, NBA, NFL, MLB) — always analysed and stored first.
+  await runWave(SPORTS.filter((s) => s.priority));
+  // Wave 2: secondary sports — only produce picks when live events exist.
+  await runWave(SPORTS.filter((s) => !s.priority));
 
   return rows;
 }
@@ -2048,7 +2202,7 @@ export async function getPredictions() {
     .from(predictionsTable)
     .where(gte(predictionsTable.createdAt, cutoff))
     .orderBy(desc(predictionsTable.confidence))
-    .limit(24);
+    .limit(60);
 
   if (fresh.length >= 4) {
     return fresh.map(formatPrediction);
@@ -2061,7 +2215,7 @@ export async function getPredictions() {
     .from(predictionsTable)
     .where(gte(predictionsTable.createdAt, new Date(Date.now() - 3 * 60 * 1000)))
     .orderBy(desc(predictionsTable.confidence))
-    .limit(24);
+    .limit(60);
 
   return afterRefresh.map(formatPrediction);
 }

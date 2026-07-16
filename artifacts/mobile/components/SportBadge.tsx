@@ -9,6 +9,13 @@ const SPORT_CONFIG: Record<SportType, { label: string; color: string; bg: string
   nba: { label: "NBA", color: "#00E5FF", bg: "rgba(0,229,255,0.15)" },
   mlb: { label: "MLB", color: "#FFD700", bg: "rgba(255,215,0,0.15)" },
   soccer: { label: "SOCCER", color: "#00FF94", bg: "rgba(0,255,148,0.15)" },
+  hockey: { label: "HOCKEY", color: "#7DD3FC", bg: "rgba(125,211,252,0.15)" },
+  afl: { label: "AFL", color: "#F97316", bg: "rgba(249,115,22,0.15)" },
+  rugby: { label: "RUGBY", color: "#A3E635", bg: "rgba(163,230,53,0.15)" },
+  handball: { label: "HANDBALL", color: "#F472B6", bg: "rgba(244,114,182,0.15)" },
+  volleyball: { label: "VOLLEYBALL", color: "#FACC15", bg: "rgba(250,204,21,0.15)" },
+  mma: { label: "MMA", color: "#EF4444", bg: "rgba(239,68,68,0.15)" },
+  formula1: { label: "F1", color: "#E11D48", bg: "rgba(225,29,72,0.15)" },
 };
 
 interface Props {
@@ -17,7 +24,11 @@ interface Props {
 }
 
 export function SportBadge({ sport, size = "md" }: Props) {
-  const config = SPORT_CONFIG[sport];
+  const config = SPORT_CONFIG[sport] ?? {
+    label: String(sport).toUpperCase(),
+    color: "#94A3B8",
+    bg: "rgba(148,163,184,0.15)",
+  };
   const isSmall = size === "sm";
 
   return (

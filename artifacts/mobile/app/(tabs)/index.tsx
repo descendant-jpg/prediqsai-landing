@@ -84,6 +84,12 @@ function dbSportToKey(sport: string): SportKey {
     case "nfl": return "nfl";
     case "nhl": case "hockey": return "hockey";
     case "tennis": return "tennis";
+    case "afl": return "afl";
+    case "rugby": return "rugby";
+    case "handball": return "handball";
+    case "volleyball": return "volleyball";
+    case "mma": return "mma";
+    case "formula1": case "f1": return "formula1";
     default: return "football";
   }
 }
