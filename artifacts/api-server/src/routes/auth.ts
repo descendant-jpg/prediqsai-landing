@@ -47,8 +47,27 @@ const resetPasswordSchema = z.object({
   password: z.string().min(8),
 });
 
+/** Normalize any stored tier string ("PRO", "pro", "Premium", "elite") to the canonical enum. */
+function normalizeTier(t: string | null | undefined): "free" | "premium" | null {
+  const v = (t ?? "").trim().toLowerCase();
+  if (v === "premium" || v === "pro" || v === "elite") return "premium";
+  if (v === "free") return "free";
+  return null;
+}
+
+/**
+ * Effective tier mirrors the logic used by the arbitrage/admin routes:
+ * manual admin override wins, then an active free trial, then the paid tier.
+ */
+function getEffectiveTier(u: typeof users.$inferSelect): "free" | "premium" {
+  const override = normalizeTier(u.manualTierOverride);
+  if (override) return override;
+  if (u.freeTrialUntil && new Date(u.freeTrialUntil) > new Date()) return "premium";
+  return normalizeTier(u.tier) ?? "free";
+}
+
 function publicUser(u: typeof users.$inferSelect) {
-  const tier = u.tier === "premium" ? "premium" : (u.tier ?? "free");
+  const tier = getEffectiveTier(u);
   return {
     id: u.id,
     username: u.username,
