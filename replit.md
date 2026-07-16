@@ -40,7 +40,7 @@ AI-powered sports betting intelligence mobile app with real predictions, bankrol
 ## Architecture decisions
 
 - **Contract-first auth**: JWT stored in expo-secure-store (native) / localStorage (web). AuthProvider wraps AppProvider so AppProvider can call useAuth() for token.
-- **Prediction engine**: Claude claude-sonnet-4-6 analyses live ESPN scoreboard data every 6h and writes structured JSON predictions to PostgreSQL. Falls back to demo predictions when no games are live.
+- **Prediction engine**: Claude claude-sonnet-4-6 analyses live API-Sports/ESPN data every 6h across 11 sports and writes structured JSON predictions to PostgreSQL. Sports are tiered: 4 primary (soccer, NBA, NFL, MLB) always run with demo fallback; 7 secondary (hockey, AFL, rugby, handball, volleyball, MMA, Formula 1) only generate picks when real live events exist — never fictional. Refresh runs in two waves (primaries inserted first). Each sport has a `SportConfig` with `kind` ("teams" | "f1" | "mma") for shape parsing, plus optional ESPN and Odds API coverage (guarded when empty).
 - **Auth routing (Expo Router)**: `useSegments` + `useRouter` in root `_layout.tsx` redirects between `(auth)` and `(tabs)` groups based on auth state.
 - **Bankroll delta tracking**: API server updates the user's `bankroll` column on every entry; client derives balance from the user object, not entry summation.
 - **Stripe scaffold**: checkout and webhook routes exist but require `STRIPE_SECRET_KEY` env var — returns 503 gracefully if not set.

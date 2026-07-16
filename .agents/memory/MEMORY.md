@@ -4,6 +4,7 @@
 - [i18n reactivity (mobile)](i18n-reactivity.md) — i18n-js: consume `t` from useLanguage() (not the singleton) or strings won't re-render; interpolation is `%{var}`; Arabic RTL needs restart.
 - [Dual onboarding flow (mobile)](dual-onboarding-flow.md) — two chained new-user flows (onboarding→app-guide); gate uses a SHARED AppContext appGuideSeen flag or completing the guide loops.
 - [react-native-iap v15 subscriptions](rn-iap-v15-subscriptions.md) — fetch product first, then purchase with the Android base-plan offerToken, or Android throws "SKU not found".
+- [Odds API 401 = quota](odds-api-quota.md) — The Odds API returns 401 with OUT_OF_USAGE_CREDITS when monthly credits run out; check the body before assuming a bad key.
 - [Keyboard handling convention (mobile)](keyboard-handling-convention.md) — forms→KeyboardAwareScrollViewCompat; modal inputs→KeyboardAvoidingView wrap; KeyboardProvider already at root.
 - [Nested component focus loss (mobile)](nested-component-focus-loss.md) — never define a `<Foo/>` component inside another's body; hoist to module level + pass colors as prop or TextInput drops focus per keystroke.
 - [Google Sign-In hybrid auth](google-signin-hybrid.md) — /auth/google must enforce Google email_verified; route guard uses strict ===false; native lib blocked in Expo Go/web.
