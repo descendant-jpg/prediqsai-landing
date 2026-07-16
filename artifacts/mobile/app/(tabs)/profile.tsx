@@ -15,12 +15,14 @@ import {
   Settings,
   Shield,
   Star,
+  Trash2,
   Users,
 } from "lucide-react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Linking,
@@ -29,6 +31,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -36,6 +39,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
 import { LANGUAGES, useLanguage } from "@/context/LanguageContext";
 import { useNotifications } from "@/context/NotificationsContext";
@@ -126,7 +130,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { language, setLanguage, t, locale } = useLanguage();
   const { unreadCount } = useNotifications();
   const { bettingExperience, setBettingExperience } = useApp();
@@ -135,6 +139,11 @@ export default function ProfileScreen() {
   const [showLangModal, setShowLangModal]   = useState(false);
   const [showExpModal, setShowExpModal]     = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal]   = useState(false);
+  const [deleteStep, setDeleteStep]             = useState<"confirm" | "email">("confirm");
+  const [deleteEmail, setDeleteEmail]           = useState("");
+  const [deleteError, setDeleteError]           = useState("");
+  const [deleting, setDeleting]                 = useState(false);
 
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
@@ -185,6 +194,34 @@ export default function ProfileScreen() {
         { text: "Sign Out", style: "destructive", onPress: performLogout },
       ],
     );
+  }
+
+  function openDeleteAccount() {
+    setDeleteStep("confirm");
+    setDeleteEmail("");
+    setDeleteError("");
+    setShowDeleteModal(true);
+  }
+
+  async function performDeleteAccount() {
+    if (!token) return;
+    const entered = deleteEmail.trim().toLowerCase();
+    if (entered !== (user?.email ?? "").toLowerCase()) {
+      setDeleteError("The email you entered does not match your account email.");
+      return;
+    }
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api.auth.deleteAccount(token, entered);
+      setShowDeleteModal(false);
+      await logout();
+      router.replace("/(auth)/login");
+    } catch (e: any) {
+      setDeleteError(e?.message ?? "Failed to delete account. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function handleContactUs() {
@@ -326,6 +363,7 @@ export default function ProfileScreen() {
             onPress={() => router.push("/app-guide" as any)}
           />
           <SettingRow icon={Lock} label={t("profile.changePassword")} onPress={() => router.push("/change-password" as any)} />
+          <SettingRow icon={Trash2} label={t("profile.deleteAccount")} danger onPress={openDeleteAccount} />
         </SettingGroup>
 
         {/* ── Support ── */}
@@ -505,6 +543,80 @@ export default function ProfileScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* ── Delete Account Modal ── */}
+      <Modal visible={showDeleteModal} transparent animationType="slide" onRequestClose={() => !deleting && setShowDeleteModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.bottomSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.red }]}>{t("profile.deleteAccount")}</Text>
+            {deleteStep === "confirm" ? (
+              <>
+                <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
+                  This will permanently delete your account and all associated data — predictions history, bankroll entries, and settings. This action cannot be undone.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.deleteBtn, { backgroundColor: colors.red }]}
+                  onPress={() => setDeleteStep("email")}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.deleteBtnText}>Continue</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialClose, { borderColor: colors.border }]}
+                  onPress={() => setShowDeleteModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.socialCloseText, { color: colors.text }]}>{t("profile.close")}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.sheetSub, { color: colors.textMuted }]}>
+                  To confirm, type your account email address below:
+                </Text>
+                <TextInput
+                  style={[styles.deleteInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.background }]}
+                  placeholder={user?.email ?? "you@example.com"}
+                  placeholderTextColor={colors.textMuted}
+                  value={deleteEmail}
+                  onChangeText={(v) => { setDeleteEmail(v); setDeleteError(""); }}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  editable={!deleting}
+                />
+                {deleteError ? (
+                  <Text style={[styles.deleteErrorText, { color: colors.red }]}>{deleteError}</Text>
+                ) : null}
+                <TouchableOpacity
+                  style={[
+                    styles.deleteBtn,
+                    { backgroundColor: colors.red },
+                    (deleting || deleteEmail.trim().length === 0) && { opacity: 0.5 },
+                  ]}
+                  onPress={performDeleteAccount}
+                  disabled={deleting || deleteEmail.trim().length === 0}
+                  activeOpacity={0.8}
+                >
+                  {deleting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.deleteBtnText}>Permanently Delete Account</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialClose, { borderColor: colors.border }]}
+                  onPress={() => !deleting && setShowDeleteModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.socialCloseText, { color: colors.text }]}>{t("profile.close")}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -562,4 +674,10 @@ const styles = StyleSheet.create({
   socialIcon:      { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   socialClose:     { marginTop: 16, paddingVertical: 14, borderRadius: 12, borderWidth: 1, alignItems: "center" },
   socialCloseText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+
+  // Delete account
+  deleteBtn:       { marginTop: 8, paddingVertical: 14, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  deleteBtnText:   { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#FFFFFF" },
+  deleteInput:     { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: "Inter_400Regular", marginBottom: 8 },
+  deleteErrorText: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 6 },
 });

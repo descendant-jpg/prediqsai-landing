@@ -6,7 +6,7 @@ import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod/v4";
 
-import { db, users } from "@workspace/db";
+import { db, leaderboard, users } from "@workspace/db";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
 import { getEffectiveTier } from "../lib/tier";
 import { signToken, verifyToken } from "../lib/jwt";
@@ -370,6 +370,50 @@ router.put("/auth/change-password", async (req, res) => {
     .where(eq(users.id, user.id));
 
   res.json({ ok: true });
+});
+
+const deleteAccountSchema = z.object({
+  email: z.string().email(),
+});
+
+router.delete("/auth/account", requireAuth, async (req, res) => {
+  try {
+    const body = deleteAccountSchema.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: "A valid email address is required to confirm deletion" });
+      return;
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.userId!))
+      .limit(1);
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (body.data.email.trim().toLowerCase() !== user.email.toLowerCase()) {
+      res.status(400).json({ error: "Email does not match your account" });
+      return;
+    }
+
+    // Atomic cleanup: leaderboard rows have no FK cascade so remove them
+    // explicitly; deleting the user cascades bankroll entries and nulls
+    // affiliate clicks. Wrapped in a transaction so a partial failure rolls back.
+    await db.transaction(async (tx) => {
+      await tx.delete(leaderboard).where(eq(leaderboard.userId, user.id));
+      await tx.delete(users).where(eq(users.id, user.id));
+    });
+
+    req.log.info({ userId: user.id }, "Account permanently deleted");
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete account");
+    res.status(500).json({ error: "Failed to delete account" });
+  }
 });
 
 router.post("/auth/login", async (req, res) => {

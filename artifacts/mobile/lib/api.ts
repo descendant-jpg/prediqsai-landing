@@ -726,6 +726,12 @@ export const api = {
         body: JSON.stringify({ currentPassword, newPassword }),
         token,
       }),
+    deleteAccount: (token: string, email: string) =>
+      apiFetch<{ ok: boolean }>("/auth/account", {
+        method: "DELETE",
+        body: JSON.stringify({ email }),
+        token,
+      }),
     google: (idToken: string) =>
       apiFetch<{ token: string; user: UserData }>("/auth/google", {
         method: "POST",
