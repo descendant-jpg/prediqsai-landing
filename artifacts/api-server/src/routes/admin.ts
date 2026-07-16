@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { adminLogs, appConfig, bankrollEntries, db, errorLogs, notificationHistory, predictions, users } from "@workspace/db";
+import { getEffectiveTier } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -36,9 +37,7 @@ async function writeLog(adminEmail: string, action: string, targetUserId: number
 }
 
 function effectiveTier(u: typeof users.$inferSelect): string {
-  if (u.manualTierOverride) return u.manualTierOverride;
-  if (u.freeTrialUntil && new Date(u.freeTrialUntil) > new Date()) return "premium";
-  return u.tier === "premium" ? "premium" : (u.tier ?? "free");
+  return getEffectiveTier(u);
 }
 
 function safeUser(u: typeof users.$inferSelect) {

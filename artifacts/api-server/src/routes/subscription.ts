@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { db, users } from "@workspace/db";
+import { getEffectiveTier, normalizeTier } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -47,15 +48,25 @@ router.get("/subscription/plans", (_req, res) => {
 
 router.get("/subscription/status", requireAuth, async (req, res) => {
   const [user] = await db
-    .select({ tier: users.tier, iapExpiresAt: users.iapExpiresAt })
+    .select({
+      tier: users.tier,
+      iapExpiresAt: users.iapExpiresAt,
+      manualTierOverride: users.manualTierOverride,
+      freeTrialUntil: users.freeTrialUntil,
+    })
     .from(users)
     .where(eq(users.id, req.userId!))
     .limit(1);
 
-  const raw = user?.tier ?? "free";
-
-  // Check if IAP subscription has expired
-  if (raw === "premium" && user?.iapExpiresAt) {
+  // Check if the paid IAP subscription has expired.
+  // Manual overrides and active free trials are exempt from the downgrade.
+  const trialActive = !!(user?.freeTrialUntil && new Date(user.freeTrialUntil) > new Date());
+  if (
+    normalizeTier(user?.tier) === "premium" &&
+    !normalizeTier(user?.manualTierOverride) &&
+    !trialActive &&
+    user?.iapExpiresAt
+  ) {
     const expired = new Date(user.iapExpiresAt) < new Date();
     if (expired) {
       await db.update(users).set({ tier: "free" }).where(eq(users.id, req.userId!));
@@ -64,8 +75,7 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
     }
   }
 
-  const tier = (raw === "pro" || raw === "elite") ? "premium" : raw;
-  res.json({ tier });
+  res.json({ tier: getEffectiveTier(user) });
 });
 
 // ─── IAP: Verify purchase ────────────────────────────────────────────────────

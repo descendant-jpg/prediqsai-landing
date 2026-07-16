@@ -8,6 +8,7 @@ import { z } from "zod/v4";
 
 import { db, users } from "@workspace/db";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
+import { getEffectiveTier } from "../lib/tier";
 import { signToken, verifyToken } from "../lib/jwt";
 import { requireAuth } from "../middleware/auth";
 
@@ -46,25 +47,6 @@ const resetPasswordSchema = z.object({
   token: z.string().min(10),
   password: z.string().min(8),
 });
-
-/** Normalize any stored tier string ("PRO", "pro", "Premium", "elite") to the canonical enum. */
-function normalizeTier(t: string | null | undefined): "free" | "premium" | null {
-  const v = (t ?? "").trim().toLowerCase();
-  if (v === "premium" || v === "pro" || v === "elite") return "premium";
-  if (v === "free") return "free";
-  return null;
-}
-
-/**
- * Effective tier mirrors the logic used by the arbitrage/admin routes:
- * manual admin override wins, then an active free trial, then the paid tier.
- */
-function getEffectiveTier(u: typeof users.$inferSelect): "free" | "premium" {
-  const override = normalizeTier(u.manualTierOverride);
-  if (override) return override;
-  if (u.freeTrialUntil && new Date(u.freeTrialUntil) > new Date()) return "premium";
-  return normalizeTier(u.tier) ?? "free";
-}
 
 function publicUser(u: typeof users.$inferSelect) {
   const tier = getEffectiveTier(u);

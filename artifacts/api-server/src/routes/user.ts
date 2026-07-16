@@ -3,20 +3,17 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { bankrollEntries, db, predictions, users } from "@workspace/db";
+import { getEffectiveTier } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
-
-function normalizeTier(raw: string): string {
-  return (raw === "pro" || raw === "elite") ? "premium" : raw;
-}
 
 function publicUser(u: typeof users.$inferSelect) {
   return {
     id: u.id,
     username: u.username,
     email: u.email,
-    tier: normalizeTier(u.tier),
+    tier: getEffectiveTier(u),
     bankroll: u.bankroll,
     dailyLossLimit: u.dailyLossLimit,
     isAdmin: u.isAdmin ?? false,

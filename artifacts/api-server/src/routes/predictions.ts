@@ -2,6 +2,7 @@ import { and, eq, gte, isNotNull, ne } from "drizzle-orm";
 import { Router } from "express";
 
 import { db, predictions as predictionsTable, users } from "@workspace/db";
+import { isPremium } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 import { getPredictions, refreshPredictions } from "../services/prediction-engine";
 
@@ -13,17 +14,18 @@ const FREE_TIER_LEAGUES = ["premier league", "epl", "english premier league"];
 router.get("/predictions", requireAuth, async (req, res) => {
   try {
     const [user] = await db
-      .select({ tier: users.tier })
+      .select({
+        tier: users.tier,
+        manualTierOverride: users.manualTierOverride,
+        freeTrialUntil: users.freeTrialUntil,
+      })
       .from(users)
       .where(eq(users.id, req.userId!))
       .limit(1);
 
-    const rawTier = user?.tier ?? "free";
-    const isPremium = rawTier === "premium";
-
     const preds = await getPredictions();
 
-    if (isPremium) {
+    if (isPremium(user)) {
       res.json(preds);
       return;
     }

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { Router } from "express";
 
 import { db, users } from "@workspace/db";
+import { getEffectiveTier } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 import {
   type ArbRegion,
@@ -22,20 +23,6 @@ function parseRegion(raw: unknown): ArbRegion {
   return valid.includes(raw as ArbRegion) ? (raw as ArbRegion) : "global";
 }
 
-/**
- * Returns the user's effective tier, considering admin overrides and active free trials.
- * This mirrors the logic in the admin panel and frontend.
- */
-function getEffectiveTier(user: {
-  tier: string;
-  manualTierOverride: string | null;
-  freeTrialUntil: Date | null;
-} | undefined): string {
-  if (!user) return "free";
-  if (user.manualTierOverride) return user.manualTierOverride;
-  if (user.freeTrialUntil && new Date(user.freeTrialUntil) > new Date()) return "premium";
-  return user.tier === "premium" ? "premium" : (user.tier ?? "free");
-}
 
 // GET /api/arbitrage — scan for current opportunities (tier-gated)
 router.get("/arbitrage", requireAuth, async (req, res) => {
