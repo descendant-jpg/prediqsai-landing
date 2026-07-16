@@ -710,10 +710,10 @@ export interface ArbCalcResult {
 
 export const api = {
   auth: {
-    login: (email: string, password: string) =>
+    login: (identifier: string, password: string) =>
       apiFetch<{ token: string; user: UserData }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       }),
     register: (username: string, email: string, password: string) =>
       apiFetch<{ token: string; user: UserData }>("/auth/register", {

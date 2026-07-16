@@ -15,7 +15,7 @@ interface AuthContextValue {
   isLoading: boolean;
   pendingOnboarding: boolean;
   setPendingOnboarding: (v: boolean) => void;
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   resendVerification: () => Promise<void>;
@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     restoreSession();
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token: t, user: u } = await api.auth.login(email, password);
+  const login = useCallback(async (identifier: string, password: string) => {
+    const { token: t, user: u } = await api.auth.login(identifier, password);
     await tokenStorage.set(t);
     setToken(t);
     setUser(u);

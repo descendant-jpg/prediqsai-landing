@@ -197,10 +197,17 @@ export default function LoginScreen() {
 
   async function handleSignIn() {
     if (!isSignInReady) return;
+    const identifier = siEmail.trim();
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    const isUsername = /^[a-zA-Z0-9_.-]{2,50}$/.test(identifier);
+    if (!isEmail && !isUsername) {
+      setSiError("Enter a valid email address or username");
+      return;
+    }
     setSiError("");
     setSiLoading(true);
     try {
-      await login(siEmail.trim().toLowerCase(), siPassword);
+      await login(identifier.toLowerCase(), siPassword);
     } catch (err) {
       setSiError(err instanceof Error ? err.message : "Sign in failed");
     } finally {
@@ -331,13 +338,13 @@ export default function LoginScreen() {
               ) : null}
 
               <InputField
-                icon={<Mail size={16} color={MUTED} />}
+                icon={<User size={16} color={MUTED} />}
                 value={siEmail}
                 onChangeText={setSiEmail}
-                placeholder="Email address"
+                placeholder="Email or Username"
                 keyboardType="email-address"
                 returnKeyType="next"
-                autoComplete="email"
+                autoComplete="username"
               />
               <InputField
                 icon={<Lock size={16} color={MUTED} />}

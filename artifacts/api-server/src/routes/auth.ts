@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod/v4";
@@ -30,10 +30,17 @@ const registerSchema = z.object({
   password: z.string().min(8),
 });
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+const loginSchema = z
+  .object({
+    // New generic field: email address OR username.
+    identifier: z.string().min(1).optional(),
+    // Legacy field kept for backward compatibility with older clients.
+    email: z.string().min(1).optional(),
+    password: z.string().min(1),
+  })
+  .refine((v) => Boolean(v.identifier ?? v.email), {
+    message: "identifier is required",
+  });
 
 const googleSchema = z.object({
   idToken: z.string().min(10),
@@ -159,6 +166,18 @@ router.post("/auth/register", async (req, res) => {
 
   if (existing.length > 0) {
     res.status(409).json({ error: "Email already registered" });
+    return;
+  }
+
+  // Usernames must be unique (case-insensitive) so username sign-in is unambiguous.
+  const usernameTaken = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.username}) = ${username.trim().toLowerCase()}`)
+    .limit(1);
+
+  if (usernameTaken.length > 0) {
+    res.status(409).json({ error: "Username already taken" });
     return;
   }
 
@@ -422,16 +441,23 @@ router.post("/auth/login", async (req, res) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
-  const { email, password } = body.data;
+  const { password } = body.data;
+  const identifier = (body.data.identifier ?? body.data.email ?? "").trim().toLowerCase();
 
+  // Match on email OR username, both case-insensitively.
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.email, email.toLowerCase()))
+    .where(
+      or(
+        eq(users.email, identifier),
+        sql`lower(${users.username}) = ${identifier}`,
+      ),
+    )
     .limit(1);
 
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    res.status(401).json({ error: "Invalid email or password" });
+    res.status(401).json({ error: "Invalid email/username or password" });
     return;
   }
 
