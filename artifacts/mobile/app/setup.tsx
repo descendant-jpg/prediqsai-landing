@@ -157,6 +157,16 @@ export default function SetupScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  function exitAdmin() {
+    // Return to the previous user screen if there is history; otherwise
+    // route safely to the main app home (dashboard tab).
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)" as any);
+    }
+  }
+
   function toggleExpand(key: string) {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -177,7 +187,7 @@ export default function SetupScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.backBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-            onPress={() => router.back()}
+            onPress={exitAdmin}
           >
             <Text style={[styles.backBtnText, { color: colors.text }]}>Go Back</Text>
           </TouchableOpacity>
@@ -196,7 +206,7 @@ export default function SetupScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.pageHeader}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={exitAdmin} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <ArrowLeft size={22} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.pageTitleGroup}>
@@ -297,6 +307,15 @@ export default function SetupScreen() {
             </View>
           </>
         )}
+
+        <TouchableOpacity
+          style={[styles.exitAdminBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={exitAdmin}
+          activeOpacity={0.8}
+        >
+          <ArrowLeft size={16} color={colors.text} />
+          <Text style={[styles.exitAdminText, { color: colors.text }]}>Exit Admin</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -353,4 +372,6 @@ const styles = StyleSheet.create({
   accessSub: { fontSize: 14, textAlign: "center", lineHeight: 20 },
   backBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginTop: 8 },
   backBtnText: { fontSize: 15 },
+  exitAdminBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 12, borderWidth: 1, marginTop: 8 },
+  exitAdminText: { fontSize: 15 },
 });
