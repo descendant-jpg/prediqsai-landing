@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "7940de35-3145-4444-8159-54d4b8f3485d"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.prediqsai.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
