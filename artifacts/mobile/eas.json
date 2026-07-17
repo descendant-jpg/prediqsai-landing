@@ -26,7 +26,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_DOMAIN": "api.prediqsai.com"
+        "EXPO_PUBLIC_DOMAIN": "api.prediqsai.com",
+        "EAS_NO_FROZEN_LOCKFILE": "1"
       }
     }
   },
