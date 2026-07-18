@@ -79,7 +79,7 @@ const faqs = [
   },
   {
     q: "Can I delete my account?",
-    a: "Yes. Go to Settings > Account > Delete Account in the app. This will permanently remove all your data including predictions history, bankroll records, and chat conversations. This action cannot be undone. Alternatively, email support@prediqsai.com.",
+    a: "Yes. Go to Profile > Delete Account in the app. This will permanently remove all your data including predictions history, bankroll records, and chat conversations. This action cannot be undone. Alternatively, email support@prediqsai.com.",
   },
   {
     q: "I found a bug. How do I report it?",
@@ -210,7 +210,7 @@ export default function Support() {
           }}>
             <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.7 }}>
               To request the deletion of your account and all associated data, please send an email from your registered email address to{" "}
-              <a href="mailto:privacy@prediqsai.com" style={{ color: CYAN, fontWeight: 600 }}>privacy@prediqsai.com</a>.
+              <a href="mailto:support@prediqsai.com" style={{ color: CYAN, fontWeight: 600 }}>support@prediqsai.com</a>.
             </p>
           </div>
         </div>
