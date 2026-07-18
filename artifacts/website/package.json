@@ -1,7 +1,7 @@
 {
   "name": "@workspace/website",
   "version": "0.0.0",
-  "description": "PrediQs AI landing website",
+  "description": "PrediQs AI landing website.",
   "private": true,
   "type": "module",
   "scripts": {
