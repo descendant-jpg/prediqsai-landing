@@ -198,6 +198,23 @@ export default function Support() {
           <FAQ />
         </div>
 
+        <div style={{ marginBottom: 52 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: TEXT, marginBottom: 24 }}>
+            Account Deletion
+          </h2>
+          <div style={{
+            background: CARD,
+            border: `1px solid ${BORDER}`,
+            borderRadius: 12,
+            padding: "22px",
+          }}>
+            <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.7 }}>
+              To request the deletion of your account and all associated data, please send an email from your registered email address to{" "}
+              <a href="mailto:privacy@prediqsai.com" style={{ color: CYAN, fontWeight: 600 }}>privacy@prediqsai.com</a>.
+            </p>
+          </div>
+        </div>
+
         <div style={{
           background: `linear-gradient(135deg, ${CARD}, #0D1B2A)`,
           border: `1px solid ${CYAN}30`,

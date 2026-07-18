@@ -2,7 +2,7 @@
   "expo": {
     "name": "PrediQs AI",
     "slug": "prediqsai",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "prediqsai",
@@ -16,11 +16,14 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.prediqsai.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.prediqsai.app",
-      "versionCode": 17,
+      "versionCode": 18,
       "googleServicesFile": "./google-services.json",
       "backgroundColor": "#070B12",
       "adaptiveIcon": {
@@ -39,6 +42,14 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
       [
         "expo-router",
         {
