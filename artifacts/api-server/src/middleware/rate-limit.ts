@@ -32,6 +32,57 @@ export const sensitiveLimiter = rateLimit({
   },
 });
 
+// Account creation: 5 signups per IP per hour — blocks bot mass-registration
+// (each signup also sends a verification email via Resend).
+export const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Too many requests" });
+  },
+});
+
+// Login attempts: 10 per 15 min per IP — throttles credential stuffing and
+// unauthenticated bcrypt CPU abuse without locking out legitimate retries.
+export const loginLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Too many requests" });
+  },
+});
+
+// Password reset per IP: 5 requests per hour.
+export const passwordResetIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Too many requests" });
+  },
+});
+
+// Password reset per target email: 3 per hour regardless of source IP,
+// so a botnet can't flood one inbox (each request sends a Resend email).
+export const passwordResetEmailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 3,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    return email ? `email:${email}` : `ip:${ipKeyGenerator(req.ip ?? "")}`;
+  },
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Too many requests" });
+  },
+});
+
 // Strict limiter for costly AI endpoints (Claude calls), per user (or IP).
 export const aiUsageLimiter = rateLimit({
   windowMs: WINDOW_MS,

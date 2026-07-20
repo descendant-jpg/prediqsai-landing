@@ -11,6 +11,12 @@ import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email";
 import { getEffectiveTier } from "../lib/tier";
 import { signToken, verifyToken } from "../lib/jwt";
 import { requireAuth } from "../middleware/auth";
+import {
+  loginLimiter,
+  passwordResetEmailLimiter,
+  passwordResetIpLimiter,
+  signupLimiter,
+} from "../middleware/rate-limit";
 
 const router = Router();
 
@@ -150,7 +156,7 @@ function resetFormPage(token: string): string {
   </body></html>`;
 }
 
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", signupLimiter, async (req, res) => {
   const body = registerSchema.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid input", details: body.error.issues });
@@ -435,7 +441,7 @@ router.delete("/auth/account", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", loginLimiter, async (req, res) => {
   const body = loginSchema.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -478,7 +484,7 @@ router.post("/auth/login", async (req, res) => {
   res.json({ token, user: publicUser(finalUser) });
 });
 
-router.post("/auth/forgot-password", async (req, res) => {
+router.post("/auth/forgot-password", passwordResetIpLimiter, passwordResetEmailLimiter, async (req, res) => {
   const body = forgotPasswordSchema.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "A valid email is required" });
