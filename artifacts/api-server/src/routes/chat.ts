@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { requireAuth } from "../middleware/auth";
 import { withExperiencePersona } from "../lib/experiencePersona";
 
 const router = Router();
@@ -15,7 +16,7 @@ const MessageSchema = z.array(
   }),
 ).min(1).max(50);
 
-router.post("/chat", async (req, res) => {
+router.post("/chat", requireAuth, async (req, res) => {
   const parsed = MessageSchema.safeParse(req.body?.messages);
   if (!parsed.success) {
     res.status(400).json({ error: "messages array is required and must be valid" });

@@ -3,7 +3,7 @@ import { Router } from "express";
 
 import { db, predictions as predictionsTable, users } from "@workspace/db";
 import { isPremium } from "../lib/tier";
-import { requireAuth } from "../middleware/auth";
+import { requireAdmin, requireAuth } from "../middleware/auth";
 import { getPredictions, refreshPredictions } from "../services/prediction-engine";
 
 const router = Router();
@@ -111,7 +111,7 @@ router.get("/predictions/match-of-day", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/predictions/refresh", requireAuth, async (req, res) => {
+router.post("/predictions/refresh", requireAdmin, async (req, res) => {
   try {
     const preds = await refreshPredictions();
     res.json({ count: preds.length, message: "Predictions refreshed" });

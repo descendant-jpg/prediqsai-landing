@@ -176,7 +176,7 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   res.json({ tier: updated.tier, restored: true });
 });
 
-// ─── Admin: manually set tier (admin-only check via middleware caller) ────────
+// ─── Self-service tier change (downgrade only) ───────────────────────────────
 
 const setTierSchema = z.object({
   tier: z.enum(["free", "premium"]),
@@ -189,9 +189,16 @@ router.put("/subscription/tier", requireAuth, async (req, res) => {
     return;
   }
 
+  // Users may only self-downgrade. Upgrades must go through verified IAP
+  // (POST /subscription/iap/verify) or the admin panel (PUT /admin/users/:id).
+  if (body.data.tier !== "free") {
+    res.status(403).json({ error: "Upgrades must be purchased" });
+    return;
+  }
+
   const [updated] = await db
     .update(users)
-    .set({ tier: body.data.tier })
+    .set({ tier: "free", manualTierOverride: null, freeTrialUntil: null })
     .where(eq(users.id, req.userId!))
     .returning({ id: users.id, tier: users.tier });
 

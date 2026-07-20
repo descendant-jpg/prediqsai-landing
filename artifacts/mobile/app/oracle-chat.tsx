@@ -68,7 +68,7 @@ export default function OracleChatScreen() {
   const insets  = useSafeAreaInsets();
   const router  = useRouter();
   const { language } = useLanguage();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const isFree = !user || user.tier !== "premium";
 
@@ -122,6 +122,7 @@ export default function OracleChatScreen() {
         headers: {
           "Content-Type": "application/json",
           "X-User-Experience": getApiExperience(),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ messages: apiMessages, language: language.claudeInstruction }),
         signal: controller.signal,
