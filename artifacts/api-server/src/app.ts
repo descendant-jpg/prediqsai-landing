@@ -4,10 +4,14 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { validateEnv } from "./lib/validateEnv";
+import { globalLimiter } from "./middleware/rate-limit";
 
 validateEnv();
 
 const app: Express = express();
+
+// Behind the Replit reverse proxy — needed so req.ip reflects the real client.
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -32,6 +36,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", router);
+app.use("/api", globalLimiter, router);
 
 export default app;

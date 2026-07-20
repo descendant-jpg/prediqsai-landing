@@ -45,6 +45,7 @@ AI-powered sports betting intelligence mobile app with real predictions, bankrol
 - **Auth routing (Expo Router)**: `useSegments` + `useRouter` in root `_layout.tsx` redirects between `(auth)` and `(tabs)` groups based on auth state.
 - **Bankroll delta tracking**: API server updates the user's `bankroll` column on every entry; client derives balance from the user object, not entry summation.
 - **Stripe scaffold**: checkout and webhook routes exist but require `STRIPE_SECRET_KEY` env var — returns 503 gracefully if not set.
+- **Rate limiting**: `middleware/rate-limit.ts` (express-rate-limit). Global: 100 req/15 min per IP on all `/api` routes. AI limiter: 10 req/15 min keyed by userId (fallback IPv6-safe IP) on `POST /chat` and `POST /predictions/refresh`, applied AFTER auth middleware so the user key is set. Both return 429 `{error:"Too many requests"}`. `app.set("trust proxy", 1)` is required for real client IPs behind the Replit proxy. Limits are in-memory (reset on restart, per-instance).
 
 ## Product
 
