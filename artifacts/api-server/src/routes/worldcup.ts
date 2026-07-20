@@ -56,8 +56,11 @@ router.get("/worldcup/african-teams", requireAuth, async (_req, res) => {
 // POST /api/worldcup/predict  (auth required)
 router.post("/worldcup/predict", requireAuth, async (req, res) => {
   const { homeTeam, awayTeam } = req.body as { homeTeam?: string; awayTeam?: string };
-  if (!homeTeam || !awayTeam) {
-    res.status(400).json({ error: "homeTeam and awayTeam required" });
+  // Team names go into an AI prompt — restrict to a plausible team-name shape
+  // (letters, spaces, common punctuation, max 60 chars) to block injected instructions.
+  const TEAM_RE = /^[\p{L}\p{M}0-9 .'&()-]{2,60}$/u;
+  if (!homeTeam || !awayTeam || !TEAM_RE.test(homeTeam) || !TEAM_RE.test(awayTeam)) {
+    res.status(400).json({ error: "Valid homeTeam and awayTeam required" });
     return;
   }
   try {
