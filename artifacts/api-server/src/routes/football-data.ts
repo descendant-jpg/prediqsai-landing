@@ -44,6 +44,12 @@ router.get("/football-data/standings/:code", requireAuth, async (req, res) => {
     return;
   }
   const { code } = req.params as { code: string };
+  // Competition codes are short alphanumerics (PL, BL1, CL…). Reject anything
+  // else so the param can't inject path segments into the upstream API URL.
+  if (!/^[A-Za-z0-9]{2,5}$/.test(code)) {
+    res.status(400).json({ error: "Invalid competition code" });
+    return;
+  }
   try {
     const standings = await getStandings(code.toUpperCase());
     res.json({ standings });

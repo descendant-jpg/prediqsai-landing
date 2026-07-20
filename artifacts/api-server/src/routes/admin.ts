@@ -323,7 +323,7 @@ async function testOneKey(
         return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
       }
       case "ODDS_API_KEY": {
-        const r = await fetch(`https://api.the-odds-api.com/v4/sports?apiKey=${value}`);
+        const r = await fetch(`https://api.the-odds-api.com/v4/sports?apiKey=${encodeURIComponent(value)}`);
         const ms = Date.now() - start;
         if (r.ok) {
           const remaining = r.headers.get("x-requests-remaining");
@@ -333,7 +333,7 @@ async function testOneKey(
         return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
       }
       case "NEWS_API_KEY": {
-        const r = await fetch(`https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=${value}`);
+        const r = await fetch(`https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=${encodeURIComponent(value)}`);
         const ms = Date.now() - start;
         if (r.ok) {
           const d = await r.json() as { totalResults?: number };
@@ -342,7 +342,7 @@ async function testOneKey(
         return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
       }
       case "WEATHER_API_KEY": {
-        const r = await fetch(`https://api.weatherapi.com/v1/current.json?key=${value}&q=London`);
+        const r = await fetch(`https://api.weatherapi.com/v1/current.json?key=${encodeURIComponent(value)}&q=London`);
         const ms = Date.now() - start;
         if (r.ok) return { ok: true, responseTime: ms, message: "Weather API working" };
         return { ok: false, responseTime: ms, message: `HTTP ${r.status}` };
@@ -374,7 +374,7 @@ async function testOneKey(
         return { ok: valid, responseTime: ms, message: valid ? "Valid GA4 ID" : "Expected format: G-XXXXXXXX" };
       }
       case "EXCHANGE_RATE_API_KEY": {
-        const r = await fetch(`https://v6.exchangerate-api.com/v6/${value}/latest/USD`);
+        const r = await fetch(`https://v6.exchangerate-api.com/v6/${encodeURIComponent(value)}/latest/USD`);
         const ms = Date.now() - start;
         if (r.ok) {
           const d = await r.json() as { result?: string };
