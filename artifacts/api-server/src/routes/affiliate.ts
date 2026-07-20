@@ -9,26 +9,9 @@ import {
   db,
   users,
 } from "@workspace/db";
-import { requireAuth } from "../middleware/auth";
+import { requireAdmin, requireAuth } from "../middleware/auth";
 
 const router = Router();
-
-// ─── requireAdmin (inline for this file) ──────────────────────────────────────
-
-async function requireAdmin(
-  req: Parameters<typeof requireAuth>[0],
-  res: Parameters<typeof requireAuth>[1],
-  next: Parameters<typeof requireAuth>[2],
-): Promise<void> {
-  requireAuth(req, res, async () => {
-    const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    if (!user?.isAdmin && user?.id !== 1) {
-      res.status(403).json({ error: "Admin access required" });
-      return;
-    }
-    next();
-  });
-}
 
 // ─── PUBLIC: GET /affiliate/partners ─────────────────────────────────────────
 // Returns active partners for the mobile app (no auth required)

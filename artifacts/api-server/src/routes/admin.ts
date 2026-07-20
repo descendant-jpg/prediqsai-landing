@@ -3,26 +3,20 @@ import { Router } from "express";
 import { z } from "zod/v4";
 
 import { adminLogs, appConfig, bankrollEntries, db, errorLogs, notificationHistory, predictions, users } from "@workspace/db";
+import { timingSafeEqual } from "node:crypto";
+
 import { getEffectiveTier } from "../lib/tier";
-import { requireAuth } from "../middleware/auth";
+import { requireAdmin } from "../middleware/auth";
+import { sensitiveLimiter } from "../middleware/rate-limit";
 
 const router = Router();
 
-// ─── requireAdmin middleware ───────────────────────────────────────────────────
-
-async function requireAdmin(
-  req: Parameters<typeof requireAuth>[0],
-  res: Parameters<typeof requireAuth>[1],
-  next: Parameters<typeof requireAuth>[2],
-): Promise<void> {
-  requireAuth(req, res, async () => {
-    const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
-    if (!user?.isAdmin && user?.id !== 1) {
-      res.status(403).json({ error: "Admin access required" });
-      return;
-    }
-    next();
-  });
+// Constant-time password comparison — prevents timing side-channel guessing.
+function safePasswordMatch(candidate: string, actual: string): boolean {
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(actual);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -450,7 +444,7 @@ router.post("/admin/api-keys/test-all", requireAdmin, async (req, res) => {
 // ─── POST /api/admin/set-admin ────────────────────────────────────────────────
 // One-time endpoint to bootstrap the first admin from ADMIN_EMAIL env
 
-router.post("/admin/set-admin", async (req, res) => {
+router.post("/admin/set-admin", sensitiveLimiter, async (req, res) => {
   const { password } = z.object({ password: z.string() }).parse(req.body);
   const adminPassword = process.env.ADMIN_PASSWORD;
   const adminEmail = process.env.ADMIN_EMAIL;
@@ -459,8 +453,18 @@ router.post("/admin/set-admin", async (req, res) => {
     res.status(503).json({ error: "ADMIN_EMAIL/ADMIN_PASSWORD not configured" });
     return;
   }
-  if (password !== adminPassword) {
+  if (!safePasswordMatch(password, adminPassword)) {
     res.status(403).json({ error: "Wrong password" });
+    return;
+  }
+
+  // One-time bootstrap only: refuse once any admin exists.
+  const [{ adminCount }] = await db
+    .select({ adminCount: count() })
+    .from(users)
+    .where(eq(users.isAdmin, true));
+  if (adminCount > 0) {
+    res.status(410).json({ error: "Admin already bootstrapped — endpoint disabled" });
     return;
   }
 
@@ -481,14 +485,14 @@ router.post("/admin/set-admin", async (req, res) => {
 // ─── POST /api/admin/verify-password ─────────────────────────────────────────
 // Used by the 7-tap secret access from settings screen
 
-router.post("/admin/verify-password", async (req, res) => {
+router.post("/admin/verify-password", sensitiveLimiter, async (req, res) => {
   const { password } = z.object({ password: z.string() }).parse(req.body);
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminPassword) {
     res.status(503).json({ error: "Admin not configured" });
     return;
   }
-  res.json({ ok: password === adminPassword });
+  res.json({ ok: safePasswordMatch(password, adminPassword) });
 });
 
 // ─── GET /api/admin/predictions ───────────────────────────────────────────────

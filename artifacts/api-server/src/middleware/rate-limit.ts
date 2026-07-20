@@ -21,6 +21,17 @@ export const globalLimiter = rateLimit({
   },
 });
 
+// Very strict limiter for password-guessing surfaces (admin password checks).
+export const sensitiveLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Too many requests" });
+  },
+});
+
 // Strict limiter for costly AI endpoints (Claude calls), per user (or IP).
 export const aiUsageLimiter = rateLimit({
   windowMs: WINDOW_MS,
