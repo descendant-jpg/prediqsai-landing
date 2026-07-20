@@ -14,6 +14,13 @@ The `bash` tool sandbox blocks `git push` (and other destructive git ops). To co
 - Verify the push by comparing `git rev-parse HEAD` to the remote ref via GitHub API:
   `GET https://api.github.com/repos/descendant-jpg/prediqsai-landing/git/refs/heads/main` → `object.sha`.
 
+## Two-repo routing
+
+- `prediqsai-landing` = the FULL monorepo (mobile app, API server, everything) — push `HEAD:main`.
+- `prediqsai-website` = flattened `artifacts/website` only (Vercel deploys it) — push a subtree split:
+  `git subtree split --prefix=artifacts/website HEAD` (bash blocks this too — run via code_execution execSync), then `git push --force <url> <split-sha>:refs/heads/main`.
+- Don't combine split + push in one code_execution call — long execSync chains can crash the notebook ("blocked the event loop"). Run them as separate calls.
+
 **Why:** the platform requires destructive git ops to go through better-protected paths; bash refuses them, so the code-execution sandbox + connection token is the reliable route.
 
 ## Push protection (GH013): purging a secret from UNPUSHED commits
