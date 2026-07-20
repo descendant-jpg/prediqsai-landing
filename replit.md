@@ -11,6 +11,7 @@ AI-powered sports betting intelligence mobile app with real predictions, bankrol
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`
 - Optional env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRICE_ELITE`
+- IAP validation env (required in production for purchases): `APPLE_SHARED_SECRET` (App Store Connect shared secret), `GOOGLE_SERVICE_ACCOUNT_JSON` (Play Console service-account JSON with Android Publisher access), optional `ANDROID_PACKAGE_NAME` (defaults to com.prediqsai.app). Without them, IAP verify/restore fail closed with 503 — no premium is granted.
 
 ## Stack
 

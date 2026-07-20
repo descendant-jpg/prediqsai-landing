@@ -239,6 +239,9 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
               productId: purchase.productId,
               transactionId: purchase.id,
               purchaseToken: purchase.purchaseToken ?? undefined,
+              transactionReceipt:
+                (purchase as Purchase & { transactionReceipt?: string }).transactionReceipt ??
+                undefined,
               planMonths,
             });
 
@@ -385,6 +388,8 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
           productId: p.productId,
           transactionId: p.id,
           purchaseToken: p.purchaseToken ?? undefined,
+          transactionReceipt:
+            (p as Purchase & { transactionReceipt?: string }).transactionReceipt ?? undefined,
           planMonths: monthsFromBasePlanId(p.currentPlanId) ?? undefined,
         })),
       });

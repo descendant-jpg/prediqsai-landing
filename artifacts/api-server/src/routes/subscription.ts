@@ -5,6 +5,13 @@ import { z } from "zod/v4";
 import { db, users } from "@workspace/db";
 import { getEffectiveTier, normalizeTier } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
+import {
+  isAppleConfigured,
+  isGoogleConfigured,
+  validateAppleReceipt,
+  validateGooglePurchase,
+  type IAPValidationResult,
+} from "../services/iap-validation";
 
 const router = Router();
 
@@ -92,6 +99,36 @@ const verifyIAPSchema = z.object({
   planMonths: planMonthsSchema.optional(),
 });
 
+/**
+ * Validates a purchase with the relevant store. The tier is upgraded ONLY when
+ * the store explicitly confirms the receipt is valid and currently active —
+ * client-supplied transaction IDs and expiry hints are never trusted.
+ */
+async function validateWithStore(input: {
+  platform: "ios" | "android";
+  productId: string;
+  purchaseToken?: string;
+  transactionReceipt?: string;
+}): Promise<IAPValidationResult> {
+  if (input.platform === "ios") {
+    if (!isAppleConfigured()) {
+      return { valid: false, reason: "not_configured" };
+    }
+    if (!input.transactionReceipt) {
+      return { valid: false, reason: "transactionReceipt is required for iOS purchases" };
+    }
+    return validateAppleReceipt(input.transactionReceipt, input.productId);
+  }
+
+  if (!isGoogleConfigured()) {
+    return { valid: false, reason: "not_configured" };
+  }
+  if (!input.purchaseToken) {
+    return { valid: false, reason: "purchaseToken is required for Android purchases" };
+  }
+  return validateGooglePurchase(input.purchaseToken, input.productId);
+}
+
 router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
   const body = verifyIAPSchema.safeParse(req.body);
   if (!body.success) {
@@ -99,35 +136,41 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     return;
   }
 
-  const { platform, productId, transactionId, planMonths } = body.data;
+  const { platform, productId, purchaseToken, transactionReceipt } = body.data;
 
   if (productId !== PRODUCT_ID) {
     res.status(400).json({ error: "Invalid product ID" });
     return;
   }
 
-  // NOTE: For production, add server-side receipt validation:
-  // iOS: POST https://buy.itunes.apple.com/verifyReceipt with APPLE_SHARED_SECRET
-  // Android: Google Play Developer API with service account credentials
-  // For now we trust the client and store the transaction for audit purposes.
+  const result = await validateWithStore({ platform, productId, purchaseToken, transactionReceipt });
 
-  // All three base plans share the same product ID; the client reports which one
-  // was purchased so we grant the correct access window (default monthly).
-  const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + (planMonths ?? 1));
+  if (result.reason === "not_configured") {
+    req.log.error({ platform }, "IAP validation credentials missing — refusing to grant premium");
+    res.status(503).json({ error: "Purchase verification is temporarily unavailable" });
+    return;
+  }
 
+  if (!result.valid || !result.expiresAt) {
+    req.log.warn({ platform, reason: result.reason, userId: req.userId }, "IAP verification rejected");
+    res.status(400).json({ error: "Purchase could not be verified" });
+    return;
+  }
+
+  // Expiry and transaction ID come from the store's response, never the client.
   const [updated] = await db
     .update(users)
     .set({
       tier: "premium",
-      iapTransactionId: transactionId,
+      // Only the store-confirmed transaction ID is persisted — never client input.
+      iapTransactionId: result.transactionId ?? null,
       iapPlatform: platform,
-      iapExpiresAt: expiresAt,
+      iapExpiresAt: result.expiresAt,
     })
     .where(eq(users.id, req.userId!))
     .returning({ id: users.id, tier: users.tier });
 
-  res.json({ tier: updated.tier, success: true, expiresAt });
+  res.json({ tier: updated.tier, success: true, expiresAt: result.expiresAt });
 });
 
 // ─── IAP: Restore purchases ──────────────────────────────────────────────────
@@ -139,6 +182,7 @@ const restoreIAPSchema = z.object({
       productId: z.string(),
       transactionId: z.string(),
       purchaseToken: z.string().optional(),
+      transactionReceipt: z.string().optional(),
       planMonths: planMonthsSchema.optional(),
     }),
   ),
@@ -152,23 +196,54 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   }
 
   const { platform, purchases } = body.data;
-  const validPurchase = purchases.find((p) => p.productId === PRODUCT_ID);
+  const candidates = purchases.filter((p) => p.productId === PRODUCT_ID);
 
-  if (!validPurchase) {
+  if (candidates.length === 0) {
     res.json({ tier: "free", restored: false });
     return;
   }
 
-  const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + (validPurchase.planMonths ?? 1));
+  // Validate each candidate with the store; grant only on explicit confirmation.
+  let confirmed: IAPValidationResult | null = null;
+  let sawNotConfigured = false;
+
+  for (const purchase of candidates) {
+    const result = await validateWithStore({
+      platform,
+      productId: purchase.productId,
+      purchaseToken: purchase.purchaseToken,
+      transactionReceipt: purchase.transactionReceipt,
+    });
+    if (result.reason === "not_configured") {
+      sawNotConfigured = true;
+      break;
+    }
+    if (result.valid && result.expiresAt) {
+      confirmed = result;
+      break;
+    }
+  }
+
+  if (sawNotConfigured) {
+    req.log.error({ platform }, "IAP validation credentials missing — refusing to restore premium");
+    res.status(503).json({ error: "Purchase verification is temporarily unavailable" });
+    return;
+  }
+
+  if (!confirmed) {
+    req.log.warn({ platform, userId: req.userId }, "IAP restore rejected — no store-confirmed active purchase");
+    res.json({ tier: "free", restored: false });
+    return;
+  }
 
   const [updated] = await db
     .update(users)
     .set({
       tier: "premium",
-      iapTransactionId: validPurchase.transactionId,
+      // Only the store-confirmed transaction ID is persisted — never client input.
+      iapTransactionId: confirmed.transactionId ?? null,
       iapPlatform: platform,
-      iapExpiresAt: expiresAt,
+      iapExpiresAt: confirmed.expiresAt!,
     })
     .where(eq(users.id, req.userId!))
     .returning({ id: users.id, tier: users.tier });
