@@ -1,0 +1,21 @@
+I need to prepare this React Native/Expo app and its Node.js backend for a production update on the Google Play Store. Please execute the following four major tasks and commit the changes to the GitHub repository when complete:
+
+1. Backend Caching Architecture & Rate-Limit Protection (CRITICAL)
+We must stop the backend from triggering external API fetches (API-Sports, The Odds API, Anthropic) when users open the app to prevent rate limits and high costs.
+- In `prediction-engine.ts` (and any related routes like `routes/predictions.ts`), remove any logic where a user GET request triggers `refreshPredictions()` or fetches new data if the database is empty. 
+- The `GET /api/predictions` endpoint must STRICTLY execute a database query (e.g., `select from predictionsTable`) and return the cached results, returning an empty array if nothing exists, without calling external APIs.
+- Implement a scheduled background worker (using `node-cron` or `setInterval` in the server entry point) that runs `refreshPredictions()` exactly once every 6 hours. The server should handle fetching and writing to the Supabase database entirely in the background.
+
+2. Backend AI Model Optimization (Cost Saving)
+Search the entire `api-server/src/` directory (specifically files like `prediction-engine.ts`, `soccer-engine.ts`, `worldcup-engine.ts`, `soccer.ts`, `slip.ts`, and `chat.ts`). Find any instance where the AI model is defined as "claude-sonnet-4-5" or "claude-sonnet-4-6" and replace it globally with "claude-3-haiku-20240307". 
+
+3. Remove Frontend Dummy Data & Implement Freemium Paywall
+Locate the frontend components that render the 'AI Picks', 'Match of the Day', and Dashboard prediction cards. Currently, they are rendering hardcoded mock fallback arrays (e.g., 'Liverpool vs Chelsea', 'Celtics vs Bucks', and a 'SIMULATED DEMONSTRATION PICK' for Dodgers vs Padres).
+- Delete all of these hardcoded fallback arrays entirely.
+- Wire these UI components to map exclusively over the real `predictions` data fetched from our backend API/Supabase.
+- Freemium Logic: Free users MUST see the real live fixtures coming from the API. However, for free users, apply a UI blur effect (using `expo-blur` or standard blur styling) over the 'AI Confidence' bar, the specific 'AI Pick' text, and the 'Best Odds'. Overlay a lock icon and an 'Upgrade to Premium to Unlock' button on these blurred elements. Premium users should see the unblurred data.
+
+4. Fix Date/Timezone Display
+Find the utility functions or frontend components responsible for formatting match dates/times. Ensure that raw UTC timestamps are formatted to the user's local device timezone using `Intl.DateTimeFormat` or `date-fns`. Matches occurring past midnight locally must show the correct localized day/time instead of confusing the user with 'Tomorrow' incorrectly.
+
+Please review the codebase, plan the necessary component updates, and execute the code changes.
