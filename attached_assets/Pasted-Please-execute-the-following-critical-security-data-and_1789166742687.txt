@@ -1,0 +1,20 @@
+Please execute the following critical security, data, and UI updates for our React Native/Expo app and Node.js backend. Commit the changes to the GitHub repository when complete:
+
+1. Seal Premium Paywall Leaks (Security Audit)
+Audit the frontend code to ensure there are no data leaks where free users can temporarily see premium data before the paywall/blur renders.
+- Ensure the freemium conditional logic is applied at the component state level so the 'AI Pick', 'Best Odds', and 'AI Confidence' values are strictly masked or blurred for non-premium users across all screens (Dashboard, Picks list, and detailed match views).
+- Prevent any premium data from being exposed in console logs or unmasked in nested components for free users.
+
+2. Hard Stop on Client-Triggered External API Calls
+We must absolutely guarantee that user actions (page loads, pull-to-refresh, component mounts) NEVER trigger paid external API calls (API-Sports, The Odds API, Anthropic).
+- Audit all frontend `useEffect` hooks and backend route controllers.
+- Ensure the frontend only fetches data from our internal backend/Supabase database. 
+- If any backend route is currently configured to ping external providers "on-demand" when a user requests it, rewrite it to ONLY query the existing Supabase cache. (External fetching must be strictly isolated to the scheduled backend cron job).
+
+3. Eradicate Remaining Demo Content (Notifications, Rankings, Journal)
+The app must be completely cleared of all hardcoded template data before production.
+- Locate the 'Notifications', 'Rankings/Leaderboard', and 'Journal/History' screens.
+- Delete all hardcoded mock arrays, demo user profiles, and simulated bet slips from these components.
+- Wire these screens to fetch their respective real data from the backend. If the database returns empty for a user, implement clean, professional "Empty State" UI components (e.g., "No notifications yet", "Log a bet to join the rankings") instead of showing fake data.
+
+Please review the codebase, plan the necessary component updates, and execute the code changes.
