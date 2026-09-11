@@ -7,26 +7,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EnhancedPickCard } from "@/components/picks/EnhancedPickCard";
 import { Toast } from "@/components/picks/Toast";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { PICK_OF_THE_DAY, PRO_PICKS, type ProPick } from "@/lib/mockData";
+import { api } from "@/lib/api";
+import type { ProPick } from "@/lib/mockData";
+import { mapApiPrediction, predictionToProPick } from "@/lib/proPick";
 import { sharePick } from "@/lib/share";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
-
-const ALL_PICKS: ProPick[] = [PICK_OF_THE_DAY, ...PRO_PICKS];
-
-function pickById(id: string): ProPick | undefined {
-  return ALL_PICKS.find((p) => p.id === id);
-}
 
 export default function SavedPicksScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile } = useApp();
+  const { token } = useAuth();
   const isPro = profile.tier === "premium";
 
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [slipIds, setSlipIds] = useState<string[]>([]);
+  const [allPicks, setAllPicks] = useState<ProPick[]>([]);
   const [toast, setToast] = useState({ msg: "", nonce: 0 });
 
   const showToast = useCallback((msg: string) => setToast({ msg, nonce: Date.now() }), []);
@@ -38,7 +37,26 @@ export default function SavedPicksScreen() {
     ]);
     setSavedIds(saved);
     setSlipIds(slip);
-  }, []);
+    // Resolve saved IDs against the live predictions cache — no mock data.
+    if (token) {
+      try {
+        const data = await api.predictions.list(token);
+        const picks = data.map(mapApiPrediction).filter((p) => !p.avoidMatch).map(predictionToProPick);
+        setAllPicks(picks);
+        // Prune saved IDs that no longer resolve to a live prediction (IDs rotate per refresh).
+        if (picks.length > 0) {
+          const valid = new Set(picks.map((p) => p.id));
+          const pruned = saved.filter((id) => valid.has(id));
+          if (pruned.length !== saved.length) {
+            setSavedIds(pruned);
+            await setItem(STORAGE_KEYS.savedPicks, pruned);
+          }
+        }
+      } catch {
+        setAllPicks([]);
+      }
+    }
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
@@ -47,7 +65,9 @@ export default function SavedPicksScreen() {
   );
 
   const topPadding = insets.top + (Platform.OS === "web" ? 67 : 0);
-  const savedPicks = savedIds.map(pickById).filter((p): p is ProPick => Boolean(p));
+  const savedPicks = savedIds
+    .map((id) => allPicks.find((p) => p.id === id))
+    .filter((p): p is ProPick => Boolean(p));
 
   async function handleUnsave(id: string) {
     const next = savedIds.filter((x) => x !== id);

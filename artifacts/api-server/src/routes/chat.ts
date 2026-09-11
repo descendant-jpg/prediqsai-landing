@@ -68,7 +68,7 @@ router.post("/chat", requireAuth, aiUsageLimiter, async (req, res) => {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-3-haiku-20240307",
       max_tokens: 1024,
       system: systemPrompt,
       messages: parsed.data.map((m) => ({ role: m.role, content: m.content })),

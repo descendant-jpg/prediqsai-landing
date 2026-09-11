@@ -8,14 +8,26 @@ import { eq } from "drizzle-orm";
 const PREDICTION_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 
 function startPredictionScheduler() {
-  // Warm the cache shortly after boot (getPredictions self-refreshes when stale),
-  // then refresh on a fixed 6-hour cadence.
+  // Background-only prediction generation. User GET requests NEVER trigger
+  // external API fetches — all fetching/writing happens here.
+  //
+  // Warm-up: shortly after boot, check the DB cache (free, no external calls)
+  // and run one background refresh ONLY if the cache is empty — otherwise a
+  // fresh deploy would serve no picks for up to 6 hours.
   setTimeout(() => {
     getPredictions()
-      .then((preds) => logger.info({ count: preds.length }, "Prediction warm-up complete"))
+      .then(async (preds) => {
+        if (preds.length > 0) {
+          logger.info({ count: preds.length }, "Prediction cache warm — skipping boot refresh");
+          return;
+        }
+        const rows = await refreshPredictions();
+        logger.info({ count: rows.length }, "Boot-time prediction refresh complete (cache was empty)");
+      })
       .catch((err) => logger.error({ err }, "Prediction warm-up failed"));
   }, 15_000);
 
+  // Scheduled background worker: refresh exactly once every 6 hours.
   setInterval(() => {
     refreshPredictions()
       .then((rows) => logger.info({ count: rows.length }, "Scheduled prediction refresh complete"))

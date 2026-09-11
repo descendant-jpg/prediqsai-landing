@@ -3,7 +3,9 @@ import { Platform, Share } from "react-native";
 import { bestBookmaker, type ProPick } from "@/lib/mockData";
 
 function pickShareText(pick: ProPick): string {
-  const best = bestBookmaker(pick.bookmakerOdds);
+  const best = pick.bookmakerOdds.length > 0
+    ? bestBookmaker(pick.bookmakerOdds)
+    : { name: pick.bookmaker, odds: pick.odds };
   return [
     "🎯 PrediqsAI Pick",
     `⚽ ${pick.homeTeam} vs ${pick.awayTeam}`,

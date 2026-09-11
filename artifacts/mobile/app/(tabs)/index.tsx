@@ -30,7 +30,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type ApiPrediction, type MatchOfDayData } from "@/lib/api";
 import {
-  FREE_FEED_LIMIT,
   NOTIFICATIONS,
   SIMULATED_NEW_IDS,
   type MatchOfDay,
@@ -39,6 +38,7 @@ import {
   type SportKey,
 } from "@/lib/mockData";
 import { pickLabel } from "@/lib/pickLabel";
+import { isLocalDay } from "@/lib/proPick";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
 
@@ -114,9 +114,10 @@ function formatMatchTime(iso: string): string {
 }
 
 /** Map a real API prediction onto the shape the feed card renders. */
-function toFeedItem(p: Prediction): MockPrediction {
+function toFeedItem(p: Prediction): MockPrediction & { locked: boolean } {
   return {
     id: p.id,
+    locked: p.locked === true,
     match: `${p.homeTeam} vs ${p.awayTeam}`,
     homeTeam: p.homeTeam,
     awayTeam: p.awayTeam,
@@ -281,10 +282,8 @@ export default function DashboardScreen() {
     .filter((p) => !p.avoidMatch)
     .map(toFeedItem);
 
-  // Global FREE unlock policy: the first FREE_FEED_LIMIT predictions overall are
-  // free. Lock state is keyed by prediction id so switching sport chips can never
-  // reveal more than the daily limit of free cards.
-  const unlockedIds = new Set(predictions.slice(0, FREE_FEED_LIMIT).map((p) => p.id));
+  // Lock state comes from the server (paywall enforced there); the feed only
+  // renders it. Free users see every fixture with pick/confidence/odds blurred.
 
   // Match of the Day, fetched from the live API per selected sport.
   const [matchOfDay, setMatchOfDay] = useState<MatchOfDay | null>(null);
@@ -319,7 +318,9 @@ export default function DashboardScreen() {
     api.setup.status(token).then((s) => setSetupMissing(!s.allCriticalOk)).catch(() => {});
   }, [user, token]);
 
-  const todayPicks = predictions.filter((p) => !p.avoidMatch);
+  // "Today" must mean the device's local calendar day — UTC timestamps are
+  // converted via isLocalDay so matches past local midnight are not mislabeled.
+  const todayPicks = predictions.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 0));
   const avoidPicks = predictions.filter((p) => p.avoidMatch);
   const valuePicks = predictions.filter((p) => p.valueDetected);
   const featuredPick = todayPicks.sort((a, b) => b.confidence - a.confidence)[0] ?? predictions[0];
@@ -511,7 +512,7 @@ export default function DashboardScreen() {
           <PredictionFeedCard
             key={p.id}
             prediction={p}
-            locked={!isPro && !unlockedIds.has(p.id)}
+            locked={!isPro && p.locked}
             onUpgrade={() => router.push("/subscription")}
           />
         ))

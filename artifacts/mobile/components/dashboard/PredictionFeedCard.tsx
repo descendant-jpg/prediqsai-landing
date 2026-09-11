@@ -1,3 +1,4 @@
+import { BlurView } from "expo-blur";
 import { Lock, X } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 
 import { ConfidenceGauge } from "@/components/dashboard/ConfidenceGauge";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { confidenceColor, SPORT_ICONS, type MockPrediction } from "@/lib/mockData";
 
@@ -23,6 +25,7 @@ interface Props {
 
 export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Props) {
   const colors = useColors();
+  const { t } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
 
   const conf = prediction.confidence;
@@ -58,55 +61,57 @@ export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Pr
         )}
       </View>
 
-      <View style={styles.body}>
-        <View style={{ flex: 1, gap: 10 }}>
-          <View>
-            <Text style={[styles.pickLabel, { color: colors.textMuted }]}>AI PICK</Text>
-            <Text style={[styles.pick, { color: colors.text }]}>{prediction.pick}</Text>
+      {/* AI pick / confidence / odds — blurred behind a lock for free users */}
+      <View style={styles.bodyWrap}>
+        <View style={styles.body} pointerEvents={locked ? "none" : "auto"}>
+          <View style={{ flex: 1, gap: 10 }}>
+            <View>
+              <Text style={[styles.pickLabel, { color: colors.textMuted }]}>AI PICK</Text>
+              <Text style={[styles.pick, { color: colors.text }]}>{prediction.pick}</Text>
+            </View>
+
+            {/* Confidence bar */}
+            <View>
+              <View style={[styles.barTrack, { backgroundColor: colors.border }]}>
+                <View style={[styles.barFill, { width: `${conf}%`, backgroundColor: barColor }]} />
+              </View>
+              <Text style={[styles.barLabel, { color: barColor }]}>{conf}% confidence</Text>
+            </View>
+
+            <View style={styles.oddsRow}>
+              <Text style={[styles.bookmaker, { color: colors.textSecondary }]}>
+                Best on {prediction.bookmaker}
+              </Text>
+              <View style={[styles.oddsPill, { borderColor: colors.cyan, backgroundColor: "rgba(0,229,255,0.08)" }]}>
+                <Text style={[styles.oddsText, { color: colors.cyan }]}>{prediction.odds.toFixed(2)}</Text>
+              </View>
+            </View>
           </View>
 
-          {/* Confidence bar */}
-          <View>
-            <View style={[styles.barTrack, { backgroundColor: colors.border }]}>
-              <View style={[styles.barFill, { width: `${conf}%`, backgroundColor: barColor }]} />
-            </View>
-            <Text style={[styles.barLabel, { color: barColor }]}>{conf}% confidence</Text>
-          </View>
-
-          <View style={styles.oddsRow}>
-            <Text style={[styles.bookmaker, { color: colors.textSecondary }]}>
-              Best on {prediction.bookmaker}
-            </Text>
-            <View style={[styles.oddsPill, { borderColor: colors.cyan, backgroundColor: "rgba(0,229,255,0.08)" }]}>
-              <Text style={[styles.oddsText, { color: colors.cyan }]}>{prediction.odds.toFixed(2)}</Text>
-            </View>
-          </View>
+          <ConfidenceGauge value={conf} size={104} />
         </View>
 
-        <ConfidenceGauge value={conf} size={104} />
+        {locked && (
+          <Pressable style={styles.lockOverlay} onPress={onUpgrade}>
+            <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={styles.lockInner}>
+              <View style={[styles.lockBadge, { backgroundColor: "rgba(255,215,0,0.14)" }]}>
+                <Lock size={20} color={colors.gold} />
+              </View>
+              <Text style={[styles.lockTitle, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+            </View>
+          </Pressable>
+        )}
       </View>
 
-      <TouchableOpacity
-        style={[styles.analysisBtn, { borderColor: colors.border }]}
-        onPress={() => setModalOpen(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.analysisBtnText, { color: colors.cyan }]}>View Analysis →</Text>
-      </TouchableOpacity>
-
-      {/* Locked overlay for FREE users */}
-      {locked && (
-        <Pressable style={styles.lockOverlay} onPress={onUpgrade}>
-          <View style={[styles.lockInner, { backgroundColor: "rgba(10,10,10,0.82)" }]}>
-            <View style={[styles.lockBadge, { backgroundColor: "rgba(255,215,0,0.14)" }]}>
-              <Lock size={22} color={colors.gold} />
-            </View>
-            <Text style={[styles.lockTitle, { color: colors.gold }]}>Upgrade to PRO</Text>
-            <Text style={[styles.lockSub, { color: colors.textSecondary }]}>
-              Unlock unlimited daily predictions
-            </Text>
-          </View>
-        </Pressable>
+      {!locked && (
+        <TouchableOpacity
+          style={[styles.analysisBtn, { borderColor: colors.border }]}
+          onPress={() => setModalOpen(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.analysisBtnText, { color: colors.cyan }]}>View Analysis →</Text>
+        </TouchableOpacity>
       )}
 
       {/* Analysis modal */}
@@ -180,7 +185,10 @@ const styles = StyleSheet.create({
   league: { fontSize: 11, marginTop: 1 },
   hotBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   hotText: { fontSize: 10, ...bold, letterSpacing: 0.5 },
+  bodyWrap: { borderRadius: 12, overflow: "hidden" },
   body: { flexDirection: "row", alignItems: "center", gap: 12 },
+  lockOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(10,10,10,0.35)" },
+  lockInner: { alignItems: "center", justifyContent: "center", gap: 6, padding: 12 },
   pickLabel: { fontSize: 10, letterSpacing: 0.5 },
   pick: { fontSize: 18, ...bold, marginTop: 2, letterSpacing: -0.3 },
   barTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
@@ -192,11 +200,8 @@ const styles = StyleSheet.create({
   oddsText: { fontSize: 14, ...bold },
   analysisBtn: { borderTopWidth: 1, paddingTop: 12, alignItems: "center" },
   analysisBtnText: { fontSize: 13, ...semibold },
-  lockOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  lockInner: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", gap: 6 },
-  lockBadge: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  lockTitle: { fontSize: 16, ...bold },
-  lockSub: { fontSize: 12 },
+  lockBadge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 2 },
+  lockTitle: { fontSize: 13, ...bold, textAlign: "center" },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   modalSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, padding: 20, maxHeight: "86%" },
   modalHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },

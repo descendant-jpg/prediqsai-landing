@@ -27,19 +27,45 @@ router.get("/predictions", requireAuth, async (req, res) => {
     const preds = await getPredictions();
 
     if (isPremium(user)) {
-      res.json(preds);
+      res.json(preds.map((p) => ({ ...p, locked: false })));
       return;
     }
 
-    // Free tier: soccer + Premier League only, max 2
-    const free = preds
-      .filter((p) =>
+    // Free tier: the full fixture list is returned so free users see real
+    // matches, but only the first 2 Premier League picks include AI insights.
+    // All other rows are redacted server-side (pick/confidence/reasoning/odds
+    // stripped) and flagged locked — the UI blur is cosmetic, this is the
+    // actual paywall boundary.
+    const FREE_UNLOCKED = 2;
+    let unlocked = 0;
+    const gated = preds.map((p) => {
+      const isFreePick =
+        unlocked < FREE_UNLOCKED &&
         p.sport === "soccer" &&
-        FREE_TIER_LEAGUES.some((l) => p.league.toLowerCase().includes(l))
-      )
-      .slice(0, 2);
+        FREE_TIER_LEAGUES.some((l) => p.league.toLowerCase().includes(l));
+      if (isFreePick) {
+        unlocked += 1;
+        return { ...p, locked: false };
+      }
+      return {
+        ...p,
+        prediction: "",
+        confidence: 0,
+        reasoning: "",
+        keyFactors: [],
+        againstFactors: [],
+        weatherImpact: null,
+        sharpMoneySignal: null,
+        aiProbability: 0,
+        bookmakerProbability: 0,
+        simulationData: null,
+        agentScores: null,
+        publicBacking: null,
+        locked: true,
+      };
+    });
 
-    res.json(free);
+    res.json(gated);
   } catch (err) {
     req.log.error({ err }, "Failed to get predictions");
     res.status(500).json({ error: "Failed to fetch predictions" });
@@ -99,8 +125,8 @@ router.get("/predictions/match-of-day", requireAuth, async (req, res) => {
       awayTeam: top.awayTeam,
       competition: top.league,
       matchDate: top.matchDate,
-      pick: top.prediction,
-      confidence: top.confidence,
+      pick: premium ? top.prediction : "",
+      confidence: premium ? top.confidence : 0,
       analysis: premium ? top.reasoning : "",
       keyStats: premium ? (top.keyFactors ?? []).slice(0, 3) : [],
       valueDetected: top.valueDetected,

@@ -211,6 +211,8 @@ export interface ApiPrediction {
   simulationData: SimulationData | null;
   agentScores: AgentScores | null;
   publicBacking: PublicBacking | null;
+  /** Server-enforced paywall flag: true = insights redacted for free tier. */
+  locked: boolean;
 }
 
 export interface MatchOfDayData {

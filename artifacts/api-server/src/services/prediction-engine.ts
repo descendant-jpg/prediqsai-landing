@@ -2028,7 +2028,7 @@ tierRequired rules:
 - "premium" → moderate-to-high confidence ≥55 or notable value bets`;
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-3-haiku-20240307",
     max_tokens: 8000,
     messages: [{ role: "user", content: prompt }],
   });
@@ -2195,27 +2195,20 @@ export async function refreshPredictions() {
   return rows;
 }
 
+// STRICTLY a database read. Never triggers external API fetches — prediction
+// generation happens only in the background scheduler (see src/index.ts) or
+// the admin-only POST /predictions/refresh route. Returns an empty array when
+// the cache is empty.
 export async function getPredictions() {
-  const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000);
-  const fresh = await db
+  // Serve the most recent batch regardless of age: the scheduler refreshes
+  // every 6h, and during (or after a failed) refresh the previous batch is
+  // still the best available cache. No freshness cutoff — stale rows beat an
+  // empty feed.
+  const latest = await db
     .select()
     .from(predictionsTable)
-    .where(gte(predictionsTable.createdAt, cutoff))
-    .orderBy(desc(predictionsTable.confidence))
+    .orderBy(desc(predictionsTable.createdAt))
     .limit(60);
 
-  if (fresh.length >= 4) {
-    return fresh.map(formatPrediction);
-  }
-
-  await refreshPredictions();
-
-  const afterRefresh = await db
-    .select()
-    .from(predictionsTable)
-    .where(gte(predictionsTable.createdAt, new Date(Date.now() - 3 * 60 * 1000)))
-    .orderBy(desc(predictionsTable.confidence))
-    .limit(60);
-
-  return afterRefresh.map(formatPrediction);
+  return latest.map(formatPrediction).sort((a, b) => b.confidence - a.confidence);
 }

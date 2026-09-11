@@ -128,8 +128,10 @@ router.get("/arbitrage/ev", requireAuth, async (req, res) => {
       return;
     }
     const region = parseRegion(req.query["region"]);
-    const forceRefresh = req.query["refresh"] === "true";
-    const bets = await scanForEVBets(region, forceRefresh);
+    // Users can no longer force a refresh (?refresh=true removed); scans go
+    // through the shared 30s in-memory cache. On a cold cache the scan fetches
+    // the metered external odds API once and repopulates the cache.
+    const bets = await scanForEVBets(region, false);
     res.json({
       bets,
       totalFound: bets.length,
@@ -153,8 +155,10 @@ router.get("/arbitrage/middles", requireAuth, async (req, res) => {
       return;
     }
     const region = parseRegion(req.query["region"]);
-    const forceRefresh = req.query["refresh"] === "true";
-    const middles = await scanForMiddles(region, forceRefresh);
+    // Users can no longer force a refresh (?refresh=true removed); scans go
+    // through the shared 30s in-memory cache. On a cold cache the scan fetches
+    // the metered external odds API once and repopulates the cache.
+    const middles = await scanForMiddles(region, false);
     res.json({
       middles,
       totalFound: middles.length,

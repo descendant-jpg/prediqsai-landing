@@ -1,8 +1,10 @@
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Lock } from "lucide-react-native";
 import React from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { confidenceColor, type MatchOfDay } from "@/lib/mockData";
 
@@ -14,6 +16,7 @@ interface Props {
 
 export function MatchOfTheDay({ motd, isPro, onUpgrade }: Props) {
   const colors = useColors();
+  const { t } = useLanguage();
   const confColor = confidenceColor(motd.confidence, colors);
 
   return (
@@ -32,20 +35,31 @@ export function MatchOfTheDay({ motd, isPro, onUpgrade }: Props) {
       </Text>
       <Text style={[styles.match, { color: "#fff" }]}>{motd.match}</Text>
 
-      <View style={styles.pickRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.pickLabel, { color: colors.textMuted }]}>AI PICK</Text>
-          <Text style={[styles.pick, { color: colors.gold }]}>{motd.pick}</Text>
+      {/* AI pick + confidence — real data, blurred for free users */}
+      <View style={styles.pickRowWrap}>
+        <View style={styles.pickRow} pointerEvents={isPro ? "auto" : "none"}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.pickLabel, { color: colors.textMuted }]}>AI PICK</Text>
+            <Text style={[styles.pick, { color: colors.gold }]}>{motd.pick}</Text>
+          </View>
+          <View style={styles.confBox}>
+            <Text style={[styles.confValue, { color: confColor }]}>{motd.confidence}%</Text>
+            <Text style={[styles.confLabel, { color: colors.textMuted }]}>confidence</Text>
+          </View>
         </View>
-        <View style={styles.confBox}>
-          <Text style={[styles.confValue, { color: confColor }]}>{motd.confidence}%</Text>
-          <Text style={[styles.confLabel, { color: colors.textMuted }]}>confidence</Text>
-        </View>
+        {!isPro && (
+          <Pressable style={styles.pickBlur} onPress={onUpgrade}>
+            <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+            <Lock size={18} color={colors.gold} />
+          </Pressable>
+        )}
       </View>
 
       {isPro ? (
         <View style={styles.proContent}>
-          <Text style={[styles.analysis, { color: colors.textSecondary }]}>{motd.analysis}</Text>
+          {motd.analysis ? (
+            <Text style={[styles.analysis, { color: colors.textSecondary }]}>{motd.analysis}</Text>
+          ) : null}
           <View style={styles.statsRow}>
             {motd.keyStats.map((s, i) => (
               <View key={i} style={[styles.statChip, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
@@ -59,18 +73,13 @@ export function MatchOfTheDay({ motd, isPro, onUpgrade }: Props) {
         </View>
       ) : (
         <View style={styles.lockedContent}>
-          <View style={styles.blurRows}>
-            <View style={[styles.blurBar, { width: "92%" }]} />
-            <View style={[styles.blurBar, { width: "78%" }]} />
-            <View style={[styles.blurBar, { width: "85%" }]} />
-          </View>
           <TouchableOpacity
             style={[styles.unlockBtn, { backgroundColor: colors.gold }]}
             activeOpacity={0.85}
             onPress={onUpgrade}
           >
             <Lock size={15} color="#0a0a0a" />
-            <Text style={styles.unlockText}>Unlock with PRO — $19.99/mo</Text>
+            <Text style={styles.unlockText}>{t("picks.upgradeUnlock")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -87,7 +96,9 @@ const styles = StyleSheet.create({
   topBadgeText: { fontSize: 11, ...bold, letterSpacing: 0.5 },
   competition: { fontSize: 12 },
   match: { fontSize: 22, ...bold, letterSpacing: -0.5, marginBottom: 4 },
-  pickRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
+  pickRowWrap: { marginTop: 4, borderRadius: 10, overflow: "hidden" },
+  pickRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  pickBlur: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(10,10,10,0.3)" },
   pickLabel: { fontSize: 10, letterSpacing: 0.5 },
   pick: { fontSize: 20, ...bold, marginTop: 2 },
   confBox: { alignItems: "flex-end" },
@@ -99,9 +110,7 @@ const styles = StyleSheet.create({
   statChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
   statText: { fontSize: 11, ...semibold },
   bookmaker: { fontSize: 13, ...bold },
-  lockedContent: { marginTop: 12, gap: 14 },
-  blurRows: { gap: 8 },
-  blurBar: { height: 10, borderRadius: 5, backgroundColor: "rgba(255,255,255,0.08)" },
+  lockedContent: { marginTop: 12 },
   unlockBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 12 },
   unlockText: { fontSize: 14, color: "#0a0a0a", ...bold },
 });

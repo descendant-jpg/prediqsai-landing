@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.prediqsai.app",
-      "versionCode": 18,
+      "versionCode": 20,
       "googleServicesFile": "./google-services.json",
       "backgroundColor": "#070B12",
       "adaptiveIcon": {

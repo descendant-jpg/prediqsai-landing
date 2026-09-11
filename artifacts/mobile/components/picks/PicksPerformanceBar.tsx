@@ -2,18 +2,22 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { TODAY_PERFORMANCE } from "@/lib/mockData";
 
-/** Feature 1 — slim "today's performance" tracker bar shown under the header. */
-export function PicksPerformanceBar() {
+interface Props {
+  won: number;
+  lost: number;
+  pending: number;
+}
+
+/** Feature 1 — slim performance tracker bar shown under the header. Driven by real accuracy stats. */
+export function PicksPerformanceBar({ won, lost, pending }: Props) {
   const colors = useColors();
-  const { won, lost, pending } = TODAY_PERFORMANCE;
   const settled = won + lost;
   const winRate = settled > 0 ? Math.round((won / settled) * 100) : 0;
 
   return (
     <View style={[styles.bar, { backgroundColor: "#121212", borderColor: colors.border }]}>
-      <Text style={[styles.label, { color: colors.textMuted }]}>Today</Text>
+      <Text style={[styles.label, { color: colors.textMuted }]}>This month</Text>
       <View style={styles.stats}>
         <Stat value={`${won}W`} color={colors.green} />
         <Dot color={colors.textMuted} />

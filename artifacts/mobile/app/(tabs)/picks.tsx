@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { Bookmark, Inbox, Lock, RefreshCw, WifiOff } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -38,24 +38,16 @@ import {
   type SoccerLeagueGroup,
 } from "@/lib/api";
 import {
-  PICK_OF_THE_DAY,
   PRO_PICK_FREE_LIMIT,
-  PRO_PICKS,
   confidenceColor,
   type PickType,
   type ProPick,
   type SportKey,
 } from "@/lib/mockData";
-import { pickLabel } from "@/lib/pickLabel";
+import { isLocalDay, mapApiPrediction, predictionToProPick } from "@/lib/proPick";
 import { sharePick, shareSlip } from "@/lib/share";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
-
-const ALL_PRO_PICKS: ProPick[] = [PICK_OF_THE_DAY, ...PRO_PICKS];
-
-function proPickById(id: string): ProPick | undefined {
-  return ALL_PRO_PICKS.find((p) => p.id === id);
-}
 
 function sportChipToKey(s: SportFilter): SportKey | "all" {
   switch (s) {
@@ -72,98 +64,11 @@ type SportFilter  = "all"   | "soccer" | "nfl" | "nba" | "mlb";
 type StatusFilter = "today" | "tomorrow" | "live" | "won" | "lost";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function mapPrediction(p: ApiPrediction): Prediction {
-  return {
-    id: p.id, sport: p.sport as Prediction["sport"], league: p.league,
-    homeTeam: p.homeTeam, awayTeam: p.awayTeam, matchDate: p.matchDate,
-    prediction: p.prediction as Prediction["prediction"],
-    confidence: p.confidence, riskLevel: p.riskLevel as Prediction["riskLevel"],
-    volatilityScore: p.volatilityScore, isTrapGame: p.isTrapGame,
-    avoidMatch: p.avoidMatch, avoidReason: p.avoidReason,
-    reasoning: p.reasoning, keyFactors: p.keyFactors,
-    againstFactors: p.againstFactors ?? [], weatherImpact: p.weatherImpact,
-    sharpMoneySignal: p.sharpMoneySignal, aiProbability: p.aiProbability,
-    bookmakerProbability: p.bookmakerProbability, valueDetected: p.valueDetected,
-    tierRequired: p.tierRequired === "premium" ? "premium" : "free",
-    simulationData: p.simulationData ?? null, agentScores: p.agentScores ?? null,
-    publicBacking: p.publicBacking ?? null,
-  };
-}
-
-/** Convert a real API prediction into the ProPick shape the hero card renders. */
-function predictionToProPick(p: Prediction): ProPick {
-  const impliedOdds =
-    p.bookmakerProbability > 0
-      ? Math.round((100 / p.bookmakerProbability) * 100) / 100
-      : 0;
-  const risk = (p.riskLevel ?? "medium").toLowerCase();
-  return {
-    id: `potd-${p.id}`,
-    sport: dbSportToSportKey(p.sport),
-    competition: p.league,
-    homeTeam: p.homeTeam,
-    awayTeam: p.awayTeam,
-    aiPick: pickLabel(p.prediction, p.homeTeam, p.awayTeam),
-    confidence: p.confidence,
-    odds: impliedOdds,
-    bookmaker: "Market consensus",
-    isLive: false,
-    currentScore: "",
-    isValue: p.valueDetected,
-    type: "hot",
-    reasoning: p.reasoning,
-    keyStats: (p.keyFactors ?? []).slice(0, 4),
-    riskLevel: risk === "low" ? "Low" : risk === "high" ? "High" : "Medium",
-    proTip: p.sharpMoneySignal ?? "",
-    bookmakerOdds: [],
-    kickoffTime: formatKickoffDay(p.matchDate),
-    homeForm: "",
-    awayForm: "",
-    headToHead: "",
-    avgGoals: "",
-    bookmakerUrl: "",
-    liveAnalysis: "",
-  };
-}
-
-function dbSportToSportKey(sport: string): SportKey {
-  switch (sport.toLowerCase()) {
-    case "soccer": case "football": return "football";
-    case "nba": case "basketball": return "basketball";
-    case "mlb": case "baseball": return "baseball";
-    case "nfl": return "nfl";
-    case "nhl": case "hockey": return "hockey";
-    case "tennis": return "tennis";
-    default: return "football";
-  }
-}
-
-function formatKickoffDay(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    return d.toDateString() === new Date().toDateString()
-      ? `Today · ${time}`
-      : `${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} · ${time}`;
-  } catch { return ""; }
-}
-
 function formatKickoff(dateStr: string): string {
-  try { return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
-  catch { return "--:--"; }
-}
-
-function isDateMatch(dateStr: string, offset: 0 | 1): boolean {
-  const target = new Date();
-  target.setDate(target.getDate() + offset);
-  try {
-    const d = new Date(dateStr);
-    return (
-      d.getFullYear() === target.getFullYear() &&
-      d.getMonth()    === target.getMonth()    &&
-      d.getDate()     === target.getDate()
-    );
-  } catch { return false; }
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime())
+    ? "--:--"
+    : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function filterBySport(list: Prediction[], sport: SportFilter): Prediction[] {
@@ -173,8 +78,8 @@ function filterBySport(list: Prediction[], sport: SportFilter): Prediction[] {
 
 function filterByStatus(list: Prediction[], status: StatusFilter): Prediction[] {
   switch (status) {
-    case "today":    return list.filter((p) => !p.avoidMatch);
-    case "tomorrow": return list.filter((p) => !p.avoidMatch && isDateMatch(p.matchDate, 1));
+    case "today":    return list.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 0));
+    case "tomorrow": return list.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 1));
     case "won":      return list.filter((p) => p.valueDetected && !p.avoidMatch).sort((a, b) => b.confidence - a.confidence);
     case "lost":     return list.filter((p) => p.avoidMatch);
     case "live":     return list; // handled separately
@@ -487,7 +392,9 @@ export default function PicksScreen() {
   }, [showToast, t]);
 
   const handleShareSlip = useCallback(async () => {
-    const picks = slipIds.map(proPickById).filter((p): p is ProPick => Boolean(p));
+    const picks = slipIds
+      .map((id) => allProPicksRef.current.find((p) => p.id === id))
+      .filter((p): p is ProPick => Boolean(p));
     if (picks.length === 0) return;
     const result = await shareSlip(picks);
     if (result === "copied") showToast(t("picks.toastSlipCopied"));
@@ -496,8 +403,6 @@ export default function PicksScreen() {
   const handleAnalysis = useCallback((pick: ProPick) => {
     setReasoningPick(pick);
   }, []);
-
-  const slipPicks = slipIds.map(proPickById).filter((p): p is ProPick => Boolean(p));
 
   const [sportFilter,  setSportFilter]  = useState<SportFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("today");
@@ -512,6 +417,39 @@ export default function PicksScreen() {
   const [tomorrowSports, setTomorrowSports] = useState<AllSportsResponse | null>(null);
   const [tomorrowLoading, setTomorrowLoading] = useState(false);
 
+  // Pro pick cards are derived exclusively from live API predictions — no mock data.
+  const allProPicks = useMemo(
+    () => predictions.filter((p) => !p.avoidMatch).map(predictionToProPick),
+    [predictions],
+  );
+  const allProPicksRef = useRef<ProPick[]>([]);
+  allProPicksRef.current = allProPicks;
+
+  const slipPicks = useMemo(
+    () =>
+      slipIds
+        .map((id) => allProPicks.find((p) => p.id === id))
+        .filter((p): p is ProPick => Boolean(p)),
+    [slipIds, allProPicks],
+  );
+
+  // Prune persisted saved/slip IDs that no longer resolve to a live prediction
+  // (prediction IDs rotate with each refresh batch), keeping badges and lists honest.
+  useEffect(() => {
+    if (allProPicks.length === 0) return;
+    const valid = new Set(allProPicks.map((p) => p.id));
+    const prunedSaved = savedIds.filter((id) => valid.has(id));
+    const prunedSlip = slipIds.filter((id) => valid.has(id));
+    if (prunedSaved.length !== savedIds.length) {
+      setSavedIds(prunedSaved);
+      setItem(STORAGE_KEYS.savedPicks, prunedSaved);
+    }
+    if (prunedSlip.length !== slipIds.length) {
+      setSlipIds(prunedSlip);
+      setItem(STORAGE_KEYS.betSlip, prunedSlip);
+    }
+  }, [allProPicks, savedIds, slipIds]);
+
   const fetchPredictions = useCallback(async () => {
     if (!token) return;
     setIsLoading(true); setError("");
@@ -520,7 +458,7 @@ export default function PicksScreen() {
         api.predictions.list(token),
         api.predictions.accuracy(token).catch(() => null),
       ]);
-      setPredictions(data.map(mapPrediction));
+      setPredictions(data.map(mapApiPrediction));
       setAccuracy(acc);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("picks.failedLoad"));
@@ -582,12 +520,11 @@ export default function PicksScreen() {
     .sort((a, b) => b.confidence - a.confidence)[0];
   const pickOfTheDay = topPrediction ? predictionToProPick(topPrediction) : null;
 
-  // ── Enhanced AI picks: filter by Hot/Value/ARB + sport chip, live first ──
+  // ── Enhanced AI picks: filter by Hot/Value + sport chip ──
   const sportKey = sportChipToKey(sportFilter);
-  const filteredProPicks = PRO_PICKS
+  const filteredProPicks = allProPicks
     .filter((p) => p.type === picksFilter)
-    .filter((p) => sportKey === "all" || p.sport === sportKey)
-    .sort((a, b) => Number(b.isLive) - Number(a.isLive));
+    .filter((p) => sportKey === "all" || p.sport === sportKey);
 
   const aiPicksHeader = (
     <View style={styles.aiBlock}>
@@ -616,7 +553,8 @@ export default function PicksScreen() {
           </View>
         ) : (
           filteredProPicks.map((p, idx) => {
-            const locked = !isPro && idx >= PRO_PICK_FREE_LIMIT;
+            // Server is the paywall boundary (locked flag); index-based limit is a fallback.
+            const locked = !isPro && (p.locked ?? idx >= PRO_PICK_FREE_LIMIT);
             if (locked) {
               return <LockedProPickCard key={p.id} pick={p} onUpgrade={() => router.push("/subscription")} />;
             }
@@ -745,8 +683,14 @@ export default function PicksScreen() {
         </ScrollView>
       </View>
 
-      {/* ── Today's performance tracker (Feature 1) ── */}
-      <PicksPerformanceBar />
+      {/* ── Performance tracker (Feature 1) — real accuracy stats, no mock data ── */}
+      {accuracy ? (
+        <PicksPerformanceBar
+          won={accuracy.wins}
+          lost={accuracy.losses}
+          pending={predictions.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 0)).length}
+        />
+      ) : null}
 
       {/* ── Accuracy banner (Today / Tomorrow) ── */}
       {(statusFilter === "today" || statusFilter === "tomorrow") && accuracy?.accuracy != null && (
