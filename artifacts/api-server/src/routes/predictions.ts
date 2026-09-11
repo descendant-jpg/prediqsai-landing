@@ -61,6 +61,10 @@ router.get("/predictions", requireAuth, async (req, res) => {
         simulationData: null,
         agentScores: null,
         publicBacking: null,
+        avoidMatch: false,
+        avoidReason: "",
+        riskLevel: "medium",
+        valueDetected: false,
         locked: true,
       };
     });
@@ -129,7 +133,7 @@ router.get("/predictions/match-of-day", requireAuth, async (req, res) => {
       confidence: premium ? top.confidence : 0,
       analysis: premium ? top.reasoning : "",
       keyStats: premium ? (top.keyFactors ?? []).slice(0, 3) : [],
-      valueDetected: top.valueDetected,
+      valueDetected: premium ? top.valueDetected : false,
       locked: !premium,
     });
   } catch (err) {

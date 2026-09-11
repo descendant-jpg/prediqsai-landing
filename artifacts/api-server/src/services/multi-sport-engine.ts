@@ -51,15 +51,32 @@ export interface MultiSportResponse {
   mlb: MLBGame[];
   hasApiKey: boolean;
   fetchedAt: string;
+  cachedAt: string | null;
+  stale: boolean;
+  cacheStatus: "hit" | "empty";
 }
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
 const cache: {
-  nba?: { data: NBAGame[]; expiresAt: number };
-  nfl?: { data: NFLGame[]; expiresAt: number };
-  mlb?: { data: MLBGame[]; expiresAt: number };
+  nba?: { data: NBAGame[]; fetchedAt: number };
+  nfl?: { data: NFLGame[]; fetchedAt: number };
+  mlb?: { data: MLBGame[]; fetchedAt: number };
+  tomorrow?: { data: MultiSportResponse; fetchedAt: number };
 } = {};
+
+function emptyResponse(): MultiSportResponse {
+  return {
+    nba: [],
+    nfl: [],
+    mlb: [],
+    hasApiKey: Boolean(API_SPORTS_KEY),
+    fetchedAt: new Date(0).toISOString(),
+    cachedAt: null,
+    stale: false,
+    cacheStatus: "empty",
+  };
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -192,13 +209,20 @@ function parseNFLGame(raw: Record<string, unknown>): NFLGame | null {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getAllSportsTomorrow(): Promise<MultiSportResponse> {
+export async function getAllSportsTomorrow(cacheOnly = false): Promise<MultiSportResponse> {
+  if (cacheOnly) {
+    if (!cache.tomorrow) return emptyResponse();
+    return {
+      ...cache.tomorrow.data,
+      stale: Date.now() - cache.tomorrow.fetchedAt >= TTL,
+    };
+  }
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateStr = tomorrow.toISOString().split("T")[0]; // e.g. "2026-05-26"
   const espnDate = dateStr.replace(/-/g, ""); // e.g. "20260526"
 
-  const [nba, nfl, mlb] = await Promise.all([
+  const [fetchedNBA, fetchedNFL, fetchedMLB] = await Promise.all([
     fetchSports<NBAGame>(NBA_BASE, `/games?date=${dateStr}`, parseNBAGame, "NBA-Tomorrow"),
     fetchSports<NFLGame>(NFL_BASE, `/games?date=${dateStr}&league=1`, parseNFLGame, "NFL-Tomorrow"),
     (async (): Promise<MLBGame[]> => {
@@ -237,25 +261,53 @@ export async function getAllSportsTomorrow(): Promise<MultiSportResponse> {
       }
     })(),
   ]);
+  const nba = fetchedNBA.length > 0 ? fetchedNBA : cache.tomorrow?.data.nba ?? [];
+  const nfl = fetchedNFL.length > 0 ? fetchedNFL : cache.tomorrow?.data.nfl ?? [];
+  const mlb = fetchedMLB.length > 0 ? fetchedMLB : cache.tomorrow?.data.mlb ?? [];
 
   logger.info({ nba: nba.length, nfl: nfl.length, mlb: mlb.length, dateStr }, "Multi-sport tomorrow fetch complete");
 
-  return {
+  const fetchedAt = Date.now();
+  const response: MultiSportResponse = {
     nba,
     nfl,
     mlb,
     hasApiKey: Boolean(API_SPORTS_KEY),
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: new Date(fetchedAt).toISOString(),
+    cachedAt: new Date(fetchedAt).toISOString(),
+    stale: false,
+    cacheStatus: "hit",
   };
+  if (fetchedNBA.length > 0 || fetchedNFL.length > 0 || fetchedMLB.length > 0 || !cache.tomorrow) {
+    cache.tomorrow = { data: response, fetchedAt };
+  }
+  return cache.tomorrow.data;
 }
 
-export async function getAllSportsToday(): Promise<MultiSportResponse> {
+export async function getAllSportsToday(cacheOnly = false): Promise<MultiSportResponse> {
   const now   = Date.now();
   const today = new Date().toISOString().split("T")[0];
 
-  const nbaFresh = cache.nba && cache.nba.expiresAt > now;
-  const nflFresh = cache.nfl && cache.nfl.expiresAt > now;
-  const mlbFresh = cache.mlb && cache.mlb.expiresAt > now;
+  if (cacheOnly) {
+    const timestamps = [cache.nba?.fetchedAt, cache.nfl?.fetchedAt, cache.mlb?.fetchedAt]
+      .filter((value): value is number => value != null);
+    if (timestamps.length === 0) return emptyResponse();
+    const fetchedAt = Math.min(...timestamps);
+    return {
+      nba: cache.nba?.data ?? [],
+      nfl: cache.nfl?.data ?? [],
+      mlb: cache.mlb?.data ?? [],
+      hasApiKey: Boolean(API_SPORTS_KEY),
+      fetchedAt: new Date(fetchedAt).toISOString(),
+      cachedAt: new Date(fetchedAt).toISOString(),
+      stale: now - fetchedAt >= TTL,
+      cacheStatus: "hit",
+    };
+  }
+
+  const nbaFresh = cache.nba && now - cache.nba.fetchedAt < TTL;
+  const nflFresh = cache.nfl && now - cache.nfl.fetchedAt < TTL;
+  const mlbFresh = cache.mlb && now - cache.mlb.fetchedAt < TTL;
 
   if (nbaFresh && nflFresh && mlbFresh) {
     return {
@@ -263,11 +315,14 @@ export async function getAllSportsToday(): Promise<MultiSportResponse> {
       nfl: cache.nfl!.data,
       mlb: cache.mlb!.data,
       hasApiKey: Boolean(API_SPORTS_KEY),
-      fetchedAt: new Date(cache.nba!.expiresAt - TTL).toISOString(),
+      fetchedAt: new Date(cache.nba!.fetchedAt).toISOString(),
+      cachedAt: new Date(cache.nba!.fetchedAt).toISOString(),
+      stale: false,
+      cacheStatus: "hit",
     };
   }
 
-  const [nba, nfl, mlb] = await Promise.all([
+  const [fetchedNBA, fetchedNFL, fetchedMLB] = await Promise.all([
     nbaFresh
       ? cache.nba!.data
       : fetchSports<NBAGame>(NBA_BASE, `/games?date=${today}`, parseNBAGame, "NBA"),
@@ -278,10 +333,13 @@ export async function getAllSportsToday(): Promise<MultiSportResponse> {
       ? cache.mlb!.data
       : fetchMLBFromESPN(),
   ]);
+  const nba = fetchedNBA.length > 0 ? fetchedNBA : cache.nba?.data ?? [];
+  const nfl = fetchedNFL.length > 0 ? fetchedNFL : cache.nfl?.data ?? [];
+  const mlb = fetchedMLB.length > 0 ? fetchedMLB : cache.mlb?.data ?? [];
 
-  if (!nbaFresh) cache.nba = { data: nba, expiresAt: now + TTL };
-  if (!nflFresh) cache.nfl = { data: nfl, expiresAt: now + TTL };
-  if (!mlbFresh) cache.mlb = { data: mlb, expiresAt: now + TTL };
+  if (!nbaFresh && (fetchedNBA.length > 0 || !cache.nba)) cache.nba = { data: fetchedNBA, fetchedAt: now };
+  if (!nflFresh && (fetchedNFL.length > 0 || !cache.nfl)) cache.nfl = { data: fetchedNFL, fetchedAt: now };
+  if (!mlbFresh && (fetchedMLB.length > 0 || !cache.mlb)) cache.mlb = { data: fetchedMLB, fetchedAt: now };
 
   logger.info({ nba: nba.length, nfl: nfl.length, mlb: mlb.length, today }, "Multi-sport fetch complete");
 
@@ -291,5 +349,8 @@ export async function getAllSportsToday(): Promise<MultiSportResponse> {
     mlb,
     hasApiKey: Boolean(API_SPORTS_KEY),
     fetchedAt: new Date().toISOString(),
+    cachedAt: new Date(now).toISOString(),
+    stale: false,
+    cacheStatus: "hit",
   };
 }

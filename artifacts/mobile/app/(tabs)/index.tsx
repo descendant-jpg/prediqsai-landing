@@ -1,4 +1,5 @@
-import { AlertTriangle, Bell, BookOpen, ChevronRight, Clock, Settings, TrendingDown, TrendingUp, WifiOff } from "lucide-react-native";
+import { BlurView } from "expo-blur";
+import { AlertTriangle, Bell, BookOpen, ChevronRight, Clock, Lock, Settings, TrendingDown, TrendingUp, WifiOff } from "lucide-react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -30,8 +31,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type ApiPrediction, type MatchOfDayData } from "@/lib/api";
 import {
-  NOTIFICATIONS,
-  SIMULATED_NEW_IDS,
   type MatchOfDay,
   type MockPrediction,
   type SportFilter,
@@ -41,8 +40,6 @@ import { pickLabel } from "@/lib/pickLabel";
 import { isLocalDay } from "@/lib/proPick";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
 import type { Prediction } from "@/types";
-
-const DEFAULT_NOTIF_READ = NOTIFICATIONS.filter((n) => !SIMULATED_NEW_IDS.includes(n.id)).map((n) => n.id);
 
 const ORANGE = "#FF6B35";
 
@@ -73,6 +70,7 @@ function mapPrediction(p: ApiPrediction): Prediction {
     simulationData: p.simulationData ?? null,
     agentScores: p.agentScores ?? null,
     publicBacking: p.publicBacking ?? null,
+    locked: p.locked ?? false,
   };
 }
 
@@ -243,7 +241,7 @@ export default function DashboardScreen() {
   const [error, setError] = useState("");
   const [setupMissing, setSetupMissing] = useState(false);
   const [sportFilter, setSportFilter] = useState<SportFilter>("all");
-  const [unreadCount, setUnreadCount] = useState(SIMULATED_NEW_IDS.length);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isPro = profile.tier === "premium";
 
@@ -262,10 +260,17 @@ export default function DashboardScreen() {
 
   // Recompute the unread notification badge whenever the dashboard regains focus.
   const refreshUnread = useCallback(async () => {
-    const stored = await getItem<string[] | null>(STORAGE_KEYS.notificationsRead, null);
-    const readIds = stored ?? DEFAULT_NOTIF_READ;
-    setUnreadCount(NOTIFICATIONS.filter((n) => !readIds.includes(n.id)).length);
-  }, []);
+    if (!token) {
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      const result = await api.notifications.getUnreadCount(token);
+      setUnreadCount(result.count);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {
@@ -321,14 +326,16 @@ export default function DashboardScreen() {
   // "Today" must mean the device's local calendar day — UTC timestamps are
   // converted via isLocalDay so matches past local midnight are not mislabeled.
   const todayPicks = predictions.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 0));
-  const avoidPicks = predictions.filter((p) => p.avoidMatch);
-  const valuePicks = predictions.filter((p) => p.valueDetected);
+  const unlockedPredictions = predictions.filter((p) => !p.locked);
+  const unlockedTodayPicks = todayPicks.filter((p) => !p.locked);
+  const avoidPicks = unlockedPredictions.filter((p) => p.avoidMatch);
+  const valuePicks = unlockedPredictions.filter((p) => p.valueDetected);
   const featuredPick = todayPicks.sort((a, b) => b.confidence - a.confidence)[0] ?? predictions[0];
-  const winRate = predictions.length
-    ? Math.round((todayPicks.filter((p) => p.confidence >= 65).length / Math.max(1, predictions.length)) * 100)
-    : 67;
-  const streakCount = todayPicks.filter((p) => p.confidence >= 70).length;
-  const marketMovers = todayPicks
+  const winRate = unlockedPredictions.length
+    ? Math.round((unlockedTodayPicks.filter((p) => p.confidence >= 65).length / unlockedPredictions.length) * 100)
+    : 0;
+  const streakCount = unlockedTodayPicks.filter((p) => p.confidence >= 70).length;
+  const marketMovers = unlockedTodayPicks
     .filter((p) => p.sharpMoneySignal)
     .slice(0, 3)
     .map((p) => ({ team: p.homeTeam, move: p.sharpMoneySignal!, direction: (p.valueDetected ? "up" : "down") as "up" | "down" }));
@@ -440,7 +447,7 @@ export default function DashboardScreen() {
         <SkeletonStatRow />
       ) : (
         <View style={styles.statsRow}>
-          <MiniStat label={t("dashboard.statTodayPicks")} value={String(todayPicks.length)} sub={t("dashboard.statAvailable")} valueColor={colors.cyan} />
+          <MiniStat label={t("dashboard.statTodayPicks")} value={String(unlockedTodayPicks.length)} sub={t("dashboard.statAvailable")} valueColor={colors.cyan} />
           <MiniStat label={t("dashboard.statWinRate")} value={`${winRate}%`} sub={t("dashboard.stat30Days")} valueColor={colors.green} />
           <MiniStat label={t("dashboard.statStreak")} value={`🔥${streakCount}`} sub={t("dashboard.statHighConf")} valueColor={colors.orange} />
           <MiniStat label={t("dashboard.statValue")} value={`+${valuePicks.length}`} sub={t("dashboard.statFound")} valueColor={colors.gold} />
@@ -555,7 +562,7 @@ export default function DashboardScreen() {
             <View style={styles.featuredHeader}>
               <SportBadge sport={featuredPick.sport} />
               <Text style={[styles.featuredLeague, { color: colors.textMuted }]}>{featuredPick.league}</Text>
-              {featuredPick.valueDetected && (
+              {!(!isPro && featuredPick.locked) && featuredPick.valueDetected && (
                 <View style={[styles.valueBadge, { borderColor: colors.gold }]}>
                   <Text style={[styles.valueText, { color: colors.gold }]}>
                     {t("dashboard.valueBadge")} +{featuredPick.aiProbability - featuredPick.bookmakerProbability}%
@@ -570,31 +577,47 @@ export default function DashboardScreen() {
               <Text style={[styles.featuredTeam, { color: colors.text }]}>{featuredPick.awayTeam}</Text>
             </View>
 
-            <View style={styles.featuredStats}>
-              <ConfidenceMeter value={featuredPick.confidence} size={90} />
-              <View style={styles.featuredInfo}>
-                <RiskBadge risk={featuredPick.riskLevel} />
-                <Text style={[styles.featuredReasoning, { color: colors.textSecondary }]} numberOfLines={3}>
-                  {featuredPick.reasoning}
-                </Text>
-                {featuredPick.sharpMoneySignal && (
-                  <View style={[styles.sharpRow, { backgroundColor: "rgba(0,229,255,0.06)" }]}>
-                    <TrendingUp size={12} color={colors.cyan} />
-                    <Text style={[styles.sharpText, { color: colors.cyan }]} numberOfLines={1}>
-                      {featuredPick.sharpMoneySignal}
+            {!isPro && featuredPick.locked ? (
+              <TouchableOpacity
+                style={styles.featuredLock}
+                onPress={() => router.push("/subscription")}
+                activeOpacity={0.85}
+              >
+                <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+                <View style={styles.featuredLockInner}>
+                  <Lock size={22} color={colors.gold} />
+                  <Text style={[styles.featuredLockText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <View style={styles.featuredStats}>
+                  <ConfidenceMeter value={featuredPick.confidence} size={90} />
+                  <View style={styles.featuredInfo}>
+                    <RiskBadge risk={featuredPick.riskLevel} />
+                    <Text style={[styles.featuredReasoning, { color: colors.textSecondary }]} numberOfLines={3}>
+                      {featuredPick.reasoning}
                     </Text>
+                    {featuredPick.sharpMoneySignal && (
+                      <View style={[styles.sharpRow, { backgroundColor: "rgba(0,229,255,0.06)" }]}>
+                        <TrendingUp size={12} color={colors.cyan} />
+                        <Text style={[styles.sharpText, { color: colors.cyan }]} numberOfLines={1}>
+                          {featuredPick.sharpMoneySignal}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
-            </View>
+                </View>
 
-            <TouchableOpacity
-              style={[styles.viewAnalysisBtn, { borderColor: colors.border }]}
-              onPress={() => router.push("/(tabs)/picks")}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.viewAnalysisText, { color: colors.cyan }]}>{t("dashboard.viewFullAnalysis")}</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.viewAnalysisBtn, { borderColor: colors.border }]}
+                  onPress={() => router.push("/(tabs)/picks")}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.viewAnalysisText, { color: colors.cyan }]}>{t("dashboard.viewFullAnalysis")}</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </>
       ) : null}
@@ -645,7 +668,9 @@ export default function DashboardScreen() {
               <Text style={[styles.seeAll, { color: colors.cyan }]}>{t("dashboard.seeAll")}</Text>
             </TouchableOpacity>
           </View>
-          {todayPicks.slice(0, 3).map((p) => <PredictionCard key={p.id} prediction={p} />)}
+          {todayPicks.slice(0, 3).map((p) => (
+            <PredictionCard key={p.id} prediction={p} locked={!isPro && !!p.locked} />
+          ))}
         </>
       )}
 
@@ -678,6 +703,9 @@ const styles = StyleSheet.create({
   liveText: { fontSize: 11, letterSpacing: 0.5 },
   seeAll: { fontSize: 13, marginLeft: "auto" },
   featuredCard: { borderRadius: 16, padding: 16, borderWidth: 1, marginBottom: 20, gap: 14 },
+  featuredLock: { minHeight: 128, borderRadius: 12, overflow: "hidden", justifyContent: "center" },
+  featuredLockInner: { alignItems: "center", justifyContent: "center", gap: 8, padding: 20 },
+  featuredLockText: { fontSize: 13, fontWeight: "700", textAlign: "center" },
   featuredHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   featuredLeague: { fontSize: 11, flex: 1 },
   valueBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, backgroundColor: "rgba(255,215,0,0.08)" },

@@ -1,4 +1,6 @@
-import { RefreshCw, Search, WifiOff, X } from "lucide-react-native";
+import { BlurView } from "expo-blur";
+import { useRouter } from "expo-router";
+import { Lock, RefreshCw, Search, WifiOff, X } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -18,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ConfidenceMeter } from "@/components/ConfidenceMeter";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type SoccerFixture, type SoccerLeagueGroup } from "@/lib/api";
 
@@ -136,8 +139,24 @@ function LiveBadge({ elapsed }: { elapsed: number | null }) {
   );
 }
 
+function LockedAiRow() {
+  const colors = useColors();
+  const router = useRouter();
+  const { t } = useLanguage();
+  return (
+    <TouchableOpacity style={styles.lockedAi} onPress={() => router.push("/subscription")} activeOpacity={0.85}>
+      <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={styles.lockedAiInner}>
+        <Lock size={18} color={colors.gold} />
+        <Text style={[styles.lockedAiText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 function GameCard({ fixture, showLeague = false }: { fixture: SoccerFixture; showLeague?: boolean }) {
   const colors = useColors();
+  const locked = fixture.locked === true;
   const { timeText, scoreText, isLive, isFinished } = getStatusDisplay(fixture);
 
   return (
@@ -183,7 +202,7 @@ function GameCard({ fixture, showLeague = false }: { fixture: SoccerFixture; sho
       </View>
 
       {/* AI Bar */}
-      <View style={styles.aiBar}>
+      {locked ? <LockedAiRow /> : <View style={styles.aiBar}>
         <ConfidenceMeter value={fixture.confidence} size={40} />
         <View style={styles.aiInfo}>
           <Text style={[styles.predText, { color: colors.cyan }]}>
@@ -224,13 +243,14 @@ function GameCard({ fixture, showLeague = false }: { fixture: SoccerFixture; sho
             )}
           </View>
         </View>
-      </View>
+      </View>}
     </View>
   );
 }
 
 function FeaturedCard({ fixture }: { fixture: SoccerFixture }) {
   const colors = useColors();
+  const locked = fixture.locked === true;
   const { timeText, scoreText, isLive } = getStatusDisplay(fixture);
 
   return (
@@ -261,7 +281,7 @@ function FeaturedCard({ fixture }: { fixture: SoccerFixture }) {
           <Text style={[styles.featuredTeamName, { color: colors.text }]}>{fixture.awayTeam}</Text>
         </View>
       </View>
-      <View style={[styles.featuredAiRow, { borderTopColor: colors.border }]}>
+      {locked ? <LockedAiRow /> : <View style={[styles.featuredAiRow, { borderTopColor: colors.border }]}>
         <ConfidenceMeter value={fixture.confidence} size={56} />
         <View style={{ flex: 1, marginLeft: 16 }}>
           <Text style={[styles.featuredPredLabel, { color: colors.textMuted }]}>AI Prediction</Text>
@@ -271,7 +291,7 @@ function FeaturedCard({ fixture }: { fixture: SoccerFixture }) {
           </Text>
         </View>
         {isLive && <LiveBadge elapsed={fixture.elapsed} />}
-      </View>
+      </View>}
     </View>
   );
 }
@@ -751,6 +771,9 @@ const styles = StyleSheet.create({
   timeText: { fontSize: 11 },
 
   aiBar: { flexDirection: "row", alignItems: "center", gap: 12 },
+  lockedAi: { minHeight: 72, marginTop: 10, borderRadius: 10, overflow: "hidden", justifyContent: "center" },
+  lockedAiInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 14 },
+  lockedAiText: { fontSize: 12, fontWeight: "800", textAlign: "center" },
   aiInfo: { flex: 1, gap: 4 },
   predText: { fontSize: 13 },
   badgeRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },

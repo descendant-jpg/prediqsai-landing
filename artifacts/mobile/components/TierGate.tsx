@@ -34,9 +34,6 @@ export function TierGate({ requiredTier, children, customMessage }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.blur, { pointerEvents: "none" as const }]}>
-        {children}
-      </View>
       <View style={[styles.overlay, { backgroundColor: "rgba(7,11,18,0.92)" }]}>
         <View style={[styles.badge, { backgroundColor: "rgba(255,215,0,0.12)", borderColor: "#FFD700" }]}>
           <Star size={16} color="#FFD700" fill="#FFD700" />
@@ -59,8 +56,7 @@ export function TierGate({ requiredTier, children, customMessage }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { position: "relative" },
-  blur:    { opacity: 0.08 },
+  container: { position: "relative", minHeight: 180 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",

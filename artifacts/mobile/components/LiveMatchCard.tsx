@@ -1,9 +1,12 @@
 import * as Haptics from "expo-haptics";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
+import { Lock } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 import { matchDetailStore } from "@/lib/matchDetailStore";
 import type { SoccerFixture } from "@/lib/api";
 import type { Prediction } from "@/types";
@@ -31,7 +34,7 @@ function fixtureToPrediction(f: SoccerFixture): Prediction {
     homeTeam: f.homeTeam,
     awayTeam: f.awayTeam,
     matchDate: f.kickoff,
-    prediction: f.prediction,
+    prediction: f.locked || !f.prediction ? "draw" : f.prediction,
     confidence: f.confidence,
     riskLevel: f.riskLevel,
     volatilityScore: 5,
@@ -50,10 +53,11 @@ function fixtureToPrediction(f: SoccerFixture): Prediction {
     aiProbability: f.confidence,
     bookmakerProbability: Math.max(30, f.confidence - 8),
     valueDetected: f.valueDetected,
-    tierRequired: "free",
+    tierRequired: f.locked ? "premium" : "free",
     simulationData: null,
     agentScores: null,
     publicBacking: null,
+    locked: f.locked === true,
   };
 }
 
@@ -64,12 +68,14 @@ interface Props {
 export function LiveMatchCard({ fixture }: Props) {
   const colors = useColors();
   const router = useRouter();
-  const rtp = calcRTP(fixture);
-  const rtpPositive = rtp.rtpHome > 50;
+  const { t } = useLanguage();
+  const locked = fixture.locked === true;
+  const rtp = locked ? null : calcRTP(fixture);
+  const rtpPositive = (rtp?.rtpHome ?? 0) > 50;
   const rtpColor = rtpPositive ? "#00FF94" : "#FF6B35";
-  const rtpLabel = `+${rtp.diff}% ${rtp.dominant}`;
+  const rtpLabel = rtp ? `+${rtp.diff}% ${rtp.dominant}` : "";
 
-  const predLabel =
+  const predLabel = !locked &&
     fixture.prediction === "home_win"
       ? fixture.homeTeam
       : fixture.prediction === "away_win"
@@ -85,7 +91,7 @@ export function LiveMatchCard({ fixture }: Props) {
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-      onPress={handleTap}
+      onPress={locked ? () => router.push("/subscription") : handleTap}
       activeOpacity={0.85}
     >
       <View style={styles.liveRow}>
@@ -113,6 +119,17 @@ export function LiveMatchCard({ fixture }: Props) {
         </Text>
       </View>
 
+      {locked ? (
+        <View
+          style={styles.lockedRow}
+        >
+          <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.lockedInner}>
+            <Lock size={18} color={colors.gold} />
+            <Text style={[styles.lockedText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+          </View>
+        </View>
+      ) : (
       <View style={styles.bottomRow}>
         <View style={styles.rtpBlock}>
           <Text style={[styles.rtpLabel, { color: colors.textMuted }]}>Real-Time Power</Text>
@@ -122,6 +139,7 @@ export function LiveMatchCard({ fixture }: Props) {
           <Text style={[styles.predText, { color: colors.cyan }]}>{predLabel}</Text>
         </View>
       </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -158,4 +176,7 @@ const styles = StyleSheet.create({
   rtpValue: { fontSize: 13, fontFamily: "Inter_700Bold" },
   predBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   predText: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.3 },
+  lockedRow: { minHeight: 58, borderRadius: 10, overflow: "hidden", justifyContent: "center" },
+  lockedInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12 },
+  lockedText: { fontSize: 12, fontFamily: "Inter_700Bold", textAlign: "center" },
 });

@@ -117,6 +117,7 @@ export default function SavedPicksScreen() {
             <EnhancedPickCard
               key={p.id}
               pick={p}
+              locked={!isPro && !!p.locked}
               saved
               inSlip={slipIds.includes(p.id)}
               onSave={() => handleUnsave(p.id)}

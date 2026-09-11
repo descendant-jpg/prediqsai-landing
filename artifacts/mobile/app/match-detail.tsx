@@ -1,6 +1,8 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { Lock } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +22,7 @@ import { SimulationPanel } from "@/components/SimulationPanel";
 import { SportBadge } from "@/components/SportBadge";
 import { TierGate } from "@/components/TierGate";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { api, type FDH2HSummary, type MatchDetailData } from "@/lib/api";
 import { matchDetailStore } from "@/lib/matchDetailStore";
@@ -109,9 +112,31 @@ function buildOddsTable(probs: { home: number; draw: number; away: number }) {
   }));
 }
 
+function LockedPredictionState() {
+  const colors = useColors();
+  const router = useRouter();
+  const { t } = useLanguage();
+  return (
+    <TouchableOpacity
+      style={[tabs.lockedState, { borderColor: colors.gold }]}
+      onPress={() => router.push("/subscription")}
+      activeOpacity={0.85}
+    >
+      <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={tabs.lockedStateInner}>
+        <Lock size={26} color={colors.gold} />
+        <Text style={[tabs.lockedStateText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 // ─── AI Analysis Tab ──────────────────────────────────────────────────────────
 
 function AIAnalysisTab({ prediction, colors }: { prediction: Prediction; colors: Colors }) {
+  if (prediction.locked) {
+    return <LockedPredictionState />;
+  }
   const probs3 = get3WayProbs(prediction);
 
   return (
@@ -298,6 +323,9 @@ function PrematchTab({
   fdH2HLoading: boolean;
   colors: Colors;
 }) {
+  if (prediction.locked) {
+    return <LockedPredictionState />;
+  }
   const [homeFormScore, awayFormScore] = getTeamFormScores(prediction);
 
   const homeForm: Array<"W" | "D" | "L"> = matchDetail?.homeForm?.length
@@ -914,7 +942,7 @@ export default function MatchDetailScreen() {
   }, [activeTab, prediction, token, fdH2HFetched]);
 
   useEffect(() => {
-    if (!prediction || !token) return;
+    if (!prediction || !token || prediction.locked) return;
     setPreviewLoading(true);
     api.soccer
       .preview(token, {
@@ -1062,6 +1090,9 @@ const styles = StyleSheet.create({
 
 const tabs = StyleSheet.create({
   wrap:       { gap: 12 },
+  lockedState: { minHeight: 220, borderRadius: 16, borderWidth: 1, overflow: "hidden", justifyContent: "center" },
+  lockedStateInner: { alignItems: "center", justifyContent: "center", gap: 10, padding: 24 },
+  lockedStateText: { fontSize: 14, fontFamily: "Inter_700Bold", textAlign: "center" },
   centered:   { alignItems: "center", justifyContent: "center", gap: 14, paddingVertical: 60 },
   meterRow:   { flexDirection: "row", alignItems: "center", gap: 20, marginBottom: 4 },
   meterInfo:  { flex: 1, gap: 10 },

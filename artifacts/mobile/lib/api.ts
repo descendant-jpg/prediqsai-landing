@@ -338,6 +338,13 @@ export interface ApiBankrollEntry {
 
 export interface BankrollData {
   bankroll: number;
+  /** Authoritative balance from the user record (newer servers). */
+  currentBankroll?: number;
+  /** Aggregate totals across all bankroll entries, including entries omitted from the recent list. */
+  totalDeposits?: number;
+  totalWithdrawals?: number;
+  totalWon?: number;
+  totalLost?: number;
   dailyLossLimit: number;
   entries: ApiBankrollEntry[];
 }
@@ -374,9 +381,10 @@ export interface SoccerFixture {
   homeScore: number | null;
   awayScore: number | null;
   confidence: number;
-  prediction: "home_win" | "away_win" | "draw";
+  prediction: "home_win" | "away_win" | "draw" | "";
   riskLevel: "low" | "medium" | "high";
   valueDetected: boolean;
+  locked?: boolean;
 }
 
 export interface SoccerLeagueGroup {
@@ -569,8 +577,10 @@ export interface WCCountdown {
 }
 
 export interface WCPrediction {
-  homeWinPct: number; drawPct: number; awayWinPct: number;
-  prediction: "home_win" | "draw" | "away_win";
+  // Redacted for free users: probabilities null, prediction "", confidence 0,
+  // reasoning "", keyFactors [] — check the fixture's locked flag before use.
+  homeWinPct: number | null; drawPct: number | null; awayWinPct: number | null;
+  prediction: "home_win" | "draw" | "away_win" | "";
   confidence: number; reasoning: string; keyFactors: string[];
 }
 
@@ -581,6 +591,8 @@ export interface WCFixture {
   venue: string; city: string;
   homeScore: number | null; awayScore: number | null;
   status: string; round: string; group?: string;
+  /** Server-enforced premium gate — true means prediction is redacted. */
+  locked?: boolean;
   prediction?: WCPrediction;
 }
 

@@ -140,12 +140,21 @@ async function fetchFromApiSports(): Promise<WCFixture[]> {
   }
 }
 
-export async function getWCFixtures(): Promise<WCFixture[]> {
+export async function getWCFixtures(cacheOnly = false): Promise<WCFixture[]> {
   const now = Date.now();
+  if (cacheOnly) return _cachedFixtures ?? [];
   if (_cachedFixtures && now - _lastFetch < CACHE_MS) return _cachedFixtures;
   const live = await fetchFromApiSports();
   if (live.length > 0) { _cachedFixtures = live; _lastFetch = now; return live; }
   return getDemoFixtures();
+}
+
+export function getWCFixtureCacheMetadata() {
+  return {
+    cachedAt: _cachedFixtures ? new Date(_lastFetch).toISOString() : null,
+    stale: Boolean(_cachedFixtures && Date.now() - _lastFetch >= CACHE_MS),
+    cacheStatus: _cachedFixtures ? "hit" as const : "empty" as const,
+  };
 }
 
 function getDemoFixtures(): WCFixture[] {
@@ -168,6 +177,19 @@ function getDemoFixtures(): WCFixture[] {
 // ─── AI Predictions ───────────────────────────────────────────────────────────
 
 const predCache = new Map<string, { p: WCPrediction; ts: number }>();
+
+export function getCachedWCPrediction(
+  homeTeam: string,
+  awayTeam: string,
+): { prediction: WCPrediction | null; cachedAt: string | null; stale: boolean; cacheStatus: "hit" | "empty" } {
+  const cached = predCache.get(`${homeTeam}|${awayTeam}`);
+  return {
+    prediction: cached?.p ?? null,
+    cachedAt: cached ? new Date(cached.ts).toISOString() : null,
+    stale: Boolean(cached && Date.now() - cached.ts >= 30 * 60_000),
+    cacheStatus: cached ? "hit" : "empty",
+  };
+}
 
 export async function generateWCPrediction(
   homeTeam: string,

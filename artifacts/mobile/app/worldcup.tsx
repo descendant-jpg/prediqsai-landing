@@ -26,6 +26,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
+import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { TierGate } from "@/components/TierGate";
 import {
@@ -95,6 +96,8 @@ function ProgressBar({ pct, color, height = 6 }: { pct: number; color: string; h
 
 function PredictionBars({ pred, homeTeam, awayTeam }: { pred: WCPrediction; homeTeam: string; awayTeam: string }) {
   const colors = useColors();
+  // Redacted (locked) predictions carry null probabilities — never render bars for them.
+  if (pred.homeWinPct == null || pred.drawPct == null || pred.awayWinPct == null) return null;
   const rows: [string, number, string][] = [
     [homeTeam, pred.homeWinPct, "#00FF94"],
     ["Draw",   pred.drawPct,   "#FFD700"],
@@ -298,6 +301,8 @@ export default function WorldCupScreen() {
   const insets    = useSafeAreaInsets();
   const router    = useRouter();
   const { token, user } = useAuth();
+  const { profile } = useApp();
+  const isPro = profile?.tier === "premium";
   const countdown = useCountdown();
 
   const [activeTab, setActiveTab]       = useState<Tab>("overview");
@@ -603,7 +608,7 @@ export default function WorldCupScreen() {
 
         {/* ── FIXTURES TAB ──────────────────────────────────────────────────── */}
         {activeTab === "fixtures" && (
-          <TierGate requiredTier="premium" customMessage="World Cup AI Picks require Premium">
+          isPro ? (
             <>
               <View style={[styles.fixturesHeader, { backgroundColor: "rgba(0,229,255,0.06)", borderColor: "rgba(0,229,255,0.2)" }]}>
                 <Zap size={14} color={colors.cyan} />
@@ -615,7 +620,11 @@ export default function WorldCupScreen() {
                 <FixtureCard key={f.id} fixture={f} token={token ?? ""} />
               ))}
             </>
-          </TierGate>
+          ) : (
+            <TierGate requiredTier="premium" customMessage="World Cup AI Picks require Premium">
+              <View style={{ minHeight: 180 }} />
+            </TierGate>
+          )
         )}
 
         {/* ── AFRICA TAB ────────────────────────────────────────────────────── */}

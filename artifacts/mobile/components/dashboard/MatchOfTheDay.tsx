@@ -37,7 +37,7 @@ export function MatchOfTheDay({ motd, isPro, onUpgrade }: Props) {
 
       {/* AI pick + confidence — real data, blurred for free users */}
       <View style={styles.pickRowWrap}>
-        <View style={styles.pickRow} pointerEvents={isPro ? "auto" : "none"}>
+        {isPro && <View style={styles.pickRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.pickLabel, { color: colors.textMuted }]}>AI PICK</Text>
             <Text style={[styles.pick, { color: colors.gold }]}>{motd.pick}</Text>
@@ -46,11 +46,12 @@ export function MatchOfTheDay({ motd, isPro, onUpgrade }: Props) {
             <Text style={[styles.confValue, { color: confColor }]}>{motd.confidence}%</Text>
             <Text style={[styles.confLabel, { color: colors.textMuted }]}>confidence</Text>
           </View>
-        </View>
+        </View>}
         {!isPro && (
-          <Pressable style={styles.pickBlur} onPress={onUpgrade}>
+          <Pressable style={styles.lockedPick} onPress={onUpgrade}>
             <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
             <Lock size={18} color={colors.gold} />
+            <Text style={[styles.lockedPickText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
           </Pressable>
         )}
       </View>
@@ -99,6 +100,8 @@ const styles = StyleSheet.create({
   pickRowWrap: { marginTop: 4, borderRadius: 10, overflow: "hidden" },
   pickRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   pickBlur: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(10,10,10,0.3)" },
+  lockedPick: { minHeight: 64, alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "rgba(10,10,10,0.3)" },
+  lockedPickText: { fontSize: 12, ...bold },
   pickLabel: { fontSize: 10, letterSpacing: 0.5 },
   pick: { fontSize: 20, ...bold, marginTop: 2 },
   confBox: { alignItems: "flex-end" },

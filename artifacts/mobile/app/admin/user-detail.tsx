@@ -84,10 +84,8 @@ export default function AdminUserDetailScreen() {
       if (!confirmed) return;
     }
     setSaving(true);
-    console.log("[AdminUserDetail] doUpdate payload:", JSON.stringify(patch));
     try {
       const updated = await api.admin.updateUser(token, user.id, patch);
-      console.log("[AdminUserDetail] doUpdate success:", JSON.stringify(updated));
       setUser(updated);
       Alert.alert("Success", successMsg ?? "User updated successfully");
     } catch (err) {

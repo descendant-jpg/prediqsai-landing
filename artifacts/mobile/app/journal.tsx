@@ -3,7 +3,6 @@ import { ArrowLeft, Plus, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -16,21 +15,31 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
-import { AI_ROI_BENCHMARK, type BetEntry } from "@/lib/mockData";
 import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
+
+interface BetEntry {
+  id: string;
+  match: string;
+  stake: number;
+  odds: number;
+  result: "won" | "lost";
+  createdAt: number;
+}
 
 function entryPnl(e: BetEntry): number {
   return e.result === "won" ? e.stake * (e.odds - 1) : -e.stake;
 }
 
-function confirmDelete(onConfirm: () => void) {
+function confirmDelete(onConfirm: () => void, t: (key: string) => string) {
   if (Platform.OS === "web") {
-    if (window.confirm("Delete this bet from your journal?")) onConfirm();
+    if (window.confirm(t("journal.deleteConfirm"))) onConfirm();
   } else {
-    Alert.alert("Delete Bet", "Remove this entry from your journal?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: onConfirm },
+    Alert.alert(t("journal.deleteTitle"), t("journal.deleteConfirm"), [
+      { text: t("journal.cancel"), style: "cancel" },
+      { text: t("journal.delete"), style: "destructive", onPress: onConfirm },
     ]);
   }
 }
@@ -39,6 +48,7 @@ export default function JournalScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [entries, setEntries] = useState<BetEntry[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -60,8 +70,6 @@ export default function JournalScreen() {
   const totalReturned = entries.reduce((s, e) => s + (e.result === "won" ? e.stake * e.odds : 0), 0);
   const profit = totalReturned - totalStaked;
   const userRoi = totalStaked > 0 ? (profit / totalStaked) * 100 : 0;
-  const aiProfit = (totalStaked * AI_ROI_BENCHMARK) / 100;
-  const diff = aiProfit - profit;
 
   async function persist(next: BetEntry[]) {
     setEntries(next);
@@ -91,7 +99,7 @@ export default function JournalScreen() {
   function handleDelete(id: string) {
     confirmDelete(() => {
       void persist(entries.filter((e) => e.id !== id));
-    });
+    }, t);
   }
 
   return (
@@ -100,7 +108,7 @@ export default function JournalScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <ArrowLeft size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>My Journal</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t("journal.title")}</Text>
         <TouchableOpacity onPress={() => setModalOpen(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Plus size={22} color={colors.gold} />
         </TouchableOpacity>
@@ -110,44 +118,19 @@ export default function JournalScreen() {
         {/* Summary */}
         <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.summaryGrid}>
-            <Summary label="STAKED" value={`$${totalStaked.toFixed(0)}`} color={colors.text} />
-            <Summary label="RETURNED" value={`$${totalReturned.toFixed(0)}`} color={colors.text} />
-            <Summary label="PROFIT/LOSS" value={`${profit >= 0 ? "+" : ""}$${profit.toFixed(0)}`} color={profit >= 0 ? colors.green : colors.red} />
-            <Summary label="YOUR ROI" value={`${userRoi >= 0 ? "+" : ""}${userRoi.toFixed(1)}%`} color={userRoi >= 0 ? colors.green : colors.red} />
+            <Summary label={t("journal.staked")} value={`$${totalStaked.toFixed(0)}`} color={colors.text} />
+            <Summary label={t("journal.returned")} value={`$${totalReturned.toFixed(0)}`} color={colors.text} />
+            <Summary label={t("journal.profitLoss")} value={`${profit >= 0 ? "+" : ""}$${profit.toFixed(0)}`} color={profit >= 0 ? colors.green : colors.red} />
+            <Summary label={t("journal.yourRoi")} value={`${userRoi >= 0 ? "+" : ""}${userRoi.toFixed(1)}%`} color={userRoi >= 0 ? colors.green : colors.red} />
           </View>
-        </View>
-
-        {/* ROI comparison */}
-        <View style={[styles.compareCard, { backgroundColor: colors.card, borderColor: colors.gold }]}>
-          <Text style={[styles.compareTitle, { color: colors.gold }]}>ROI vs PrediQs AI</Text>
-          <View style={styles.compareRow}>
-            <View style={styles.compareCol}>
-              <Text style={[styles.compareLabel, { color: colors.textMuted }]}>YOUR ROI</Text>
-              <Text style={[styles.compareValue, { color: userRoi >= 0 ? colors.green : colors.red }]}>
-                {userRoi >= 0 ? "+" : ""}{userRoi.toFixed(1)}%
-              </Text>
-            </View>
-            <Text style={[styles.vs, { color: colors.textMuted }]}>vs</Text>
-            <View style={styles.compareCol}>
-              <Text style={[styles.compareLabel, { color: colors.textMuted }]}>PREDIQS AI</Text>
-              <Text style={[styles.compareValue, { color: colors.gold }]}>+{AI_ROI_BENCHMARK}%</Text>
-            </View>
-          </View>
-          {entries.length > 0 && (
-            <Text style={[styles.compareNote, { color: colors.textSecondary }]}>
-              {diff > 0
-                ? `If you had followed all AI picks you would have made $${diff.toFixed(0)} more.`
-                : `You're beating the AI benchmark by $${Math.abs(diff).toFixed(0)}. Keep it up!`}
-            </Text>
-          )}
         </View>
 
         {/* Entries */}
-        <Text style={[styles.listLabel, { color: colors.textMuted }]}>YOUR BETS ({entries.length})</Text>
+        <Text style={[styles.listLabel, { color: colors.textMuted }]}>{t("journal.yourBets", { count: entries.length })}</Text>
         {entries.length === 0 ? (
           <View style={[styles.empty, { borderColor: colors.border }]}>
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              No bets logged yet. Tap + to add your first entry.
+              {t("journal.empty")}
             </Text>
           </View>
         ) : (
@@ -178,29 +161,29 @@ export default function JournalScreen() {
           })
         )}
         {entries.length > 0 && (
-          <Text style={[styles.hint, { color: colors.textMuted }]}>Long-press a bet to delete it.</Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>{t("journal.deleteHint")}</Text>
         )}
       </ScrollView>
 
       <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <Pressable style={styles.backdrop} onPress={() => setModalOpen(false)}>
           <Pressable
             style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
             onPress={(ev) => ev.stopPropagation()}
           >
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: colors.text }]}>Log a Bet</Text>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>{t("journal.logBet")}</Text>
               <TouchableOpacity onPress={() => setModalOpen(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <X size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <Field label="Match" value={match} onChangeText={setMatch} placeholder="e.g. Arsenal vs Chelsea" colors={colors} />
-            <Field label="Stake ($)" value={stake} onChangeText={setStake} placeholder="50" keyboardType="numeric" colors={colors} />
-            <Field label="Odds" value={odds} onChangeText={setOdds} placeholder="1.85" keyboardType="numeric" colors={colors} />
+            <KeyboardAwareScrollViewCompat contentContainerStyle={{ gap: 12 }}>
+            <Field label={t("journal.match")} value={match} onChangeText={setMatch} placeholder={t("journal.matchPlaceholder")} colors={colors} />
+            <Field label={t("journal.stake")} value={stake} onChangeText={setStake} placeholder="0" keyboardType="numeric" colors={colors} />
+            <Field label={t("journal.odds")} value={odds} onChangeText={setOdds} placeholder="0" keyboardType="numeric" colors={colors} />
 
-            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Result</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t("journal.result")}</Text>
             <View style={styles.resultRow}>
               {(["won", "lost"] as const).map((r) => (
                 <TouchableOpacity
@@ -216,18 +199,18 @@ export default function JournalScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={{ color: result === r ? (r === "won" ? colors.green : colors.red) : colors.textMuted, fontSize: 14, ...semibold }}>
-                    {r === "won" ? "Won ✓" : "Lost ✗"}
+                    {r === "won" ? t("journal.won") : t("journal.lost")}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <TouchableOpacity style={[styles.saveBtn, { backgroundColor: colors.gold }]} activeOpacity={0.85} onPress={handleAdd}>
-              <Text style={styles.saveBtnText}>Save Bet</Text>
+              <Text style={styles.saveBtnText}>{t("journal.save")}</Text>
             </TouchableOpacity>
+            </KeyboardAwareScrollViewCompat>
           </Pressable>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod/v4";
 
@@ -9,21 +9,38 @@ import { syncLeaderboardEntry } from "./leaderboard";
 const router = Router();
 
 router.get("/bankroll", requireAuth, async (req, res) => {
-  const [user] = await db
-    .select({ bankroll: users.bankroll, dailyLossLimit: users.dailyLossLimit })
-    .from(users)
-    .where(eq(users.id, req.userId!))
-    .limit(1);
+  const [[user], entries, [totals]] = await Promise.all([
+    db
+      .select({ bankroll: users.bankroll, dailyLossLimit: users.dailyLossLimit })
+      .from(users)
+      .where(eq(users.id, req.userId!))
+      .limit(1),
+    db
+      .select()
+      .from(bankrollEntries)
+      .where(eq(bankrollEntries.userId, req.userId!))
+      .orderBy(desc(bankrollEntries.createdAt))
+      .limit(100),
+    db
+      .select({
+        totalDeposits: sql<number>`coalesce(sum(case when ${bankrollEntries.type} = 'deposit' then ${bankrollEntries.amount} else 0 end), 0)::float`,
+        totalWithdrawals: sql<number>`coalesce(sum(case when ${bankrollEntries.type} = 'withdrawal' then ${bankrollEntries.amount} else 0 end), 0)::float`,
+        totalWon: sql<number>`coalesce(sum(case when ${bankrollEntries.type} = 'win' then ${bankrollEntries.amount} else 0 end), 0)::float`,
+        totalLost: sql<number>`coalesce(sum(case when ${bankrollEntries.type} = 'loss' then ${bankrollEntries.amount} else 0 end), 0)::float`,
+      })
+      .from(bankrollEntries)
+      .where(eq(bankrollEntries.userId, req.userId!)),
+  ]);
 
-  const entries = await db
-    .select()
-    .from(bankrollEntries)
-    .where(eq(bankrollEntries.userId, req.userId!))
-    .orderBy(desc(bankrollEntries.createdAt))
-    .limit(100);
+  const currentBankroll = user?.bankroll ?? 1000;
 
   res.json({
-    bankroll: user?.bankroll ?? 1000,
+    bankroll: currentBankroll,
+    currentBankroll,
+    totalDeposits: totals?.totalDeposits ?? 0,
+    totalWithdrawals: totals?.totalWithdrawals ?? 0,
+    totalWon: totals?.totalWon ?? 0,
+    totalLost: totals?.totalLost ?? 0,
     dailyLossLimit: user?.dailyLossLimit ?? 200,
     entries,
   });

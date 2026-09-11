@@ -115,14 +115,17 @@ export interface SoccerFeedResponse {
   totalCount: number;
   liveCount: number;
   hasApiKey: boolean;
+  cachedAt: string | null;
+  stale: boolean;
+  cacheStatus: "hit" | "empty";
 }
 
 // ─── In-memory caches ─────────────────────────────────────────────────────────
 
 const cache: {
-  fixtures?: { data: SoccerFixture[]; expiresAt: number };
-  live?: { data: SoccerFixture[]; expiresAt: number };
-} = {};
+  fixtures: Map<string, { data: SoccerFixture[]; fetchedAt: number }>;
+  live?: { data: SoccerFixture[]; fetchedAt: number };
+} = { fixtures: new Map() };
 
 const predCache: {
   predictions?: Map<number, ClaudePrediction>;
@@ -357,7 +360,7 @@ async function fetchFromApi(params: string): Promise<SoccerFixture[]> {
 
 // ─── Response builder ─────────────────────────────────────────────────────────
 
-function buildResponse(fixtures: SoccerFixture[], lastUpdated: Date): SoccerFeedResponse {
+function buildResponse(fixtures: SoccerFixture[], fetchedAt: number | null): SoccerFeedResponse {
   const leagueGroups = buildGroups(fixtures);
   const liveCount = fixtures.filter((f) => LIVE_STATUSES.has(f.statusShort)).length;
 
@@ -371,23 +374,30 @@ function buildResponse(fixtures: SoccerFixture[], lastUpdated: Date): SoccerFeed
     fixtures,
     leagueGroups,
     featuredMatch,
-    lastUpdated: lastUpdated.toISOString(),
+    lastUpdated: fetchedAt ? new Date(fetchedAt).toISOString() : new Date(0).toISOString(),
     totalCount: fixtures.length,
     liveCount,
     hasApiKey: Boolean(API_SPORTS_KEY),
+    cachedAt: fetchedAt ? new Date(fetchedAt).toISOString() : null,
+    stale: fetchedAt ? Date.now() - fetchedAt >= FIXTURE_TTL : false,
+    cacheStatus: fetchedAt ? "hit" : "empty",
   };
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getTodaysFixtures(dateOverride?: string): Promise<SoccerFeedResponse> {
+export async function getTodaysFixtures(
+  dateOverride?: string,
+  cacheOnly = false,
+): Promise<SoccerFeedResponse> {
   const now = Date.now();
-  // Only use cache for today's fixtures (no override)
-  if (!dateOverride && cache.fixtures && cache.fixtures.expiresAt > now) {
-    return buildResponse(cache.fixtures.data, new Date(cache.fixtures.expiresAt - FIXTURE_TTL));
+  const dateStr = dateOverride ?? new Date().toISOString().split("T")[0];
+  const cached = cache.fixtures.get(dateStr);
+  if (cacheOnly) return buildResponse(cached?.data ?? [], cached?.fetchedAt ?? null);
+  if (cached && now - cached.fetchedAt < FIXTURE_TTL) {
+    return buildResponse(cached.data, cached.fetchedAt);
   }
 
-  const dateStr = dateOverride ?? new Date().toISOString().split("T")[0];
   const fixtures = await fetchFromApi(`date=${dateStr}`);
 
   // Enhance tier 1-2 fixtures with Claude AI predictions (30-min cache, today only)
@@ -408,8 +418,8 @@ export async function getTodaysFixtures(dateOverride?: string): Promise<SoccerFe
     }
   }
 
-  if (!dateOverride) {
-    cache.fixtures = { data: fixtures, expiresAt: now + FIXTURE_TTL };
+  if (fixtures.length > 0 || !cached) {
+    cache.fixtures.set(dateStr, { data: fixtures, fetchedAt: now });
   }
 
   logger.info(
@@ -417,17 +427,29 @@ export async function getTodaysFixtures(dateOverride?: string): Promise<SoccerFe
     "Soccer fixtures fetched and cached",
   );
 
-  return buildResponse(fixtures, new Date());
+  const result = cache.fixtures.get(dateStr);
+  return buildResponse(result?.data ?? [], result?.fetchedAt ?? null);
 }
 
-export async function getLiveFixtures(): Promise<SoccerFixture[]> {
+export async function getLiveFixtures(cacheOnly = false): Promise<SoccerFixture[]> {
   const now = Date.now();
-  if (cache.live && cache.live.expiresAt > now) return cache.live.data;
+  if (cacheOnly) return cache.live?.data ?? [];
+  if (cache.live && now - cache.live.fetchedAt < LIVE_TTL) return cache.live.data;
 
   const live = await fetchFromApi("live=all");
   const filtered = live.filter((f) => LIVE_STATUSES.has(f.statusShort));
-  cache.live = { data: filtered, expiresAt: now + LIVE_TTL };
-  return filtered;
+  if (filtered.length > 0 || !cache.live) {
+    cache.live = { data: filtered, fetchedAt: now };
+  }
+  return cache.live?.data ?? [];
+}
+
+export function getLiveFixturesCacheMetadata() {
+  return {
+    cachedAt: cache.live ? new Date(cache.live.fetchedAt).toISOString() : null,
+    stale: Boolean(cache.live && Date.now() - cache.live.fetchedAt >= LIVE_TTL),
+    cacheStatus: cache.live ? "hit" as const : "empty" as const,
+  };
 }
 
 // ─── Match Detail ─────────────────────────────────────────────────────────────
@@ -509,9 +531,13 @@ function parseTeamFormFromRaw(raw: unknown[], teamId: number): TeamFormResult[] 
   });
 }
 
-export async function getFixtureDetail(fixtureId: number): Promise<MatchDetail | null> {
+export async function getFixtureDetail(
+  fixtureId: number,
+  cacheOnly = false,
+): Promise<MatchDetail | null> {
   const now = Date.now();
   const cached = detailCache.get(fixtureId);
+  if (cacheOnly) return cached?.data ?? null;
   if (cached && cached.expiresAt > now) return cached.data;
   if (!API_SPORTS_KEY) return null;
 

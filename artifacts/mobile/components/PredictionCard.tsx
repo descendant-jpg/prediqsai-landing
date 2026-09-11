@@ -1,12 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { Lock } from "lucide-react-native";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { ConfidenceMeter } from "@/components/ConfidenceMeter";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SportBadge } from "@/components/SportBadge";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
 import { matchDetailStore } from "@/lib/matchDetailStore";
 import type { Prediction } from "@/types";
@@ -49,13 +52,15 @@ function getTeamFormScores(p: Prediction): [number, number] {
 
 interface Props {
   prediction: Prediction;
+  locked?: boolean;
 }
 
-export function PredictionCard({ prediction }: Props) {
+export function PredictionCard({ prediction, locked = false }: Props) {
   const colors = useColors();
   const router = useRouter();
+  const { t } = useLanguage();
 
-  const [homeScore, awayScore] = getTeamFormScores(prediction);
+  const [homeScore, awayScore] = locked ? [50, 50] : getTeamFormScores(prediction);
   const homeForm = deriveFormDots(homeScore, prediction.homeTeam);
   const awayForm = deriveFormDots(awayScore, prediction.awayTeam);
 
@@ -84,7 +89,7 @@ export function PredictionCard({ prediction }: Props) {
           <SportBadge sport={prediction.sport} size="sm" />
           <Text style={[styles.league, { color: colors.textMuted }]}>{prediction.league}</Text>
         </View>
-        {prediction.valueDetected && (
+        {!locked && prediction.valueDetected && (
           <View style={[styles.valueBadge, { borderColor: colors.gold }]}>
             <Text style={[styles.valueText, { color: colors.gold }]}>VALUE</Text>
           </View>
@@ -114,17 +119,27 @@ export function PredictionCard({ prediction }: Props) {
       </View>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <View style={styles.footerLeft}>
-          <View style={[styles.predBadge, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan }]}>
-            <Text style={[styles.predText, { color: colors.cyan }]}>
-              {predictionLabel(prediction.prediction)}
-            </Text>
+      {locked ? (
+        <View style={styles.lockedFooter}>
+          <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.lockContent}>
+            <Lock size={18} color={colors.gold} />
+            <Text style={[styles.lockText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
           </View>
-          <RiskBadge risk={prediction.riskLevel} />
         </View>
-        <ConfidenceMeter value={prediction.confidence} size={52} />
-      </View>
+      ) : (
+        <View style={styles.footer}>
+          <View style={styles.footerLeft}>
+            <View style={[styles.predBadge, { backgroundColor: "rgba(0,229,255,0.1)", borderColor: colors.cyan }]}>
+              <Text style={[styles.predText, { color: colors.cyan }]}>
+                {predictionLabel(prediction.prediction)}
+              </Text>
+            </View>
+            <RiskBadge risk={prediction.riskLevel} />
+          </View>
+          <ConfidenceMeter value={prediction.confidence} size={52} />
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -229,4 +244,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.5,
   },
+  lockedFooter: {
+    minHeight: 58,
+    borderRadius: 10,
+    overflow: "hidden",
+    justifyContent: "center",
+  },
+  lockContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 14,
+  },
+  lockText: { fontSize: 13, fontFamily: "Inter_700Bold" },
 });

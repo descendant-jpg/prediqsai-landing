@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 import { confidenceColor, type ProPick } from "@/lib/mockData";
 
 /**
@@ -22,22 +23,25 @@ export function PickOfTheDayCard({
   onUpgrade: () => void;
 }) {
   const colors = useColors();
+  const { t } = useLanguage();
+  const locked = !isPro || !!pick.locked;
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(18)).current;
   const confColor = confidenceColor(pick.confidence, colors);
 
   useEffect(() => {
+    if (locked) return;
     Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 450, useNativeDriver: Platform.OS !== "web" }),
       Animated.timing(translateY, { toValue: 0, duration: 450, useNativeDriver: Platform.OS !== "web" }),
     ]).start();
-  }, [opacity, translateY]);
+  }, [locked, opacity, translateY]);
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+    <Animated.View style={locked ? undefined : { opacity, transform: [{ translateY }] }}>
       <TouchableOpacity
         activeOpacity={0.92}
-        onPress={isPro ? onPress : onUpgrade}
+        onPress={locked ? onUpgrade : onPress}
         style={[styles.shadow, { shadowColor: colors.gold }]}
       >
         <LinearGradient
@@ -56,36 +60,37 @@ export function PickOfTheDayCard({
           </Text>
           <Text style={[styles.kickoff, { color: colors.textSecondary }]}>{pick.kickoffTime}</Text>
 
-          <View style={styles.pickRow}>
-            <Text style={[styles.pickLabel, { color: colors.textSecondary }]}>AI Pick</Text>
-            <Text style={[styles.pickValue, { color: colors.gold }]}>{pick.aiPick}</Text>
-          </View>
+          {!locked && (
+            <>
+              <View style={styles.pickRow}>
+                <Text style={[styles.pickLabel, { color: colors.textSecondary }]}>AI Pick</Text>
+                <Text style={[styles.pickValue, { color: colors.gold }]}>{pick.aiPick}</Text>
+              </View>
 
-          {/* Confidence bar */}
-          <View style={styles.confHeader}>
-            <Text style={[styles.confLabel, { color: colors.textSecondary }]}>Confidence</Text>
-            <Text style={[styles.confValue, { color: confColor }]}>{pick.confidence}%</Text>
-          </View>
-          <View style={[styles.track, { backgroundColor: "#1f1f1f" }]}>
-            <View style={[styles.fill, { width: `${pick.confidence}%`, backgroundColor: confColor }]} />
-          </View>
+              <View style={styles.confHeader}>
+                <Text style={[styles.confLabel, { color: colors.textSecondary }]}>Confidence</Text>
+                <Text style={[styles.confValue, { color: confColor }]}>{pick.confidence}%</Text>
+              </View>
+              <View style={[styles.track, { backgroundColor: "#1f1f1f" }]}>
+                <View style={[styles.fill, { width: `${pick.confidence}%`, backgroundColor: confColor }]} />
+              </View>
 
-          <View style={styles.footer}>
-            <View>
-              <Text style={[styles.oddsLabel, { color: colors.textSecondary }]}>Best Odds</Text>
-              <Text style={[styles.oddsValue, { color: colors.text }]}>
-                {pick.odds.toFixed(2)} <Text style={{ color: colors.textSecondary }}>· {pick.bookmaker}</Text>
-              </Text>
-            </View>
-            {isPro ? (
+              <View style={styles.footer}>
+                <View>
+                  <Text style={[styles.oddsLabel, { color: colors.textSecondary }]}>Best Odds</Text>
+                  <Text style={[styles.oddsValue, { color: colors.text }]}>
+                    {pick.odds.toFixed(2)} <Text style={{ color: colors.textSecondary }}>· {pick.bookmaker}</Text>
+                  </Text>
+                </View>
               <View style={[styles.cta, { borderColor: colors.gold }]}>
                 <Text style={[styles.ctaText, { color: colors.gold }]}>View Analysis →</Text>
               </View>
-            ) : null}
-          </View>
+              </View>
+            </>
+          )}
 
           {/* FREE lock overlay */}
-          {!isPro ? (
+          {locked ? (
             <View style={styles.lockOverlay}>
               <View style={[styles.lockBox, { borderColor: colors.gold }]}>
                 <Lock size={22} color={colors.gold} />
@@ -93,7 +98,7 @@ export function PickOfTheDayCard({
                 <Text style={[styles.lockSub, { color: colors.textSecondary }]}>
                   Upgrade to unlock the Pick of the Day
                 </Text>
-                <Text style={[styles.lockBtn, { backgroundColor: colors.gold }]}>Upgrade to Pro</Text>
+                <Text style={[styles.lockBtn, { backgroundColor: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
               </View>
             </View>
           ) : null}

@@ -1,48 +1,60 @@
 import { useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ArrowLeft, Bell } from "lucide-react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useColors } from "@/hooks/useColors";
-import { NOTIFICATIONS, SIMULATED_NEW_IDS } from "@/lib/mockData";
-import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
-
-// Notifications NOT in the simulated-new set start as already read.
-const DEFAULT_READ = NOTIFICATIONS.filter((n) => !SIMULATED_NEW_IDS.includes(n.id)).map((n) => n.id);
+import { api } from "@/lib/api";
 
 export default function NotificationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [readIds, setReadIds] = useState<string[]>(DEFAULT_READ);
+  const { token } = useAuth();
+  const { t } = useLanguage();
+  const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
+  const [error, setError] = useState("");
 
   const topPadding = insets.top + (Platform.OS === "web" ? 67 : 0);
 
+  const loadUnread = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const result = await api.notifications.getUnreadCount(token);
+      setUnread(result.count);
+      setError("");
+    } catch {
+      setError(t("notifications.loadError"));
+    } finally {
+      setLoading(false);
+    }
+  }, [t, token]);
+
   useEffect(() => {
-    (async () => {
-      const stored = await getItem<string[] | null>(STORAGE_KEYS.notificationsRead, null);
-      if (stored == null) {
-        await setItem(STORAGE_KEYS.notificationsRead, DEFAULT_READ);
-        setReadIds(DEFAULT_READ);
-      } else {
-        setReadIds(stored);
-      }
-    })();
-  }, []);
+    void loadUnread();
+  }, [loadUnread]);
 
-  async function markRead(ids: string[]) {
-    const next = Array.from(new Set([...readIds, ...ids]));
-    setReadIds(next);
-    await setItem(STORAGE_KEYS.notificationsRead, next);
+  async function markAllRead() {
+    if (!token || marking) return;
+    setMarking(true);
+    try {
+      await api.notifications.markRead(token);
+      setUnread(0);
+      setError("");
+    } catch {
+      setError(t("notifications.markError"));
+    } finally {
+      setMarking(false);
+    }
   }
-
-  async function handleTap(id: string, route?: string) {
-    await markRead([id]);
-    if (route) router.push(route as never);
-  }
-
-  const unread = NOTIFICATIONS.filter((n) => !readIds.includes(n.id)).length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -50,42 +62,40 @@ export default function NotificationsScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <ArrowLeft size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t("notifications.title")}</Text>
         {unread > 0 ? (
-          <TouchableOpacity onPress={() => markRead(NOTIFICATIONS.map((n) => n.id))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={[styles.markAll, { color: colors.cyan }]}>Mark all</Text>
+          <TouchableOpacity disabled={marking} onPress={markAllRead} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Text style={[styles.markAll, { color: colors.cyan }]}>{t("notifications.markAll")}</Text>
           </TouchableOpacity>
+        ) : error ? (
+          <>
+            <Text style={[styles.emptyTitle, { color: colors.red }]}>{error}</Text>
+            <TouchableOpacity onPress={loadUnread}>
+              <Text style={[styles.retry, { color: colors.cyan }]}>{t("notifications.retry")}</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <View style={{ width: 56 }} />
         )}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40, gap: 10 }}>
-        {NOTIFICATIONS.map((n) => {
-          const isUnread = !readIds.includes(n.id);
-          return (
-            <TouchableOpacity
-              key={n.id}
-              activeOpacity={0.8}
-              onPress={() => handleTap(n.id, n.route)}
-              style={[
-                styles.row,
-                {
-                  backgroundColor: isUnread ? "rgba(255,215,0,0.05)" : colors.card,
-                  borderColor: isUnread ? "rgba(255,215,0,0.35)" : colors.cardBorder,
-                },
-              ]}
-            >
-              <Text style={styles.icon}>{n.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.title, { color: colors.text }]}>{n.title}</Text>
-                <Text style={[styles.time, { color: colors.textMuted }]}>{n.time}</Text>
-              </View>
-              {isUnread && <View style={[styles.unreadDot, { backgroundColor: colors.gold }]} />}
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <View style={[styles.empty, { paddingBottom: insets.bottom }]}>
+        {loading ? (
+          <ActivityIndicator color={colors.cyan} />
+        ) : (
+          <>
+            <View style={[styles.emptyIcon, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <Bell size={26} color={colors.textMuted} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t("notifications.emptyTitle")}</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              {unread > 0
+                ? t("notifications.unreadPending", { count: unread })
+                : t("notifications.emptyText")}
+            </Text>
+          </>
+        )}
+      </View>
     </View>
   );
 }
@@ -97,9 +107,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
   headerTitle: { fontSize: 18, ...bold },
   markAll: { fontSize: 13, width: 56, textAlign: "right" },
-  row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 12, borderWidth: 1 },
-  icon: { fontSize: 22 },
-  title: { fontSize: 14, lineHeight: 19 },
-  time: { fontSize: 11, marginTop: 3 },
-  unreadDot: { width: 9, height: 9, borderRadius: 4.5 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 10 },
+  emptyIcon: { width: 58, height: 58, borderRadius: 29, borderWidth: 1, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  emptyTitle: { fontSize: 17, ...bold },
+  emptyText: { fontSize: 13, lineHeight: 19, textAlign: "center", maxWidth: 300 },
+  retry: { fontSize: 14, ...bold },
 });

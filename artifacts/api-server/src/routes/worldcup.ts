@@ -1,15 +1,34 @@
 import { Router } from "express";
+import { eq } from "drizzle-orm";
+
+import { db, users } from "@workspace/db";
+import { isPremium } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 import {
   AFRICAN_TEAMS,
   WC_WINNER_ODDS,
-  generateWCPrediction,
+  getCachedWCPrediction,
   getCountdown,
   getDemoWCArb,
   getWCFixtures,
+  getWCFixtureCacheMetadata,
 } from "../services/worldcup-engine";
 
 const router = Router();
+const UPCOMING_OR_LIVE_STATUSES = new Set(["NS", "1H", "HT", "2H", "ET", "BT", "P", "LIVE"]);
+
+async function requesterIsPremium(userId: number): Promise<boolean> {
+  const [user] = await db
+    .select({
+      tier: users.tier,
+      manualTierOverride: users.manualTierOverride,
+      freeTrialUntil: users.freeTrialUntil,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return isPremium(user);
+}
 
 // GET /api/worldcup/countdown
 router.get("/worldcup/countdown", async (_req, res) => {
@@ -29,19 +48,36 @@ router.get("/worldcup/overview", async (_req, res) => {
 // GET /api/worldcup/fixtures  (auth required)
 router.get("/worldcup/fixtures", requireAuth, async (req, res) => {
   try {
-    const fixtures = await getWCFixtures();
-    // Attach predictions for first 4 upcoming fixtures
+    const [fixtures, premium] = await Promise.all([
+      getWCFixtures(true),
+      requesterIsPremium(req.userId!),
+    ]);
+    const metadata = getWCFixtureCacheMetadata();
+    // Attach cached predictions to the first six upcoming/live fixtures.
     const upcoming = fixtures
-      .filter((f) => f.status === "NS" || f.status === "1H" || f.status === "2H")
+      .filter((fixture) => UPCOMING_OR_LIVE_STATUSES.has(fixture.status))
       .slice(0, 6);
 
     const withPreds = await Promise.all(
       upcoming.map(async (f) => {
-        const prediction = await generateWCPrediction(f.homeTeam, f.awayTeam).catch(() => null);
-        return { ...f, prediction };
+        const prediction = getCachedWCPrediction(f.homeTeam, f.awayTeam).prediction;
+        if (premium) return { ...f, prediction, locked: false };
+        return {
+          ...f,
+          locked: true,
+          prediction: {
+            homeWinPct: null,
+            drawPct: null,
+            awayWinPct: null,
+            prediction: "",
+            confidence: 0,
+            reasoning: "",
+            keyFactors: [],
+          },
+        };
       }),
     );
-    res.json({ fixtures: withPreds, total: fixtures.length });
+    res.json({ fixtures: withPreds, total: fixtures.length, ...metadata });
   } catch (err) {
     req.log.error({ err }, "WC fixtures failed");
     res.status(500).json({ error: "Failed to load fixtures" });
@@ -64,12 +100,24 @@ router.post("/worldcup/predict", requireAuth, async (req, res) => {
     return;
   }
   try {
-    const prediction = await generateWCPrediction(homeTeam, awayTeam);
-    if (!prediction) {
-      res.status(503).json({ error: "Prediction unavailable" });
+    if (!(await requesterIsPremium(req.userId!))) {
+      res.status(403).json({
+        error: "World Cup AI predictions require Premium tier",
+        upgradeRequired: true,
+      });
       return;
     }
-    res.json(prediction);
+    const cached = getCachedWCPrediction(homeTeam, awayTeam);
+    if (!cached.prediction) {
+      res.status(503).json({ error: "Prediction is not cached", cacheStatus: "empty" });
+      return;
+    }
+    res.json({
+      ...cached.prediction,
+      cachedAt: cached.cachedAt,
+      stale: cached.stale,
+      cacheStatus: cached.cacheStatus,
+    });
   } catch (err) {
     req.log.error({ err }, "WC prediction route failed");
     res.status(500).json({ error: "Prediction failed" });

@@ -44,7 +44,7 @@ export function leagueNameToCode(league: string): string | null {
 }
 
 // ── Simple in-memory cache ─────────────────────────────────────────────────────
-const cache = new Map<string, { data: unknown; expiresAt: number }>();
+const cache = new Map<string, { data: unknown; fetchedAt: number; expiresAt: number }>();
 
 function getCached<T>(key: string): T | null {
   const entry = cache.get(key);
@@ -53,7 +53,25 @@ function getCached<T>(key: string): T | null {
 }
 
 function setCached(key: string, data: unknown, ttlMs: number) {
-  cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+  const fetchedAt = Date.now();
+  cache.set(key, { data, fetchedAt, expiresAt: fetchedAt + ttlMs });
+}
+
+export interface FDCacheResult<T> {
+  data: T;
+  cachedAt: string | null;
+  stale: boolean;
+  cacheStatus: "hit" | "empty";
+}
+
+function getCacheOnly<T>(key: string, empty: T): FDCacheResult<T> {
+  const entry = cache.get(key);
+  return {
+    data: entry ? entry.data as T : empty,
+    cachedAt: entry ? new Date(entry.fetchedAt).toISOString() : null,
+    stale: Boolean(entry && Date.now() >= entry.expiresAt),
+    cacheStatus: entry ? "hit" : "empty",
+  };
 }
 
 // ── Raw API types ──────────────────────────────────────────────────────────────
@@ -138,6 +156,7 @@ export interface FDH2HSummary {
 
 export interface FDStandingRow {
   position: number;
+  teamId: number;
   team: string;
   crest: string;
   played: number;
@@ -189,6 +208,9 @@ export async function getH2H(
   matchId: number,
   limit = 5,
 ): Promise<FDH2HSummary> {
+  const cacheKey = `h2h:${matchId}:${limit}`;
+  const hit = getCached<FDH2HSummary>(cacheKey);
+  if (hit) return hit;
   const raw = await fetchFD<FDH2HResponse>(`/matches/${matchId}/head2head?limit=${limit}`);
   const meetings: FDH2HMeeting[] = raw.matches
     .filter((m) => m.score.fullTime.home !== null)
@@ -208,12 +230,14 @@ export async function getH2H(
     });
 
   const { homeTeam: ht, awayTeam: at } = raw.head2head;
-  return {
+  const summary: FDH2HSummary = {
     homeTeamWins: ht.wins,
     awayTeamWins: at.wins,
     draws: ht.draws,
     meetings,
   };
+  setCached(cacheKey, summary, 6 * 3_600_000);
+  return summary;
 }
 
 export async function findMatchIdByTeams(
@@ -262,6 +286,7 @@ export async function getStandings(code: string): Promise<FDStandingRow[]> {
 
   const rows: FDStandingRow[] = table.map((e) => ({
     position:  e.position,
+    teamId:    e.team.id,
     team:      e.team.name,
     crest:     e.team.crest,
     played:    e.playedGames,
@@ -327,4 +352,29 @@ export async function getWCMatches(): Promise<FDWCMatch[]> {
 
   setCached(cacheKey, matches, 60 * 60_000); // cache 1h
   return matches;
+}
+
+export function getCachedMatchIdByTeams(
+  code: string,
+  homeTeam: string,
+  awayTeam: string,
+  matchDateStr: string,
+): FDCacheResult<number | null> {
+  return getCacheOnly(`match-id:${code}:${homeTeam}:${awayTeam}:${matchDateStr}`, null);
+}
+
+export function getCachedH2H(matchId: number, limit = 5): FDCacheResult<FDH2HSummary | null> {
+  return getCacheOnly(`h2h:${matchId}:${limit}`, null);
+}
+
+export function getCachedStandings(code: string): FDCacheResult<FDStandingRow[]> {
+  return getCacheOnly(`standings:${code}`, []);
+}
+
+export function getCachedTeamInfo(teamId: number): FDCacheResult<FDTeamInfo | null> {
+  return getCacheOnly(`team:${teamId}`, null);
+}
+
+export function getCachedWCMatches(): FDCacheResult<FDWCMatch[]> {
+  return getCacheOnly("wc-matches", []);
 }

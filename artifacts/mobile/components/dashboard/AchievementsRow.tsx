@@ -3,36 +3,69 @@ import React, { useEffect, useRef, useState } from "react";
 import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { BADGES, DEFAULT_UNLOCKED_BADGES, type Badge } from "@/lib/mockData";
-import { getItem, setItem, STORAGE_KEYS } from "@/lib/storage";
+import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { api, type PerformanceData } from "@/lib/api";
+
+interface Badge {
+  id: string;
+  icon: string;
+  name: string;
+  description: string;
+  howToUnlock: string;
+}
 
 export function AchievementsRow() {
   const colors = useColors();
-  const [unlocked, setUnlocked] = useState<string[]>(DEFAULT_UNLOCKED_BADGES);
+  const { token } = useAuth();
+  const { t } = useLanguage();
+  const [performance, setPerformance] = useState<PerformanceData | null>(null);
+  const [error, setError] = useState(false);
   const [selected, setSelected] = useState<Badge | null>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const stored = await getItem<string[] | null>(STORAGE_KEYS.badges, null);
-      if (!active) return;
-      if (stored == null) {
-        await setItem(STORAGE_KEYS.badges, DEFAULT_UNLOCKED_BADGES);
-        setUnlocked(DEFAULT_UNLOCKED_BADGES);
-      } else {
-        setUnlocked(stored);
+      if (!token) return;
+      try {
+        const result = await api.user.performance(token);
+        if (active) {
+          setPerformance(result);
+          setError(false);
+        }
+      } catch {
+        if (active) {
+          setPerformance(null);
+          setError(true);
+        }
       }
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [token]);
+
+  const badges: Badge[] = [
+    { id: "firstBet", icon: "🎟️", name: t("achievements.firstBet.name"), description: t("achievements.firstBet.description"), howToUnlock: t("achievements.firstBet.unlock") },
+    { id: "firstWin", icon: "🏆", name: t("achievements.firstWin.name"), description: t("achievements.firstWin.description"), howToUnlock: t("achievements.firstWin.unlock") },
+    { id: "tenBets", icon: "📈", name: t("achievements.tenBets.name"), description: t("achievements.tenBets.description"), howToUnlock: t("achievements.tenBets.unlock") },
+    { id: "positiveRoi", icon: "💹", name: t("achievements.positiveRoi.name"), description: t("achievements.positiveRoi.description"), howToUnlock: t("achievements.positiveRoi.unlock") },
+    { id: "sharpEye", icon: "🎯", name: t("achievements.sharpEye.name"), description: t("achievements.sharpEye.description"), howToUnlock: t("achievements.sharpEye.unlock") },
+  ];
+  const unlocked = [
+    ...(performance && performance.totalBets > 0 ? ["firstBet"] : []),
+    ...(performance && performance.totalWon > 0 ? ["firstWin"] : []),
+    ...(performance && performance.totalBets >= 10 ? ["tenBets"] : []),
+    ...(performance && performance.totalBets > 0 && performance.roi > 0 ? ["positiveRoi"] : []),
+    ...(performance && performance.totalBets >= 5 && performance.winRate >= 60 ? ["sharpEye"] : []),
+  ];
 
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Achievements</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("achievements.title")}</Text>
+      {error && <Text style={[styles.errorText, { color: colors.red }]}>{t("achievements.loadError")}</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {BADGES.map((badge) => (
+        {badges.map((badge) => (
           <BadgeTile
             key={badge.id}
             badge={badge}
@@ -76,12 +109,12 @@ export function AchievementsRow() {
                   ]}
                 >
                   <Text style={{ color: unlocked.includes(selected.id) ? colors.green : colors.textMuted, fontSize: 11 }}>
-                    {unlocked.includes(selected.id) ? "✓ UNLOCKED" : "🔒 LOCKED"}
+                     {unlocked.includes(selected.id) ? t("achievements.unlocked") : t("achievements.locked")}
                   </Text>
                 </View>
                 <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>{selected.description}</Text>
                 <View style={[styles.howToBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                  <Text style={[styles.howToLabel, { color: colors.gold }]}>HOW TO UNLOCK</Text>
+                  <Text style={[styles.howToLabel, { color: colors.gold }]}>{t("achievements.howToUnlock")}</Text>
                   <Text style={[styles.howToText, { color: colors.text }]}>{selected.howToUnlock}</Text>
                 </View>
               </>
@@ -153,6 +186,7 @@ const bold = Platform.OS === "web" ? ({ fontWeight: "700" } as const) : ({ fontF
 
 const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, marginBottom: 12, ...bold },
+  errorText: { fontSize: 12, marginBottom: 10 },
   row: { gap: 14, paddingRight: 8, paddingBottom: 2 },
   tile: { width: 64, alignItems: "center", gap: 6 },
   tileIconWrap: { width: 56, height: 56, alignItems: "center", justifyContent: "center" },

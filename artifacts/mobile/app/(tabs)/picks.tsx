@@ -265,12 +265,11 @@ function FixturesView({ sport, allSports, loading, tomorrow, header }: { sport: 
 function LockedProPickCard({ pick, onUpgrade }: { pick: ProPick; onUpgrade: () => void }) {
   const colors = useColors();
   const { t } = useLanguage();
-  const confColor = confidenceColor(pick.confidence, colors);
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onUpgrade}
-      style={[styles.lockedCard, { backgroundColor: "#121212", borderColor: colors.border, borderLeftColor: confColor }]}
+      style={[styles.lockedCard, { backgroundColor: "#121212", borderColor: colors.border, borderLeftColor: colors.gold }]}
     >
       <View style={styles.lockedBlurred}>
         <Text style={[styles.lockedComp, { color: colors.textMuted }]}>{pick.competition}</Text>
@@ -759,7 +758,7 @@ export default function PicksScreen() {
             <FlatList
               data={displayed}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <PredictionCard prediction={item} />}
+              renderItem={({ item }) => <PredictionCard prediction={item} locked={!isPro && !!item.locked} />}
               contentContainerStyle={listPad}
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={aiPicksHeader}
@@ -799,7 +798,7 @@ export default function PicksScreen() {
             <FlatList
               data={displayed}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <PredictionCard prediction={item} />}
+              renderItem={({ item }) => <PredictionCard prediction={item} locked={!isPro && !!item.locked} />}
               contentContainerStyle={listPad}
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={

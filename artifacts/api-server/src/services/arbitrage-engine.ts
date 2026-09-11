@@ -178,28 +178,86 @@ const regionCache = new Map<ArbRegion, { arbs: ArbOpportunity[]; ts: number }>()
 const CACHE_MS = 30_000;   // 30s live-data cache
 const DEMO_ROTATION_MS = 5 * 60_000; // rotate demo every 5 min
 
+export interface CacheOnlyResult<T> {
+  data: T;
+  cachedAt: string | null;
+  stale: boolean;
+  cacheStatus: "hit" | "empty";
+  cacheSourceRegion?: ArbRegion;
+}
+
+function cacheOnlyResult<T>(entry: { ts: number } | undefined, data: T): CacheOnlyResult<T> {
+  return {
+    data,
+    cachedAt: entry ? new Date(entry.ts).toISOString() : null,
+    stale: Boolean(entry && Date.now() - entry.ts >= CACHE_MS),
+    cacheStatus: entry ? "hit" : "empty",
+  };
+}
+
+export function getCachedArbitrage(region: ArbRegion = "global"): CacheOnlyResult<ArbOpportunity[]> {
+  const direct = regionCache.get(region);
+  const entry = direct ?? (region !== "global" ? regionCache.get("global") : undefined);
+  return { ...cacheOnlyResult(entry, entry?.arbs ?? []), cacheSourceRegion: entry ? (direct ? region : "global") : undefined };
+}
+
 // ─── Odds API fetch ───────────────────────────────────────────────────────────
 
-async function fetchOddsForSport(
+const ODDS_SNAPSHOT_TTL_MS = 5 * 60_000;
+const oddsSnapshots = new Map<string, { games: Record<string, unknown>[]; fetchedAt: number }>();
+interface OddsSnapshotResult {
+  games: Record<string, unknown>[];
+  fetchedAt: number | null;
+}
+const oddsSnapshotFlights = new Map<string, Promise<OddsSnapshotResult>>();
+
+export async function getSharedOddsSnapshotWithMetadata(
+  sportKey: string,
+  apiRegions: string,
+): Promise<OddsSnapshotResult> {
+  if (!ODDS_API_KEY) return { games: [], fetchedAt: null };
+  const cached = oddsSnapshots.get(sportKey);
+  if (cached && Date.now() - cached.fetchedAt < ODDS_SNAPSHOT_TTL_MS) return cached;
+
+  const inFlight = oddsSnapshotFlights.get(sportKey);
+  if (inFlight) return inFlight;
+
+  const flight = (async () => {
+    try {
+      const url =
+        `https://api.the-odds-api.com/v4/sports/${sportKey}/odds` +
+        `?apiKey=${ODDS_API_KEY}&markets=h2h&oddsFormat=decimal&regions=${apiRegions}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) {
+        logger.warn({ sportKey, status: resp.status }, "Odds API non-OK");
+        return cached ?? { games: [], fetchedAt: null };
+      }
+      const games = (await resp.json()) as Record<string, unknown>[];
+      if (games.length > 0 || !cached) {
+        const snapshot = { games, fetchedAt: Date.now() };
+        oddsSnapshots.set(sportKey, snapshot);
+        return snapshot;
+      }
+      return cached;
+    } catch (err) {
+      logger.warn({ err, sportKey }, "Odds API fetch failed");
+      return cached ?? { games: [], fetchedAt: null };
+    } finally {
+      oddsSnapshotFlights.delete(sportKey);
+    }
+  })();
+  oddsSnapshotFlights.set(sportKey, flight);
+  return flight;
+}
+
+export async function getSharedOddsSnapshot(
   sportKey: string,
   apiRegions: string,
 ): Promise<Record<string, unknown>[]> {
-  if (!ODDS_API_KEY) return [];
-  try {
-    const url =
-      `https://api.the-odds-api.com/v4/sports/${sportKey}/odds` +
-      `?apiKey=${ODDS_API_KEY}&markets=h2h&oddsFormat=decimal&regions=${apiRegions}`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!resp.ok) {
-      logger.warn({ sportKey, status: resp.status }, "Odds API non-OK");
-      return [];
-    }
-    return (await resp.json()) as Record<string, unknown>[];
-  } catch (err) {
-    logger.warn({ err, sportKey }, "Odds API fetch failed");
-    return [];
-  }
+  return (await getSharedOddsSnapshotWithMetadata(sportKey, apiRegions)).games;
 }
+
+const fetchOddsForSport = getSharedOddsSnapshot;
 
 // ─── Arb detection logic ──────────────────────────────────────────────────────
 
@@ -280,6 +338,7 @@ function detectArb(
 export async function scanByRegion(
   region: ArbRegion = "global",
   forceRefresh = false,
+  sportKeys?: readonly string[],
 ): Promise<ArbOpportunity[]> {
   if (!ODDS_API_KEY) {
     return getDemoArbs(region);
@@ -291,7 +350,10 @@ export async function scanByRegion(
     return cached.arbs;
   }
 
-  const sports = REGION_SPORTS[region] ?? REGION_SPORTS.global;
+  const configuredSports = REGION_SPORTS[region] ?? REGION_SPORTS.global;
+  const sports = sportKeys
+    ? configuredSports.filter((sport) => sportKeys.includes(sport.key))
+    : configuredSports;
   const apiRegions = REGION_API_REGIONS[region] ?? "us,uk,eu,au";
 
   try {
@@ -1040,6 +1102,7 @@ function detectEV(
 export async function scanForEVBets(
   region: ArbRegion = "global",
   forceRefresh = false,
+  sportKeys?: readonly string[],
 ): Promise<EVBet[]> {
   if (!ODDS_API_KEY) return getDemoEVBets(region);
 
@@ -1047,7 +1110,10 @@ export async function scanForEVBets(
   const cached = evCache.get(region);
   if (!forceRefresh && cached && now - cached.ts < CACHE_MS) return cached.bets;
 
-  const sports = REGION_SPORTS[region] ?? REGION_SPORTS.global;
+  const configuredSports = REGION_SPORTS[region] ?? REGION_SPORTS.global;
+  const sports = sportKeys
+    ? configuredSports.filter((sport) => sportKeys.includes(sport.key))
+    : configuredSports;
   const apiRegions = REGION_API_REGIONS[region] ?? "us,uk,eu,au";
 
   try {
@@ -1072,6 +1138,18 @@ export async function scanForEVBets(
 // ─── Middles scan ─────────────────────────────────────────────────────────────
 
 const middlesCache = new Map<ArbRegion, { middles: MiddleOpportunity[]; ts: number }>();
+
+export function getCachedEVBets(region: ArbRegion = "global"): CacheOnlyResult<EVBet[]> {
+  const direct = evCache.get(region);
+  const entry = direct ?? (region !== "global" ? evCache.get("global") : undefined);
+  return { ...cacheOnlyResult(entry, entry?.bets ?? []), cacheSourceRegion: entry ? (direct ? region : "global") : undefined };
+}
+
+export function getCachedMiddles(region: ArbRegion = "global"): CacheOnlyResult<MiddleOpportunity[]> {
+  const direct = middlesCache.get(region);
+  const entry = direct ?? (region !== "global" ? middlesCache.get("global") : undefined);
+  return { ...cacheOnlyResult(entry, entry?.middles ?? []), cacheSourceRegion: entry ? (direct ? region : "global") : undefined };
+}
 
 export async function scanForMiddles(
   region: ArbRegion = "global",

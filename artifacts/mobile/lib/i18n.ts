@@ -11,8 +11,17 @@ import { I18n } from "i18n-js";
  *
  * Add new screens by extending each locale object with the same keys.
  */
+const productionUiEnglish = {
+  notifications: { title: "Notifications", markAll: "Mark all", emptyTitle: "No notifications yet", emptyText: "Updates and alerts will appear here when they are available.", unreadPending: "%{count} unread alerts are waiting. Mark all as read to clear them.", loadError: "Failed to load notification status.", markError: "Failed to mark notifications as read.", retry: "Try again" },
+  rankings: { title: "Leaderboard", loadError: "Failed to load the leaderboard", joinError: "Failed to join the leaderboard", retry: "Try again", optInTitle: "Join the leaderboard", optInText: "Opt in to compare your real tracked results with other bettors.", optInButton: "Join leaderboard", emptyTitle: "No rankings yet", emptyText: "Log a bet to join the rankings.", you: "(You)", picks: "%{count} picks", winRate: "win rate" },
+  bankrollTracker: { title: "Bankroll Tracker", loadError: "Failed to load your bankroll. Tap to retry.", saveError: "Could not save this entry. Please try again.", emptyTitle: "No bankroll activity yet", emptyText: "Add your first entry to start tracking.", starting: "STARTING", current: "CURRENT", profitLoss: "PROFIT/LOSS", recentActivity: "RECENT ACTIVITY", addEntry: "Add Entry", description: "Description", descriptionPlaceholder: "Optional note", amount: "Amount ($)", result: "Result", win: "Win", loss: "Loss", save: "Save Entry" },
+  achievements: { title: "Your Achievements", loadError: "Achievements could not be loaded.", unlocked: "✓ UNLOCKED", locked: "🔒 LOCKED", howToUnlock: "HOW TO UNLOCK", firstBet: { name: "First Bet", description: "Tracked your first bet.", unlock: "Record a win or loss in your bankroll." }, firstWin: { name: "First Win", description: "Tracked your first winning result.", unlock: "Record a winning bankroll entry." }, tenBets: { name: "Regular", description: "Tracked ten bet results.", unlock: "Record 10 wins or losses." }, positiveRoi: { name: "In Profit", description: "Achieved a positive return on investment.", unlock: "Maintain positive ROI after tracking a bet." }, sharpEye: { name: "Sharp Eye", description: "Achieved a win rate of at least 60%.", unlock: "Maintain a 60% win rate after at least 5 bets." } },
+  journal: { title: "My Journal", staked: "STAKED", returned: "RETURNED", profitLoss: "PROFIT/LOSS", yourRoi: "YOUR ROI", yourBets: "YOUR BETS (%{count})", empty: "No bets logged yet. Tap + to add your first entry.", deleteHint: "Long-press a bet to delete it.", deleteTitle: "Delete Bet", deleteConfirm: "Remove this entry from your journal?", cancel: "Cancel", delete: "Delete", logBet: "Log a Bet", match: "Match", matchPlaceholder: "e.g. Arsenal vs Chelsea", stake: "Stake ($)", odds: "Odds", result: "Result", won: "Won ✓", lost: "Lost ✗", save: "Save Bet" },
+};
+
 const translations = {
   en: {
+    ...productionUiEnglish,
     tabs: { dashboard: "Dashboard", picks: "Picks", assistant: "PrediQs AI", finance: "Finance", profile: "Profile" },
     picks: {
       title: "Picks",
@@ -349,6 +358,11 @@ const translations = {
     },
   },
   fr: {
+    ...productionUiEnglish,
+    notifications: { title: "Notifications", markAll: "Tout lire", emptyTitle: "Aucune notification", emptyText: "Les mises à jour et alertes apparaîtront ici.", unreadPending: "%{count} alertes non lues sont en attente. Marquez-les comme lues pour les effacer." },
+    rankings: { ...productionUiEnglish.rankings, title: "Classement", retry: "Réessayer", optInTitle: "Rejoindre le classement", optInText: "Comparez vos résultats réels suivis avec ceux d'autres parieurs.", optInButton: "Rejoindre", emptyTitle: "Aucun classement", emptyText: "Enregistrez un pari pour rejoindre le classement.", you: "(Vous)", picks: "%{count} paris", winRate: "taux de réussite" },
+    bankrollTracker: { ...productionUiEnglish.bankrollTracker, title: "Suivi de bankroll", emptyTitle: "Aucune activité", emptyText: "Ajoutez votre première entrée pour commencer le suivi.", addEntry: "Ajouter une entrée", save: "Enregistrer" },
+    journal: { ...productionUiEnglish.journal, title: "Mon journal", empty: "Aucun pari enregistré. Touchez + pour commencer.", yourBets: "VOS PARIS (%{count})", logBet: "Enregistrer un pari", save: "Enregistrer" },
     tabs: { dashboard: "Tableau de bord", picks: "Pronostics", assistant: "PrediQs AI", finance: "Finances", profile: "Profil" },
     picks: {
       title: "Pronostics",
@@ -685,6 +699,11 @@ const translations = {
     },
   },
   es: {
+    ...productionUiEnglish,
+    notifications: { title: "Notificaciones", markAll: "Leer todo", emptyTitle: "Aún no hay notificaciones", emptyText: "Las novedades y alertas aparecerán aquí.", unreadPending: "Hay %{count} alertas sin leer. Márcalas como leídas para borrarlas." },
+    rankings: { ...productionUiEnglish.rankings, title: "Clasificación", retry: "Reintentar", optInTitle: "Únete a la clasificación", optInText: "Compara tus resultados reales con otros apostadores.", optInButton: "Unirme", emptyTitle: "Aún no hay clasificaciones", emptyText: "Registra una apuesta para entrar en la clasificación.", you: "(Tú)", picks: "%{count} apuestas", winRate: "tasa de acierto" },
+    bankrollTracker: { ...productionUiEnglish.bankrollTracker, title: "Control de bankroll", emptyTitle: "Sin actividad de bankroll", emptyText: "Añade tu primera entrada para empezar.", addEntry: "Añadir entrada", save: "Guardar entrada" },
+    journal: { ...productionUiEnglish.journal, title: "Mi diario", empty: "Aún no hay apuestas. Toca + para añadir la primera.", yourBets: "TUS APUESTAS (%{count})", logBet: "Registrar apuesta", save: "Guardar apuesta" },
     tabs: { dashboard: "Panel", picks: "Pronósticos", assistant: "PrediQs AI", finance: "Finanzas", profile: "Perfil" },
     picks: {
       title: "Pronósticos",
@@ -1021,6 +1040,11 @@ const translations = {
     },
   },
   pt: {
+    ...productionUiEnglish,
+    notifications: { ...productionUiEnglish.notifications, title: "Notificações", markAll: "Marcar todas", emptyTitle: "Ainda não há notificações", emptyText: "As atualizações e alertas aparecerão aqui." },
+    rankings: { ...productionUiEnglish.rankings, title: "Classificação", retry: "Tentar novamente", optInTitle: "Entre na classificação", optInText: "Compare os seus resultados reais com outros apostadores.", optInButton: "Participar", emptyTitle: "Ainda não há classificações", emptyText: "Registe uma aposta para entrar na classificação.", you: "(Você)", picks: "%{count} apostas", winRate: "taxa de vitória" },
+    bankrollTracker: { ...productionUiEnglish.bankrollTracker, title: "Gestor de banca", emptyTitle: "Sem atividade na banca", emptyText: "Adicione a primeira entrada para começar.", addEntry: "Adicionar entrada", save: "Guardar entrada" },
+    journal: { ...productionUiEnglish.journal, title: "Meu diário", empty: "Ainda não há apostas. Toque em + para começar.", yourBets: "SUAS APOSTAS (%{count})", logBet: "Registar aposta", save: "Guardar aposta" },
     tabs: { dashboard: "Painel", picks: "Palpites", assistant: "PrediQs AI", finance: "Finanças", profile: "Perfil" },
     picks: {
       title: "Palpites",
@@ -1357,6 +1381,11 @@ const translations = {
     },
   },
   de: {
+    ...productionUiEnglish,
+    notifications: { ...productionUiEnglish.notifications, title: "Benachrichtigungen", markAll: "Alle lesen", emptyTitle: "Noch keine Benachrichtigungen", emptyText: "Neuigkeiten und Hinweise erscheinen hier." },
+    rankings: { ...productionUiEnglish.rankings, title: "Bestenliste", retry: "Erneut versuchen", optInTitle: "Bestenliste beitreten", optInText: "Vergleiche deine echten Ergebnisse mit anderen.", optInButton: "Beitreten", emptyTitle: "Noch keine Rangliste", emptyText: "Erfasse eine Wette, um der Rangliste beizutreten.", you: "(Du)", picks: "%{count} Wetten", winRate: "Gewinnquote" },
+    bankrollTracker: { ...productionUiEnglish.bankrollTracker, title: "Bankroll-Tracker", emptyTitle: "Noch keine Aktivität", emptyText: "Füge deinen ersten Eintrag hinzu.", addEntry: "Eintrag hinzufügen", save: "Eintrag speichern" },
+    journal: { ...productionUiEnglish.journal, title: "Mein Journal", empty: "Noch keine Wetten erfasst. Tippe zum Starten auf +.", yourBets: "DEINE WETTEN (%{count})", logBet: "Wette erfassen", save: "Wette speichern" },
     tabs: { dashboard: "Übersicht", picks: "Tipps", assistant: "PrediQs AI", finance: "Finanzen", profile: "Profil" },
     picks: {
       title: "Tipps",
@@ -1693,6 +1722,11 @@ const translations = {
     },
   },
   it: {
+    ...productionUiEnglish,
+    notifications: { ...productionUiEnglish.notifications, title: "Notifiche", markAll: "Segna tutte", emptyTitle: "Nessuna notifica", emptyText: "Aggiornamenti e avvisi appariranno qui." },
+    rankings: { ...productionUiEnglish.rankings, title: "Classifica", retry: "Riprova", optInTitle: "Entra in classifica", optInText: "Confronta i tuoi risultati reali con altri scommettitori.", optInButton: "Partecipa", emptyTitle: "Nessuna classifica", emptyText: "Registra una scommessa per entrare in classifica.", you: "(Tu)", picks: "%{count} scommesse", winRate: "percentuale vittorie" },
+    bankrollTracker: { ...productionUiEnglish.bankrollTracker, title: "Gestione bankroll", emptyTitle: "Nessuna attività", emptyText: "Aggiungi la prima voce per iniziare.", addEntry: "Aggiungi voce", save: "Salva voce" },
+    journal: { ...productionUiEnglish.journal, title: "Il mio diario", empty: "Nessuna scommessa. Tocca + per iniziare.", yourBets: "LE TUE SCOMMESSE (%{count})", logBet: "Registra scommessa", save: "Salva scommessa" },
     tabs: { dashboard: "Dashboard", picks: "Pronostici", assistant: "PrediQs AI", finance: "Finanze", profile: "Profilo" },
     picks: {
       title: "Pronostici",
@@ -2029,6 +2063,11 @@ const translations = {
     },
   },
   ar: {
+    ...productionUiEnglish,
+    notifications: { ...productionUiEnglish.notifications, title: "الإشعارات", markAll: "قراءة الكل", emptyTitle: "لا توجد إشعارات بعد", emptyText: "ستظهر التحديثات والتنبيهات هنا." },
+    rankings: { ...productionUiEnglish.rankings, title: "المتصدرون", retry: "حاول مجدداً", optInTitle: "انضم إلى المتصدرين", optInText: "قارن نتائجك الحقيقية المسجلة مع الآخرين.", optInButton: "انضمام", emptyTitle: "لا توجد تصنيفات بعد", emptyText: "سجّل رهاناً للانضمام إلى التصنيف.", you: "(أنت)", picks: "%{count} رهانات", winRate: "نسبة الفوز" },
+    bankrollTracker: { ...productionUiEnglish.bankrollTracker, title: "تتبع الرصيد", emptyTitle: "لا يوجد نشاط بعد", emptyText: "أضف أول إدخال لبدء التتبع.", addEntry: "إضافة إدخال", save: "حفظ الإدخال" },
+    journal: { ...productionUiEnglish.journal, title: "سجلي", empty: "لا توجد رهانات بعد. اضغط + لإضافة أول رهان.", yourBets: "رهاناتك (%{count})", logBet: "تسجيل رهان", save: "حفظ الرهان" },
     tabs: { dashboard: "لوحة التحكم", picks: "التوقعات", assistant: "PrediQs AI", finance: "المالية", profile: "الملف الشخصي" },
     picks: {
       title: "التوقعات",

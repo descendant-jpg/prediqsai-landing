@@ -1,8 +1,10 @@
-import { BarChart3, Bookmark, PlusCircle, Share2 } from "lucide-react-native";
+import { BlurView } from "expo-blur";
+import { BarChart3, Bookmark, Lock, PlusCircle, Share2 } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 import { bestBookmaker, confidenceColor, type ProPick } from "@/lib/mockData";
 
 /**
@@ -18,6 +20,7 @@ export function EnhancedPickCard({
   onAddSlip,
   onShare,
   onAnalysis,
+  locked = false,
 }: {
   pick: ProPick;
   saved: boolean;
@@ -26,8 +29,10 @@ export function EnhancedPickCard({
   onAddSlip: () => void;
   onShare: () => void;
   onAnalysis: () => void;
+  locked?: boolean;
 }) {
   const colors = useColors();
+  const { t } = useLanguage();
   const confColor = confidenceColor(pick.confidence, colors);
   const pulse = useRef(new Animated.Value(1)).current;
   const best = bestBookmaker(pick.bookmakerOdds);
@@ -46,7 +51,7 @@ export function EnhancedPickCard({
   }, [pick.isLive, pulse]);
 
   return (
-    <View style={[styles.card, { backgroundColor: "#121212", borderColor: colors.border, borderLeftColor: confColor }]}>
+    <View style={[styles.card, { backgroundColor: "#121212", borderColor: colors.border, borderLeftColor: locked ? colors.gold : confColor }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
@@ -70,6 +75,16 @@ export function EnhancedPickCard({
         <Text style={[styles.score, { color: colors.text }]}>{pick.currentScore}</Text>
       ) : null}
 
+      {locked ? (
+        <TouchableOpacity style={styles.lockedBody} onPress={onAnalysis} activeOpacity={0.85}>
+          <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.lockContent}>
+            <Lock size={20} color={colors.gold} />
+            <Text style={[styles.lockText, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+          </View>
+        </TouchableOpacity>
+      ) : (
+        <>
       {/* Pick + value badge */}
       <View style={styles.pickRow}>
         <View style={styles.pickLeft}>
@@ -114,6 +129,8 @@ export function EnhancedPickCard({
           );
         })}
       </View>
+        </>
+      )}
 
       {/* Action row */}
       <View style={[styles.actions, { borderTopColor: colors.border }]}>
@@ -123,22 +140,26 @@ export function EnhancedPickCard({
           color={saved ? colors.gold : colors.textSecondary}
           onPress={onSave}
         />
+        {!locked && (
+          <>
+            <Action
+              icon={<PlusCircle size={17} color={inSlip ? colors.green : colors.textSecondary} />}
+              label={inSlip ? "Added" : "Slip"}
+              color={inSlip ? colors.green : colors.textSecondary}
+              onPress={onAddSlip}
+            />
+            <Action
+              icon={<Share2 size={17} color={colors.textSecondary} />}
+              label="Share"
+              color={colors.textSecondary}
+              onPress={onShare}
+            />
+          </>
+        )}
         <Action
-          icon={<PlusCircle size={17} color={inSlip ? colors.green : colors.textSecondary} />}
-          label={inSlip ? "Added" : "Slip"}
-          color={inSlip ? colors.green : colors.textSecondary}
-          onPress={onAddSlip}
-        />
-        <Action
-          icon={<Share2 size={17} color={colors.textSecondary} />}
-          label="Share"
-          color={colors.textSecondary}
-          onPress={onShare}
-        />
-        <Action
-          icon={<BarChart3 size={17} color={colors.cyan} />}
-          label="Analysis"
-          color={colors.cyan}
+          icon={locked ? <Lock size={17} color={colors.gold} /> : <BarChart3 size={17} color={colors.cyan} />}
+          label={locked ? t("picks.upgradeUnlock") : "Analysis"}
+          color={locked ? colors.gold : colors.cyan}
           onPress={onAnalysis}
         />
       </View>
@@ -196,6 +217,9 @@ const styles = StyleSheet.create({
   oddsChip: { flex: 1, alignItems: "center", paddingVertical: 7, borderRadius: 9, borderWidth: 1 },
   oddsName: { fontSize: 10, fontWeight: "600", marginBottom: 2 },
   oddsNum: { fontSize: 14, fontWeight: "900" },
+  lockedBody: { minHeight: 116, marginTop: 12, borderRadius: 10, overflow: "hidden", justifyContent: "center" },
+  lockContent: { alignItems: "center", justifyContent: "center", gap: 8, padding: 18 },
+  lockText: { fontSize: 13, fontWeight: "900", textAlign: "center" },
   actions: { flexDirection: "row", justifyContent: "space-between", marginTop: 14, paddingTop: 12, borderTopWidth: 1 },
   action: { flex: 1, alignItems: "center", gap: 4 },
   actionLabel: { fontSize: 11, fontWeight: "700" },

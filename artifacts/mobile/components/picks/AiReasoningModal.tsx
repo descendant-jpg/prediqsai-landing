@@ -3,6 +3,7 @@ import React from "react";
 import { Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useLanguage } from "@/context/LanguageContext";
 import { bestBookmaker, confidenceColor, type ProPick, type RiskLevel } from "@/lib/mockData";
 
 /**
@@ -21,7 +22,9 @@ export function AiReasoningModal({
   onUpgrade: () => void;
 }) {
   const colors = useColors();
+  const { t } = useLanguage();
   if (!pick) return null;
+  const locked = !isPro || !!pick.locked;
   const confColor = confidenceColor(pick.confidence, colors);
   const best = bestBookmaker(pick.bookmakerOdds);
 
@@ -53,12 +56,19 @@ export function AiReasoningModal({
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
             {/* Pick + confidence */}
-            <View style={[styles.pickBanner, { borderColor: colors.gold, backgroundColor: "rgba(255,215,0,0.08)" }]}>
-              <Text style={[styles.pickValue, { color: colors.gold }]}>{pick.aiPick}</Text>
-              <Text style={[styles.confChip, { color: confColor }]}>{pick.confidence}% Confidence</Text>
-            </View>
+            {locked ? (
+              <View style={[styles.pickBanner, styles.lockedBanner, { borderColor: colors.gold }]}>
+                <Lock size={18} color={colors.gold} />
+                <Text style={[styles.confChip, { color: colors.gold }]}>{t("picks.upgradeUnlock")}</Text>
+              </View>
+            ) : (
+              <View style={[styles.pickBanner, { borderColor: colors.gold, backgroundColor: "rgba(255,215,0,0.08)" }]}>
+                <Text style={[styles.pickValue, { color: colors.gold }]}>{pick.aiPick}</Text>
+                <Text style={[styles.confChip, { color: confColor }]}>{pick.confidence}% Confidence</Text>
+              </View>
+            )}
 
-            {!isPro ? (
+            {locked ? (
               <View style={styles.lockWrap}>
                 <View style={[styles.lockBox, { borderColor: colors.gold }]}>
                   <Lock size={26} color={colors.gold} />
@@ -199,6 +209,7 @@ const styles = StyleSheet.create({
   },
   pickValue: { fontSize: 17, fontWeight: "900" },
   confChip: { fontSize: 13, fontWeight: "800" },
+  lockedBanner: { justifyContent: "center", gap: 8, backgroundColor: "rgba(255,215,0,0.05)" },
   section: { marginTop: 18 },
   sectionTitle: { fontSize: 15, fontWeight: "800", marginBottom: 8 },
   body: { fontSize: 14, lineHeight: 21 },

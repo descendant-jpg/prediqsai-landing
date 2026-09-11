@@ -30,7 +30,7 @@ export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Pr
 
   const conf = prediction.confidence;
   const barColor = confidenceColor(conf, colors);
-  const highConfidence = conf >= 76;
+  const highConfidence = !locked && conf >= 76;
 
   return (
     <View
@@ -63,7 +63,7 @@ export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Pr
 
       {/* AI pick / confidence / odds — blurred behind a lock for free users */}
       <View style={styles.bodyWrap}>
-        <View style={styles.body} pointerEvents={locked ? "none" : "auto"}>
+        {!locked && <View style={styles.body}>
           <View style={{ flex: 1, gap: 10 }}>
             <View>
               <Text style={[styles.pickLabel, { color: colors.textMuted }]}>AI PICK</Text>
@@ -89,7 +89,7 @@ export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Pr
           </View>
 
           <ConfidenceGauge value={conf} size={104} />
-        </View>
+        </View>}
 
         {locked && (
           <Pressable style={styles.lockOverlay} onPress={onUpgrade}>
@@ -115,7 +115,7 @@ export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Pr
       )}
 
       {/* Analysis modal */}
-      <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
+      {!locked && <Modal visible={modalOpen} transparent animationType="slide" onRequestClose={() => setModalOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setModalOpen(false)}>
           <Pressable
             style={[styles.modalSheet, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
@@ -169,7 +169,7 @@ export function PredictionFeedCard({ prediction, locked = false, onUpgrade }: Pr
             </ScrollView>
           </Pressable>
         </Pressable>
-      </Modal>
+      </Modal>}
     </View>
   );
 }

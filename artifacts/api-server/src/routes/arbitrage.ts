@@ -10,10 +10,10 @@ import {
   CURRENCIES,
   REGION_DISCLAIMERS,
   calculateStakes,
+  getCachedArbitrage,
+  getCachedEVBets,
+  getCachedMiddles,
   getLiveExchangeRates,
-  scanByRegion,
-  scanForEVBets,
-  scanForMiddles,
 } from "../services/arbitrage-engine";
 
 const router = Router();
@@ -31,7 +31,8 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
     const effectiveTier = getEffectiveTier(user);
     const region = parseRegion(req.query["region"]);
 
-    const all = await scanByRegion(region);
+    const cached = getCachedArbitrage(region);
+    const all = cached.data;
 
     // Tier gating: premium gets everything, free gets a locked teaser
     let opportunities;
@@ -44,7 +45,14 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
     res.json({
       opportunities,
       totalFound: all.length,
-      lastScanned: new Date().toISOString(),
+      lastScanned: cached.cachedAt,
+      cachedAt: cached.cachedAt,
+      stale: cached.stale,
+      cacheStatus: cached.cacheStatus,
+      cacheSourceRegion: cached.cacheSourceRegion,
+      regionNote: cached.cacheSourceRegion === "global" && region !== "global"
+        ? "Serving the global odds snapshot; regional availability must be verified with each bookmaker."
+        : undefined,
       hasApiKey: !!process.env["ODDS_API_KEY"],
       tier: user?.tier ?? "free",
       effectiveTier,
@@ -57,7 +65,7 @@ router.get("/arbitrage", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/arbitrage/scan — force refresh (Elite only)
+// POST /api/arbitrage/scan — Premium cache read (background workers own refreshes)
 router.post("/arbitrage/scan", requireAuth, async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
@@ -66,11 +74,19 @@ router.post("/arbitrage/scan", requireAuth, async (req, res) => {
       return;
     }
     const region = parseRegion((req.body as Record<string, unknown>)?.["region"]);
-    const opportunities = await scanByRegion(region, true);
+    const cached = getCachedArbitrage(region);
+    const opportunities = cached.data;
     res.json({
       opportunities,
       totalFound: opportunities.length,
-      lastScanned: new Date().toISOString(),
+      lastScanned: cached.cachedAt,
+      cachedAt: cached.cachedAt,
+      stale: cached.stale,
+      cacheStatus: cached.cacheStatus,
+      cacheSourceRegion: cached.cacheSourceRegion,
+      regionNote: cached.cacheSourceRegion === "global" && region !== "global"
+        ? "Serving the global odds snapshot; regional availability must be verified with each bookmaker."
+        : undefined,
       region,
       disclaimer: REGION_DISCLAIMERS[region] ?? REGION_DISCLAIMERS["global"],
     });
@@ -100,7 +116,7 @@ router.post("/arbitrage/calculate", requireAuth, async (req, res) => {
     }
 
     const region = parseRegion(rawRegion);
-    const all = await scanByRegion(region);
+    const all = getCachedArbitrage(region).data;
     const arb = all.find((a) => a.id === arbId);
     if (!arb) {
       res.status(404).json({ error: "Opportunity not found or expired" });
@@ -128,14 +144,20 @@ router.get("/arbitrage/ev", requireAuth, async (req, res) => {
       return;
     }
     const region = parseRegion(req.query["region"]);
-    // Users can no longer force a refresh (?refresh=true removed); scans go
-    // through the shared 30s in-memory cache. On a cold cache the scan fetches
-    // the metered external odds API once and repopulates the cache.
-    const bets = await scanForEVBets(region, false);
+    // User requests only read the last background-populated cache, even when stale.
+    const cached = getCachedEVBets(region);
+    const bets = cached.data;
     res.json({
       bets,
       totalFound: bets.length,
-      lastScanned: new Date().toISOString(),
+      lastScanned: cached.cachedAt,
+      cachedAt: cached.cachedAt,
+      stale: cached.stale,
+      cacheStatus: cached.cacheStatus,
+      cacheSourceRegion: cached.cacheSourceRegion,
+      regionNote: cached.cacheSourceRegion === "global" && region !== "global"
+        ? "Serving the global odds snapshot; regional availability must be verified with each bookmaker."
+        : undefined,
       region,
       disclaimer: REGION_DISCLAIMERS[region] ?? REGION_DISCLAIMERS["global"],
     });
@@ -155,14 +177,20 @@ router.get("/arbitrage/middles", requireAuth, async (req, res) => {
       return;
     }
     const region = parseRegion(req.query["region"]);
-    // Users can no longer force a refresh (?refresh=true removed); scans go
-    // through the shared 30s in-memory cache. On a cold cache the scan fetches
-    // the metered external odds API once and repopulates the cache.
-    const middles = await scanForMiddles(region, false);
+    // User requests only read the last background-populated cache, even when stale.
+    const cached = getCachedMiddles(region);
+    const middles = cached.data;
     res.json({
       middles,
       totalFound: middles.length,
-      lastScanned: new Date().toISOString(),
+      lastScanned: cached.cachedAt,
+      cachedAt: cached.cachedAt,
+      stale: cached.stale,
+      cacheStatus: cached.cacheStatus,
+      cacheSourceRegion: cached.cacheSourceRegion,
+      regionNote: cached.cacheSourceRegion === "global" && region !== "global"
+        ? "Serving the global odds snapshot; regional availability must be verified with each bookmaker."
+        : undefined,
       region,
       disclaimer: REGION_DISCLAIMERS[region] ?? REGION_DISCLAIMERS["global"],
     });
