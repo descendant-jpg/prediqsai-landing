@@ -2,7 +2,7 @@
   "expo": {
     "name": "PrediQs AI",
     "slug": "prediqsai",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "prediqsai",
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.prediqsai.app",
-      "versionCode": 20,
+      "versionCode": 21,
       "googleServicesFile": "./google-services.json",
       "backgroundColor": "#070B12",
       "adaptiveIcon": {
