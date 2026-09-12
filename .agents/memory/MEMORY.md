@@ -9,3 +9,4 @@
 - [Nested component focus loss (mobile)](nested-component-focus-loss.md) — never define a `<Foo/>` component inside another's body; hoist to module level + pass colors as prop or TextInput drops focus per keystroke.
 - [Google Sign-In hybrid auth](google-signin-hybrid.md) — /auth/google must enforce Google email_verified; route guard uses strict ===false; native lib blocked in Expo Go/web.
 - [Freemium paywall is server-enforced](freemium-enforcement.md) — redact premium fields + set locked flag in the API; UI blur alone leaks data.
+- [Website-only CMS metadata](website-only-cms-metadata.md) — article category, images, and SEO overrides persist in Markdown front matter when backend schema changes are out of scope.
