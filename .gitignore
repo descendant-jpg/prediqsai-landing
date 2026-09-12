@@ -50,3 +50,6 @@ Thumbs.db
 
 # Play Store service account key (never commit)
 artifacts/mobile/google-play-service-account.json
+
+# Next.js
+.next/

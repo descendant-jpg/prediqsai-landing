@@ -34,7 +34,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
       .from(users)
       .where(eq(users.id, req.userId!))
       .limit(1);
-    if (!user?.isAdmin && user?.id !== 1) {
+    if (!user?.isAdmin) {
       res.status(403).json({ error: "Admin access required" });
       return;
     }

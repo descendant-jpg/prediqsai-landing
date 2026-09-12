@@ -1,5 +1,18 @@
-import { and, eq, gte, isNotNull, ne } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  sql,
+} from "drizzle-orm";
 import { Router } from "express";
+import { z } from "zod/v4";
 
 import { db, predictions as predictionsTable, users } from "@workspace/db";
 import { isPremium } from "../lib/tier";
@@ -8,9 +21,181 @@ import { aiUsageLimiter } from "../middleware/rate-limit";
 import { getPredictions, refreshPredictions } from "../services/prediction-engine";
 
 const router = Router();
+const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000;
+const publicCache = new Map<string, { expiresAt: number; value: unknown }>();
+
+function getPublicCache<T>(key: string): T | undefined {
+  const cached = publicCache.get(key);
+  if (!cached) return undefined;
+  if (cached.expiresAt <= Date.now()) {
+    publicCache.delete(key);
+    return undefined;
+  }
+  return cached.value as T;
+}
+
+function setPublicCache(key: string, value: unknown): void {
+  publicCache.set(key, { expiresAt: Date.now() + PUBLIC_CACHE_TTL_MS, value });
+}
 
 // Premier League competition IDs (ESPN uses "eng.1" slug)
 const FREE_TIER_LEAGUES = ["premier league", "epl", "english premier league"];
+
+router.get("/predictions/teaser", async (req, res) => {
+  const cached = getPublicCache<{ picks: unknown[] }>("teaser");
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
+  try {
+    const picks = await db
+      .select({
+        homeTeam: predictionsTable.homeTeam,
+        awayTeam: predictionsTable.awayTeam,
+        league: predictionsTable.league,
+        matchDate: predictionsTable.matchDate,
+        prediction: predictionsTable.prediction,
+        confidence: predictionsTable.confidence,
+        riskLevel: predictionsTable.riskLevel,
+      })
+      .from(predictionsTable)
+      .where(
+        and(
+          eq(predictionsTable.sport, "soccer"),
+          isNull(predictionsTable.result),
+          gte(predictionsTable.matchDate, new Date()),
+          eq(predictionsTable.avoidMatch, false),
+        ),
+      )
+      .orderBy(desc(predictionsTable.confidence), asc(predictionsTable.matchDate))
+      .limit(2);
+    const response = { picks };
+    setPublicCache("teaser", response);
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch prediction teaser");
+    res.status(500).json({ error: "Failed to fetch prediction teaser" });
+  }
+});
+
+router.get("/predictions/results", async (req, res) => {
+  const cached = getPublicCache<Record<string, unknown>>("results");
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
+  try {
+    const settled = await db
+      .select({ result: predictionsTable.result, sport: predictionsTable.sport })
+      .from(predictionsTable)
+      .where(
+        and(
+          inArray(predictionsTable.result, ["win", "loss", "push"]),
+          eq(predictionsTable.avoidMatch, false),
+        ),
+      );
+    const won = settled.filter((p) => p.result === "win").length;
+    const lost = settled.filter((p) => p.result === "loss").length;
+    const pushes = settled.filter((p) => p.result === "push").length;
+    const denominator = won + lost;
+    const bySport: Record<
+      string,
+      { totalGraded: number; won: number; lost: number; pushes: number; winRate: number }
+    > = {};
+    for (const item of settled) {
+      const stats = (bySport[item.sport] ??= {
+        totalGraded: 0,
+        won: 0,
+        lost: 0,
+        pushes: 0,
+        winRate: 0,
+      });
+      stats.totalGraded++;
+      if (item.result === "win") stats.won++;
+      else if (item.result === "loss") stats.lost++;
+      else stats.pushes++;
+    }
+    for (const stats of Object.values(bySport)) {
+      const sportDenominator = stats.won + stats.lost;
+      stats.winRate =
+        sportDenominator === 0 ? 0 : Math.round((stats.won / sportDenominator) * 1000) / 10;
+    }
+    const response = {
+      totalGraded: settled.length,
+      won,
+      lost,
+      pushes,
+      winRate: denominator === 0 ? 0 : Math.round((won / denominator) * 1000) / 10,
+      bySport,
+    };
+    setPublicCache("results", response);
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch prediction results");
+    res.status(500).json({ error: "Failed to fetch prediction results" });
+  }
+});
+
+const historyQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
+router.get("/predictions/history", async (req, res) => {
+  const query = historyQuerySchema.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: "Invalid query parameters", details: query.error.issues });
+    return;
+  }
+  const cacheKey = `history:${query.data.page}:${query.data.limit}`;
+  const cached = getPublicCache<Record<string, unknown>>(cacheKey);
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
+  try {
+    const graded = and(
+      inArray(predictionsTable.result, ["win", "loss", "push"]),
+      eq(predictionsTable.avoidMatch, false),
+    );
+    const [items, [totalRow]] = await Promise.all([
+      db
+        .select({
+          id: predictionsTable.id,
+          homeTeam: predictionsTable.homeTeam,
+          awayTeam: predictionsTable.awayTeam,
+          league: predictionsTable.league,
+          sport: predictionsTable.sport,
+          matchDate: predictionsTable.matchDate,
+          prediction: predictionsTable.prediction,
+          odds: sql<number>`round((100.0 / nullif(${predictionsTable.bookmakerProbability}, 0))::numeric, 2)::float`,
+          confidence: predictionsTable.confidence,
+          result: predictionsTable.result,
+        })
+        .from(predictionsTable)
+        .where(graded)
+        .orderBy(desc(predictionsTable.matchDate))
+        .limit(query.data.limit)
+        .offset((query.data.page - 1) * query.data.limit),
+      db.select({ value: count() }).from(predictionsTable).where(graded),
+    ]);
+    const total = totalRow?.value ?? 0;
+    const response = {
+      items,
+      total,
+      page: query.data.page,
+      totalPages: Math.ceil(total / query.data.limit),
+    };
+    setPublicCache(cacheKey, response);
+    res.json(response);
+  } catch (err) {
+    req.log.error({ err }, "Failed to fetch prediction history");
+    res.status(500).json({ error: "Failed to fetch prediction history" });
+  }
+});
 
 router.get("/predictions", requireAuth, async (req, res) => {
   try {
