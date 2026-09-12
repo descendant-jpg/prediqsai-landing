@@ -1,0 +1,27 @@
+I need to completely redesign and upgrade this Next.js landing page into a full-fledged web application connected to my existing Supabase backend. The goal is to maximize user conversion through a high-trust, data-driven homepage, while establishing a shared authentication state with our mobile app. 
+
+Please execute the following updates and push the final code to the GitHub repository so it triggers a Vercel deployment.
+
+1. Global Architecture & Integrations
+- Cross-Platform Auth: Implement `@supabase/ssr` (or standard Supabase JS). Create `/login` and `/register` pages. Users authenticating here must use the exact same Supabase project instance as our mobile app so accounts are shared.
+- Custom CMS & Blog: Create a `blog_posts` table in Supabase (id, title, slug, content, author, published_at, created_at). Build a protected `/admin/blog` dashboard for me to write/publish posts, a public `/blog` grid page, and dynamic `/blog/[slug]` article pages.
+- SEO & Analytics: Inject Google Analytics into the root layout. Add a placeholder for the Google Search Console verification meta tag. Ensure dynamic SEO metadata (title, description, open graph) is generated for all blog posts.
+
+2. Navigation & Hero Redesign
+- Navbar: Create a clean flex layout. Left side: Logo + links ('How it works', 'Features', 'Picks', 'Pricing', 'Results', 'Blog'). Right side: A compact globe icon for the Language selector (so it doesn't obstruct the CTA), a 'Sign In' text link, and a prominent 'Get Started' button.
+- Hero Section: High-contrast, punchy headline (e.g., "Stop Guessing. Use AI Data for Wins.") with a modern fintech/sports-tech aesthetic and a strong primary CTA.
+
+3. Data-Driven Homepage Sections (Zero External API Cost)
+These sections must strictly read from our existing Supabase `predictions` table. Do NOT trigger external API fetches (API-Sports/Odds API) from the frontend.
+- "Top Selections" (Live Picks): A compact section showing exactly 2 upcoming or live matches. Display the teams, the AI Pick, Confidence %, and Risk Level. Add a CTA: "Full picks visible to members only."
+- "Radical Transparency" (Results): A section displaying 3 recently graded picks (ensure it shows both WON and LOST matches to build trust). Include a "View Full Results Record" button routing to a new `/results` page.
+- Full `/results` Page: Create a dedicated page showing aggregate stats (Total Won, Total Lost, Win Rate) and a paginated list/table of all historical graded matches.
+
+4. "How It Works" & Conversion Sections (Unique to PrediQs AI)
+Design these sections with dark-mode, high-end UI cards:
+- AI Methodology: A section explaining that PrediQs AI analyzes form, head-to-head, and odds movement. Include visual UI badges like "AI Approved," "Value Bet," and "Avoid This."
+- AI Chat Teaser: A mock visual of the PrediQs AI chat interface showing a user asking, "Build me a cautious 2-odds slip for tonight," and the AI responding with data-backed picks.
+- Pricing & FAQ: A clear, tiered pricing component (Free vs. Premium) highlighting features, followed by a clean, accordion-style FAQ section.
+- Footer: Include links to Terms, Privacy, and a "Free Betting Guides" section that dynamically pulls the 3 most recent posts from our new Blog CMS.
+
+Please plan the component structure, execute the code changes, ensure mobile responsiveness (Tailwind CSS), and commit/push to the main branch on GitHub when complete.
