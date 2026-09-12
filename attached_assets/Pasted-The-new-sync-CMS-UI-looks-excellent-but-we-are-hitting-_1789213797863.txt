@@ -1,0 +1,26 @@
+The new `/sync` CMS UI looks excellent, but we are hitting a "Failed to create blog post" error on submission, and the workflow needs several professional upgrades to rival a premium CMS. Please execute the following fixes and feature additions on the `prediqsai-website` frontend:
+
+1. Debug & Fix Post Creation (Payload Alignment)
+- Investigate the `POST` request being sent from the new article form to our Express backend. Ensure the auth JWT is being correctly attached to the headers.
+- Enhance the error handling: Instead of a generic "Failed to create" message, catch the exact HTTP error status and response message from the API and display it in the UI alert so we can debug any payload/validation mismatches.
+
+2. Native Image Uploads (Supabase Storage)
+- Replace the "Featured Image URL" text input with a Drag-and-Drop / File input component.
+- Enforce strict client-side validation: Max file size 3MB, accept only JPG, PNG, and WebP.
+- Implement the upload logic: Upload the file directly to a Supabase Storage bucket named `blog_images` using the Supabase client. Once uploaded, capture the public URL and inject it into the post payload.
+
+3. Redesign Publication Controls & Add Live Preview
+- Remove the confusing "Draft" toggle switch. 
+- Implement three distinct action buttons at the top right of the editor:
+  - "Save as Draft" (Secondary style): Submits the post with `published: false`.
+  - "Preview" (Outline style): Opens a modal or new tab showing how the parsed markdown will look on the public `/blog/[slug]` route.
+  - "Publish Now" (Primary style, green): Submits the post with `published: true`.
+- Implement a background Auto-Save hook that caches the editor content to `localStorage` every 30 seconds to prevent data loss.
+
+4. Sidebar Expansion
+Expand the `/sync` left sidebar to include these new upcoming sections:
+- Add a 'Media Library' link under Articles (to view uploaded Supabase images).
+- Add a 'Categories' link (to manage taxonomies).
+
+Please review the existing Next.js frontend code, implement these upgrades, and push the commit to the `prediqsai-website` repository. 
+*Note: If I need to manually execute SQL in my Supabase dashboard to create the `blog_images` storage bucket and its RLS policies, please provide that exact SQL snippet in your response.*
