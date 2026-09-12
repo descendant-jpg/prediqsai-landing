@@ -53,3 +53,6 @@ artifacts/mobile/google-play-service-account.json
 
 # Next.js
 .next/
+
+# This app is versioned and deployed from its own GitHub repository.
+/artifacts/website/
