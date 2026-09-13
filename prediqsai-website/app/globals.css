@@ -62,3 +62,15 @@ body {
     0 0 0 1px color-mix(in srgb, var(--color-volt) 25%, transparent),
     0 12px 40px -12px color-mix(in srgb, var(--color-volt) 22%, transparent);
 }
+
+/* Google Translate needs a mounted element, but its stock widget and banner
+   do not belong in the product navigation. The custom globe menu controls it. */
+.google-translate-element,
+.goog-te-banner-frame.skiptranslate,
+.skiptranslate > iframe {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}

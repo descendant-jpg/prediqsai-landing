@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, Globe, LayoutDashboard, LogOut, Menu, ShieldCheck, X, Zap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import AcquisitionCta from "./AcquisitionCta";
 
 const NAV_LINKS = [
   { href: "/#how-it-works", label: "How it works" },
@@ -42,7 +43,7 @@ function LanguageMenu() {
   }, []);
 
   useEffect(() => {
-    const callbackName = "prediqsGoogleTranslateInit";
+    const callbackName = "googleTranslateElementInit";
     type GoogleTranslateWindow = Window & typeof globalThis & {
       google?: {
         translate?: {
@@ -52,10 +53,10 @@ function LanguageMenu() {
           ) => unknown;
         };
       };
-      prediqsGoogleTranslateInit?: () => void;
+      googleTranslateElementInit?: () => void;
     };
     const hostWindow = window as GoogleTranslateWindow;
-    hostWindow.prediqsGoogleTranslateInit = () => {
+    hostWindow.googleTranslateElementInit = () => {
       if (hostWindow.google?.translate?.TranslateElement) {
         new hostWindow.google.translate.TranslateElement(
           { pageLanguage: "en", includedLanguages: "es,fr,pt,de,sw,ar", autoDisplay: false },
@@ -79,12 +80,18 @@ function LanguageMenu() {
     if (select) {
       select.value = code === "en" ? "" : code;
       select.dispatchEvent(new Event("change"));
+    } else {
+      document.cookie = code === "en"
+        ? "googtrans=; Max-Age=0; path=/"
+        : `googtrans=/en/${code}; path=/`;
+      window.location.reload();
     }
     setOpen(false);
   };
 
   return (
     <div ref={ref} className="relative">
+      <div id="google_translate_element" className="google-translate-element" aria-hidden="true" />
       <button
         type="button"
         aria-label="Language"
@@ -95,7 +102,6 @@ function LanguageMenu() {
       </button>
       {open ? (
         <div className="absolute right-0 top-11 z-50 w-40 overflow-hidden rounded-xl border border-edge bg-panel shadow-2xl">
-          <div id="google_translate_element" className="sr-only" aria-hidden="true" />
           <p className="border-b border-edge px-4 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-muted">Translate page</p>
           {LANGUAGES.map((l) => (
             <button
@@ -196,7 +202,7 @@ export default function Navbar() {
               Sign In
             </Link>
           )}
-          {!user && <Link href="/register" className="rounded-full bg-volt px-4 py-2 text-sm font-semibold text-night transition hover:bg-volt-deep">Get Started</Link>}
+          <AcquisitionCta kind="free" className="rounded-full bg-volt px-4 py-2 text-sm font-semibold text-night transition hover:bg-volt-deep">Get Started</AcquisitionCta>
           <button
             type="button"
             aria-label="Menu"

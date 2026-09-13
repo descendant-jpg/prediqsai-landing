@@ -1,0 +1,29 @@
+We have a few critical UX routing bugs, we are missing the translation widget, and we need to add conversion tracking to our blog. Please execute the following features strictly in the `prediqsai-website` repository:
+
+1. Auth-Aware CTA Routing
+- The "Get Started", "Start for Free", and "Go Pro" buttons are blindly routing to `/register`. 
+- Wrap these buttons in auth-state checks using our existing session logic. 
+- If a user is ALREADY signed in:
+  - Change the "Start for Free" / "Get Started" buttons to say "View Picks" (route to `/results` or `/picks`).
+  - Ensure the "Go Pro" / "Unlock Premium" buttons completely bypass the `/register` and `/login` routes.
+
+2. Web-to-App Payment Handoff (Go Pro Logic)
+- Because native Google Play and Apple In-App Purchases cannot be triggered from a web browser, we need a handoff UI.
+- When a signed-in user clicks "Go Pro" or "Unlock Premium" on the website, open a premium, glassmorphism modal.
+- Modal Content: 
+  - Headline: "Upgrade in the App"
+  - Body: "To securely process your subscription using Apple Pay or Google Play Billing, please open the PrediQs AI mobile app and tap 'Go Pro'."
+  - Include placeholder buttons/badges for "Download on the App Store" and "Get it on Google Play".
+
+3. Conversion Analytics (Blog to Premium Pipeline)
+- We need to measure which article prompts turn readers into Premium prospects.
+- Add an `onClick` event handler to the "Upgrade to Pro" / "Go Pro" CTA at the bottom of the `/blog/[slug]` layout.
+- When clicked, it must fire a Google Analytics event (via `window.gtag` or the `@next/third-parties/google` package) named `premium_click`.
+- The event payload MUST include the `article_slug` and `article_title` as custom parameters so we can track conversion sources in GA4.
+
+4. Global Page Translator Integration
+- Please inject the standard Google Translate web script (`//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit`) into the Next.js application.
+- Bind the translation dropdown interface to the globe icon in the Navbar so international users can immediately translate the entire DOM into their preferred language.
+- Ensure the translation widget styling doesn't break the Navbar layout (hide the default Google banner if possible via CSS).
+
+Please review the codebase, apply these fixes using Tailwind CSS for a premium feel, and push the commit to the `prediqsai-website` repository on GitHub. Do not modify the API backend.

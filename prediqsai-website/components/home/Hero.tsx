@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import AcquisitionCta from "@/components/site/AcquisitionCta";
 
 type ResultsSummary = {
   totalGraded: number;
@@ -53,12 +54,12 @@ export default async function Hero() {
           sports intelligence engine.
         </p>
         <div className="mt-9 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
-          <Link
-            href="/register"
+          <AcquisitionCta
+            kind="free"
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-volt px-6 py-3.5 font-semibold text-night transition hover:bg-volt/90"
           >
             Get Started Free <ArrowRight className="h-4 w-4" />
-          </Link>
+          </AcquisitionCta>
           <Link
             href="/results"
             className="inline-flex items-center justify-center rounded-lg border border-edge bg-panel/70 px-6 py-3.5 font-semibold text-ice transition hover:border-muted/60 hover:bg-panel-2"

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { format, isValid, parseISO } from "date-fns";
 import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import SectionHeader from "./SectionHeader";
+import AcquisitionCta from "@/components/site/AcquisitionCta";
 
 type Pick = {
   homeTeam: string;
@@ -89,9 +89,9 @@ export default async function TopSelections() {
               <p className="mt-1 text-sm text-muted">Unlock complete analysis and AI reasoning.</p>
             </div>
           </div>
-          <Link href="/register" className="inline-flex items-center gap-2 text-sm font-semibold text-volt hover:text-ice">
+          <AcquisitionCta kind="premium" className="inline-flex items-center gap-2 text-sm font-semibold text-volt hover:text-ice">
             Unlock picks <ArrowRight className="h-4 w-4" />
-          </Link>
+          </AcquisitionCta>
         </div>
       </div>
     </section>

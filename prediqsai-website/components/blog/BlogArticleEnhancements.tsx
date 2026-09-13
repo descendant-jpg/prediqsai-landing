@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/auth";
+import AcquisitionCta from "@/components/site/AcquisitionCta";
 
 type ShareIcon = "x" | "whatsapp" | "telegram" | "copy";
 
@@ -58,16 +57,14 @@ export function ArticleShareRow({ title, url }: { title: string; url: string }) 
   </section>;
 }
 
-export function PremiumArticleCta() {
-  const { user, loading } = useAuth();
-  const destination = !loading && !user ? "/login?next=%2Fpricing" : "/pricing";
+export function PremiumArticleCta({ articleSlug, articleTitle }: { articleSlug: string; articleTitle: string }) {
   return <section className="relative overflow-hidden rounded-2xl border border-volt/35 bg-panel/70 p-7 shadow-[0_0_0_1px_rgba(0,230,122,0.06),0_18px_55px_-22px_rgba(0,230,122,0.5)] backdrop-blur-xl sm:p-9">
     <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-volt/15 blur-3xl" />
     <div className="relative">
       <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-volt">Premium intelligence</p>
       <h2 className="mt-3 max-w-xl font-display text-2xl font-bold tracking-tight text-ice sm:text-3xl">Ready to stop watching and start winning?</h2>
       <p className="mt-3 max-w-2xl leading-7 text-muted">Unlock today&apos;s AI-verified slips, exact risk probabilities, and premium bet codes.</p>
-      <Link href={destination} className="mt-6 inline-flex rounded-lg bg-volt px-5 py-3 text-sm font-semibold text-night transition hover:bg-volt/90">Upgrade to Pro</Link>
+      <AcquisitionCta kind="premium" analytics={{ articleSlug, articleTitle }} className="mt-6 inline-flex rounded-lg bg-volt px-5 py-3 text-sm font-semibold text-night transition hover:bg-volt/90">Upgrade to Pro</AcquisitionCta>
     </div>
   </section>;
 }

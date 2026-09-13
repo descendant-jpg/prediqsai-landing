@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { ArrowRight, Bot, Check, MessageSquareText } from "lucide-react";
 import SectionHeader from "./SectionHeader";
+import AcquisitionCta from "@/components/site/AcquisitionCta";
 
 export default function ChatTeaser() {
   return (
@@ -17,9 +17,9 @@ export default function ChatTeaser() {
               <li key={item} className="flex items-center gap-3"><span className="rounded-full bg-volt/10 p-1 text-volt"><Check className="h-3 w-3" /></span>{item}</li>
             ))}
           </ul>
-          <Link href="/register" className="mt-8 inline-flex items-center gap-2 rounded-lg bg-volt px-5 py-3 font-semibold text-night transition hover:bg-volt/90">
+          <AcquisitionCta kind="free" className="mt-8 inline-flex items-center gap-2 rounded-lg bg-volt px-5 py-3 font-semibold text-night transition hover:bg-volt/90">
             Try the AI builder <ArrowRight className="h-4 w-4" />
-          </Link>
+          </AcquisitionCta>
         </div>
         <div className="mx-auto w-full max-w-md rounded-[2rem] border border-edge bg-night p-3 shadow-2xl shadow-black/40">
           <div className="overflow-hidden rounded-[1.45rem] border border-edge bg-panel">
