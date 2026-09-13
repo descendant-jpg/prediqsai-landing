@@ -17,10 +17,12 @@ The `bash` tool sandbox blocks `git push` (and other destructive git ops). To co
 ## Two-repo routing
 
 - `prediqsai-landing` = the FULL monorepo (mobile app, API server, everything) — push `HEAD:main`.
-- `prediqsai-website` = STANDALONE website export (Vercel deploys it). A raw subtree split of `artifacts/website` BREAKS Vercel — its package.json uses `catalog:`/`workspace:*` refs npm can't resolve, and vite.config/tsconfig reference monorepo paths and Replit plugins. Instead: copy src/public/index.html/etc to a temp dir, rewrite package.json with versions resolved from pnpm-workspace.yaml catalog (drop `@workspace/*` and `@replit/*` deps), write a standalone vite.config.ts (no Replit plugins, no `@assets` alias, outDir `dist`) and self-contained tsconfig, verify `npm install && npm run build` locally, then git init + commit + force-push main via code_execution.
+- `prediqsai-website` = the standalone Next.js website deployed through Vercel. It is a separate GitHub repository and may not be checked out in the root workspace; clone it into its own directory before making website-only changes, then commit and push that checkout directly. Do not push website commits to `prediqsai-landing`.
 - Don't combine long execSync chains in one code_execution call — can crash the notebook ("blocked the event loop"). Run them as separate calls.
 
 **Why:** the platform requires destructive git ops to go through better-protected paths; bash refuses them, so the code-execution sandbox + connection token is the reliable route.
+
+**How to apply:** verify the target checkout's `origin` URL and remote `main` SHA before committing. When the website checkout sits within the monorepo workspace, run standalone package scripts with `pnpm --ignore-workspace`; Next may emit a non-blocking multiple-lockfile warning.
 
 ## Push protection (GH013): purging a secret from UNPUSHED commits
 

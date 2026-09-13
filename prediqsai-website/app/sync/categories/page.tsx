@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function CategoriesPage() {
+  return <main className="mx-auto max-w-3xl px-5 py-8 lg:px-8"><p className="font-mono text-xs uppercase tracking-[.2em] text-volt">Categories</p><h1 className="mt-2 font-display text-3xl font-bold">Taxonomy workspace</h1><div className="mt-8 rounded-xl border border-white/10 bg-panel p-6"><p className="font-medium">Category labels are managed directly while editing an article.</p><p className="mt-2 leading-6 text-muted">The existing blog API does not yet store a global category registry, so category values remain flexible and are saved with each article. This avoids changing the shared backend schema.</p><Link href="/sync/articles" className="mt-6 inline-flex rounded-lg border border-edge px-4 py-2.5 text-sm font-semibold hover:border-volt/50 hover:text-volt">Open articles</Link></div></main>;
+}
