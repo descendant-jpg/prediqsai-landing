@@ -1,0 +1,24 @@
+We need to wire up the "Radical Transparency" results engine so users can view the AI's historical win/loss record. Please execute this data integration and UI upgrade strictly within the `prediqsai-website` repository. Do NOT modify the backend repository.
+
+1. Data Fetching & Stat Aggregation logic (Client-Side)
+- Create a data-fetching hook (using SWR, React Query, or standard `useEffect`) to fetch settled predictions from the backend (e.g., `API_ORIGIN/api/predictions/results` or similar REST endpoint for settled picks).
+- Dynamically calculate the following stats from the returned payload:
+  - Total Graded (count of array)
+  - Wins (count where result === 'win')
+  - Losses (count where result === 'loss')
+  - Win Rate ( (Wins / Total) * 100, formatted to 1 decimal place with a % sign ).
+- Inject these calculated variables into the Hero stats block on the Homepage and the Stats block on the `/results` page. 
+- If the array is empty, default values to 0 / 0%.
+
+2. Homepage Recent Results Preview (`app/page.tsx`)
+- Right below the Hero section (or the stats block), implement a "Recent Graded Picks" showcase.
+- Slice the fetched settled data to show only the 5 most recent matches.
+- Card Design: Dark glassmorphic cards. Must include Team A vs Team B, Date, the specific AI Pick, the Odds, and a high-visibility badge for the result (Glowing Green for WIN, muted Red for LOSS).
+- Include a "View Full Record" outline button below the grid that routes to `/results`.
+
+3. Results Page Ledger (`app/results/page.tsx`)
+- Render the full array of settled picks in a clean, vertical list or grid.
+- Implement Premium Skeleton Loaders: While the `isLoading` state is true, display pulsating placeholder cards. Do not show the "No graded picks yet" empty state until the fetch is complete and confirmed empty.
+- Empty State Polish: If the fetch completes and the array is truly empty, show a high-end state: "Awaiting First Settled Matches. The AI's graded record will populate here once the current fixtures conclude."
+
+Please ensure all components handle loading and error states gracefully, implement using Tailwind CSS for a premium SaaS aesthetic, run `pnpm run build` to verify, and push directly to `prediqsai-website` on GitHub.

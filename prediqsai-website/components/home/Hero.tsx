@@ -1,22 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import { apiFetch } from "@/lib/api";
 import AcquisitionCta from "@/components/site/AcquisitionCta";
-
-type ResultsSummary = {
-  totalGraded: number;
-  won: number;
-  lost: number;
-  winRate: number;
-};
-
-async function getResults(): Promise<ResultsSummary | null> {
-  try {
-    return await apiFetch<ResultsSummary>("/predictions/results");
-  } catch {
-    return null;
-  }
-}
+import { useSettledPredictions } from "@/lib/settled-predictions";
 
 function Stat({
   label,
@@ -33,9 +20,8 @@ function Stat({
   );
 }
 
-export default async function Hero() {
-  const data = await getResults();
-  const hasResults = Boolean(data && data.totalGraded > 0);
+export default function Hero() {
+  const { stats, loading, error } = useSettledPredictions();
 
   return (
     <section className="relative isolate overflow-hidden border-b border-edge bg-grid">
@@ -78,12 +64,12 @@ export default async function Hero() {
             </span>
           </div>
           <div className="grid grid-cols-4 divide-x divide-edge">
-            <Stat label="Graded" value={hasResults ? String(data!.totalGraded) : "—"} />
-            <Stat label="Won" value={hasResults ? String(data!.won) : "—"} />
-            <Stat label="Lost" value={hasResults ? String(data!.lost) : "—"} />
+            <Stat label="Graded" value={loading || error ? "—" : String(stats.totalGraded)} />
+            <Stat label="Won" value={loading || error ? "—" : String(stats.wins)} />
+            <Stat label="Lost" value={loading || error ? "—" : String(stats.losses)} />
             <Stat
               label="Win rate"
-              value={hasResults ? `${Number(data!.winRate).toFixed(1)}%` : "—"}
+              value={loading || error ? "—" : `${stats.winRate.toFixed(1)}%`}
             />
           </div>
         </div>

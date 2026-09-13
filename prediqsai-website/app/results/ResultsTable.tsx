@@ -1,39 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { AlertCircle, ClipboardCheck, RefreshCw } from "lucide-react";
+import { useSettledPredictions, type SettledPick } from "@/lib/settled-predictions";
 
-type Pick = { id: number; homeTeam: string; awayTeam: string; league: string; matchDate: string; prediction: string; odds: number | null; confidence: number | null; result: "win" | "loss" | "push" };
-type HistoryResponse = { items: Pick[]; page: number; totalPages: number; total: number };
+function StatusBadge({ result }: { result: SettledPick["result"] }) {
+  const style = result === "win" ? "border-volt/45 bg-volt/15 text-volt shadow-[0_0_16px_rgba(0,230,122,0.25)]" : result === "loss" ? "border-danger/35 bg-danger/10 text-danger" : "border-gold/35 bg-gold/10 text-gold";
+  return <span className={`inline-flex rounded-full border px-3 py-1 font-mono text-[10px] font-semibold uppercase ${style}`}>{result === "win" ? "Win" : result === "loss" ? "Loss" : "Push"}</span>;
+}
+
+function LedgerSkeleton() {
+  return <div className="grid animate-pulse gap-4 md:grid-cols-2">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="h-48 rounded-xl border border-edge bg-panel p-6"><div className="h-3 w-24 rounded bg-panel-2" /><div className="mt-5 h-7 w-3/4 rounded bg-panel-2" /><div className="mt-8 h-5 w-full rounded bg-panel-2" /></div>)}</div>;
+}
 
 export default function ResultsTable() {
-  const [page, setPage] = useState(1);
-  const [retry, setRetry] = useState(0);
-  const [data, setData] = useState<HistoryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  useEffect(() => {
-    let active = true;
-    setLoading(true); setError(false);
-    apiFetch<HistoryResponse>(`/predictions/history?page=${page}&limit=15`).then((response) => { if (active) setData(response); }).catch(() => { if (active) setError(true); }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [page, retry]);
+  const { picks, stats, loading, error, refresh } = useSettledPredictions();
+  const metrics = [["Win rate", `${stats.winRate.toFixed(1)}%`, "text-volt"], ["Won", String(stats.wins), "text-volt"], ["Lost", String(stats.losses), "text-danger"], ["Total graded", String(stats.totalGraded), "text-ice"]];
 
-  return <div className="overflow-hidden rounded-2xl border border-edge bg-panel">
-    {loading ? <div className="space-y-3 p-5 animate-pulse">{[1,2,3,4,5].map((row) => <div key={row} className="h-12 rounded-lg bg-panel-2" />)}</div> : error ? (
-      <div className="p-10 text-center"><p className="font-display text-lg font-semibold text-ice">Results history is temporarily unavailable.</p><button onClick={() => setRetry((value) => value + 1)} className="mt-3 text-sm font-semibold text-volt">Try again</button></div>
-    ) : !data?.items.length ? (
-      <div className="p-12 text-center"><h2 className="font-display text-xl font-semibold text-ice">No graded picks yet</h2><p className="mt-2 text-sm text-muted">Settled predictions will appear here automatically.</p></div>
-    ) : <>
-      <div className="overflow-x-auto"><table className="w-full min-w-[950px] text-left">
-        <thead className="border-b border-edge bg-panel-2 font-mono text-[11px] uppercase tracking-wider text-muted"><tr>{["Date","Match","League","Pick","Odds","Conf %","Result"].map((heading) => <th key={heading} className="px-5 py-4 font-medium">{heading}</th>)}</tr></thead>
-        <tbody className="divide-y divide-edge">{data.items.map((pick) => <tr key={pick.id} className="transition hover:bg-panel-2/60">
-          <td className="whitespace-nowrap px-5 py-4 font-mono text-xs text-muted">{new Date(pick.matchDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td><td className="px-5 py-4 font-medium text-ice">{pick.homeTeam} <span className="text-muted">v</span> {pick.awayTeam}</td><td className="px-5 py-4 text-sm text-muted">{pick.league}</td><td className="px-5 py-4 text-sm text-ice">{pick.prediction}</td><td className="px-5 py-4 font-mono text-sm text-ice">{pick.odds == null ? "—" : pick.odds.toFixed(2)}</td><td className="px-5 py-4 font-mono text-sm text-ice">{pick.confidence == null ? "—" : `${pick.confidence}%`}</td>
-          <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 font-mono text-[11px] font-semibold uppercase ${pick.result === "win" ? "border-volt/30 bg-volt/10 text-volt" : pick.result === "loss" ? "border-danger/30 bg-danger/10 text-danger" : "border-gold/30 bg-gold/10 text-gold"}`}>{pick.result === "win" ? "Won" : pick.result === "loss" ? "Lost" : "Push"}</span></td>
-        </tr>)}</tbody>
-      </table></div>
-      <div className="flex items-center justify-between border-t border-edge px-5 py-4"><p className="font-mono text-xs text-muted">Page {data.page} of {data.totalPages}</p><div className="flex gap-2"><button aria-label="Previous page" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded-lg border border-edge p-2 text-ice hover:text-volt disabled:opacity-30"><ChevronLeft className="h-4 w-4" /></button><button aria-label="Next page" disabled={page >= data.totalPages} onClick={() => setPage((current) => current + 1)} className="rounded-lg border border-edge p-2 text-ice hover:text-volt disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button></div></div>
-    </>}
-  </div>;
+  return <>
+    <section className="border-b border-edge bg-panel"><div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-edge px-5 sm:px-8 lg:grid-cols-4 lg:divide-y-0">{metrics.map(([label, value, color]) => <div key={label} className="px-4 py-8 sm:px-8 sm:py-10 first:pl-0"><p className={`font-mono text-3xl font-semibold sm:text-5xl ${color}`}>{loading || error ? "—" : value}</p><p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted">{label}</p></div>)}</div></section>
+    <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"><h2 className="font-display text-2xl font-semibold text-ice sm:text-3xl">Graded picks</h2><p className="mb-6 mt-2 text-sm text-muted">The complete record of settled model predictions.</p>
+      {loading ? <LedgerSkeleton /> : error ? <div className="rounded-2xl border border-danger/30 bg-panel p-10 text-center"><AlertCircle className="mx-auto h-8 w-8 text-danger" /><p className="mt-4 font-display text-lg font-semibold text-ice">Results history is temporarily unavailable.</p><button type="button" onClick={refresh} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-volt"><RefreshCw className="h-4 w-4" />Try again</button></div> : !picks.length ? <div className="rounded-2xl border border-dashed border-edge bg-panel/50 p-12 text-center"><ClipboardCheck className="mx-auto h-9 w-9 text-volt" /><h2 className="mt-4 font-display text-xl font-semibold text-ice">Awaiting First Settled Matches</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted">The AI&apos;s graded record will populate here once the current fixtures conclude.</p></div> : <div className="grid gap-4 md:grid-cols-2">{picks.map((pick) => <article key={pick.id} className="rounded-xl border border-edge bg-panel p-5 shadow-[0_16px_40px_-30px_rgba(0,0,0,0.9)] transition hover:border-volt/30 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-widest text-muted">{pick.league}</p><h3 className="mt-2 font-display text-xl font-semibold text-ice">{pick.homeTeam} <span className="text-muted">vs</span> {pick.awayTeam}</h3><p className="mt-2 text-xs text-muted">{new Date(pick.matchDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p></div><StatusBadge result={pick.result} /></div><div className="mt-5 rounded-lg border border-edge bg-night/50 p-4"><p className="text-[10px] uppercase tracking-wider text-muted">AI Pick</p><p className="mt-1 font-medium text-ice">{pick.prediction}</p></div><div className="mt-4 grid grid-cols-2 gap-4 font-mono text-xs"><span className="text-muted">Odds <b className="ml-1 text-ice">{pick.odds == null ? "—" : pick.odds.toFixed(2)}</b></span><span className="text-muted">Confidence <b className="ml-1 text-ice">{pick.confidence == null ? "—" : `${pick.confidence}%`}</b></span></div></article>)}</div>}
+    </section>
+  </>;
 }
