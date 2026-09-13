@@ -1,0 +1,24 @@
+The homepage data components (Picks and Results) are currently displaying static/guest empty states and upsell banners even when an Admin or Premium user is logged in. Please execute a complete data-fetching and tier-aware UI overhaul strictly in the `prediqsai-website` repository. Do NOT touch the backend repository.
+
+1. Dynamic Data Fetching (SWR or React Query)
+- Wire up the "Today's top selections" and "Results record" components on the homepage to actively fetch data from our API (`API_ORIGIN/api/predictions` and `/api/predictions/results`).
+- Ensure the API requests include the user's JWT Bearer token in the Authorization header so the backend knows their tier.
+- Implement premium Skeleton Loaders (pulsating dark-mode cards) to display while the data is fetching. Do not flash empty states during the loading phase.
+
+2. Strict Tier-Aware UI Rendering
+Update the component logic to evaluate `user.tier` and `user.isAdmin`:
+- GUEST / FREE USERS: 
+  - Blur out the premium picks and hide the AI reasoning.
+  - Render the "Full picks visible to members only" upsell banner. Ensure clicking this banner triggers our Web-to-App Handoff Modal.
+- PREMIUM / ADMIN USERS:
+  - Completely REMOVE the upsell banners. They should not exist in the DOM for paid users.
+  - Render the unblurred picks, full AI reasoning, exact risk probabilities, and the bet codes.
+
+3. Intelligent Premium Empty States
+If the API returns an empty array `[]` (meaning no picks for today or no settled results yet), render tier-specific empty states:
+- If GUEST/FREE: Show the standard locked/tease empty state.
+- If PREMIUM/ADMIN: Show a premium "Processing" empty state. 
+  - Content: Use a radar or processing icon. 
+  - Text: "AI Engine Processing. Today's premium data and tactical breakdowns will populate here once the confidence threshold is met."
+
+Please review the frontend codebase, implement these data hooks and conditional renders using Tailwind CSS, verify the build (`pnpm run build`), and push the commit directly to the `prediqsai-website` repository on GitHub.

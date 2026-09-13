@@ -92,11 +92,13 @@ export default function AcquisitionCta({
   children,
   className,
   analytics,
+  handoffForGuests = false,
 }: {
   kind: "free" | "premium";
   children: React.ReactNode;
   className: string;
   analytics?: PremiumAnalytics;
+  handoffForGuests?: boolean;
 }) {
   const { user, loading } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -113,7 +115,7 @@ export default function AcquisitionCta({
     return <Link href="/results" className={className}>View Picks</Link>;
   }
 
-  if (kind === "premium" && !loading && user) {
+  if (kind === "premium" && !loading && (user || handoffForGuests)) {
     return <>
       <button type="button" onClick={() => { trackPremiumClick(); setShowUpgradeModal(true); }} className={className}>{children}</button>
       {showUpgradeModal && <UpgradeInAppModal onClose={() => setShowUpgradeModal(false)} />}
