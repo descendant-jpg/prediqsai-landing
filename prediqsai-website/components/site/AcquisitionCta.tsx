@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { APP_STORE_URL, GOOGLE_PLAY_URL } from "@/lib/app-links";
 
 type PremiumAnalytics = {
   articleSlug: string;
@@ -34,9 +35,7 @@ function AppleIcon() {
 
 function StoreBadge({ store }: { store: "apple" | "google" }) {
   const isApple = store === "apple";
-  const href = isApple
-    ? process.env.NEXT_PUBLIC_APP_STORE_URL || "https://apps.apple.com"
-    : "https://play.google.com/store/apps/details?id=com.tradiqsai.app";
+  const href = isApple ? APP_STORE_URL : GOOGLE_PLAY_URL;
   return <a href={href} target="_blank" rel="noopener noreferrer" aria-label={isApple ? "Download PrediQs AI on the App Store" : "Get PrediQs AI on Google Play"} className="flex min-h-16 flex-1 items-center justify-center gap-3 rounded-xl border border-white/20 bg-black px-4 py-2.5 text-left text-white transition hover:border-volt/70 hover:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-volt focus:ring-offset-2 focus:ring-offset-neutral-900">
     {isApple ? <AppleIcon /> : <GooglePlayIcon />}
     <span className="leading-none">

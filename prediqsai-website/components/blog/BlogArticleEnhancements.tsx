@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import AcquisitionCta from "@/components/site/AcquisitionCta";
+import { APP_STORE_URL, GOOGLE_PLAY_URL, openAppOrStore } from "@/lib/app-links";
+import { useAuth } from "@/lib/auth";
 
 type ShareIcon = "x" | "whatsapp" | "telegram" | "copy";
 
@@ -58,13 +60,20 @@ export function ArticleShareRow({ title, url }: { title: string; url: string }) 
 }
 
 export function PremiumArticleCta({ articleSlug, articleTitle }: { articleSlug: string; articleTitle: string }) {
+  const { user, loading } = useAuth();
+  const tier = (user?.subscriptionTier || user?.tier || "").toLowerCase();
+  const activeMembership = !loading && Boolean(user?.isAdmin || tier === "pro" || tier === "premium");
+
   return <section className="relative overflow-hidden rounded-2xl border border-volt/35 bg-panel/70 p-7 shadow-[0_0_0_1px_rgba(0,230,122,0.06),0_18px_55px_-22px_rgba(0,230,122,0.5)] backdrop-blur-xl sm:p-9">
     <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-volt/15 blur-3xl" />
     <div className="relative">
       <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-volt">Premium intelligence</p>
-      <h2 className="mt-3 max-w-xl font-display text-2xl font-bold tracking-tight text-ice sm:text-3xl">Ready to stop watching and start winning?</h2>
-      <p className="mt-3 max-w-2xl leading-7 text-muted">Unlock today&apos;s AI-verified slips, exact risk probabilities, and premium bet codes.</p>
-      <AcquisitionCta kind="premium" analytics={{ articleSlug, articleTitle }} className="mt-6 inline-flex rounded-lg bg-volt px-5 py-3 text-sm font-semibold text-night transition hover:bg-volt/90">Upgrade to Pro</AcquisitionCta>
+      <h2 className="mt-3 max-w-xl font-display text-2xl font-bold tracking-tight text-ice sm:text-3xl">{activeMembership ? "Pro Intelligence Unlocked" : "Ready to stop watching and start winning?"}</h2>
+      <p className="mt-3 max-w-2xl leading-7 text-muted">{activeMembership ? "Your membership is active. Open the mobile app to access today's live AI slips, odds movements, and instant push alerts." : "Unlock today&apos;s AI-verified slips, exact risk probabilities, and premium bet codes."}</p>
+      {activeMembership ? <>
+        <button type="button" onClick={openAppOrStore} className="mt-6 inline-flex rounded-lg bg-volt px-5 py-3 text-sm font-semibold text-night transition hover:bg-volt/90">Open in PrediQs App</button>
+        <p className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs"><a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-muted transition hover:text-volt">Download for iOS</a><a href={GOOGLE_PLAY_URL} target="_blank" rel="noopener noreferrer" className="text-muted transition hover:text-volt">Download for Android</a></p>
+      </> : <AcquisitionCta kind="premium" handoffForGuests analytics={{ articleSlug, articleTitle }} className="mt-6 inline-flex rounded-lg bg-volt px-5 py-3 text-sm font-semibold text-night transition hover:bg-volt/90">Upgrade to Pro</AcquisitionCta>}
     </div>
   </section>;
 }

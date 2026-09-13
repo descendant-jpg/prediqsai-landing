@@ -1,0 +1,32 @@
+Please resolve the store link routing, implement mobile deep linking, and build tier-aware CTA rendering in the `prediqsai-website` repository. Do NOT touch the backend repository.
+
+1. Hardcode Exact Store Links & Fix Modal
+- Update the "Upgrade in the App" modal (and any store badges) to use these exact URLs:
+  - Google Play: `https://play.google.com/store/apps/details?id=com.prediqsai.app&pcampaignid=web_share`
+  - Apple App Store: `https://apps.apple.com/ng/app/prediqs-ai-ai-sports-picks/id6792316441`
+- Ensure all store badges use `target="_blank" rel="noopener noreferrer"`.
+- Ensure the modal itself is a true viewport overlay (`fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4`) so it does not overlap inline content.
+
+2. Smart App Launch & Deep Linking Utility
+- Create a lightweight client helper `openAppOrStore()`:
+  - Custom deep-link scheme: `prediqsai://`
+  - Logic: On mobile devices, attempt to open `window.location.href = "prediqsai://"`. If the document remains visible after 1500ms (indicating the app is not installed), redirect to the appropriate store link based on user-agent detection (iOS vs Android). On desktop, default to opening the store links or showing the modal.
+
+3. Tier-Aware Blog Conversion Component (`app/blog/[slug]/page.tsx`)
+Update the CTA card at the bottom of blog articles based on `user.tier` and `user.isAdmin`:
+- For Unauthenticated / Free Users:
+  - Display the current sales CTA: "Ready to stop watching and start winning?"
+  - Button: "Upgrade to Pro" (triggers the modal).
+- For Paid / Admin Users (`tier === 'pro' || tier === 'premium' || isAdmin === true`):
+  - Completely remove the "Upgrade to Pro" sales pitch and paywall modal triggers.
+  - Headline: "Pro Intelligence Unlocked"
+  - Subtext: "Your membership is active. Open the mobile app to access today's live AI slips, odds movements, and instant push alerts."
+  - Button: "Open in PrediQs App" (calls `openAppOrStore()`).
+  - Below the button, show smaller, subtle "Download for iOS" and "Download for Android" store links for quick access across devices.
+
+4. Pricing Page State Fix (`app/pricing/page.tsx` or `/pricing` section)
+- For logged-in Pro/Admin users:
+  - Change the "$19.99 Unlock Premium" button to a disabled or green "Active Membership" badge, with a secondary button: "Open Mobile App".
+  - Prevent paid/admin users from being prompted to purchase an active tier again.
+
+Verify the Next.js build (`pnpm run build`), test that admin sessions cleanly display the Pro member state, and push the commit directly to the `prediqsai-website` repository on GitHub.
