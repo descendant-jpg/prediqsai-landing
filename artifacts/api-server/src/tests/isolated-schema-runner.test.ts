@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 
@@ -5,6 +6,7 @@ import { pool } from "@workspace/db";
 import { afterAll, describe, expect, it } from "vitest";
 
 const runnerPath = resolve(process.cwd(), "../../lib/db/scripts/run-with-isolated-schema.mjs");
+const assertionPath = resolve(process.cwd(), "../../lib/db/scripts/assert-isolated-test-connection.mjs");
 const schemaMetadataPrefix = "replit-isolated-integration-schema:";
 
 async function runFailingIsolatedSuite(): Promise<{ code: number | null; output: string }> {
@@ -60,6 +62,58 @@ describe("isolated database schema runner", () => {
     );
     expect(rows[0]?.exists).toBe(false);
   }, 30_000);
+
+  it("rejects a connection that resolves to the public schema", async () => {
+    const { assertIsolatedTestSchemaConnection, databaseUrlForIsolatedSchema } = await import(assertionPath);
+    const publicUrl = databaseUrlForIsolatedSchema(process.env.DATABASE_URL!, "public");
+
+    await expect(
+      assertIsolatedTestSchemaConnection(publicUrl, "integration_test_expected_schema"),
+    ).rejects.toThrow(
+      'Database integration tests must use only isolated schema "integration_test_expected_schema", received "public".',
+    );
+  });
+
+  it("cannot use a second schema as an unqualified-relation fallback", async () => {
+    const schemaName = `integration_test_${randomUUID().replaceAll("-", "")}`;
+    const fallbackSchemaName = `integration_test_${randomUUID().replaceAll("-", "")}`;
+    const sentinelName = `isolated_schema_runner_sentinel_${randomUUID().replaceAll("-", "")}`;
+    const {
+      assertIsolatedTestSchemaConnection,
+      assertRelationIsNotResolvable,
+      databaseUrlForIsolatedSchema,
+    } = await import(assertionPath);
+    const isolatedUrl = databaseUrlForIsolatedSchema(
+      process.env.DATABASE_URL!,
+      schemaName,
+    );
+    const unsafeUrl = new URL(process.env.DATABASE_URL!);
+    unsafeUrl.searchParams.set(
+      "options",
+      `-c search_path=${schemaName},${fallbackSchemaName}`,
+    );
+
+    try {
+      await pool.query(`CREATE SCHEMA ${quoteIdentifier(schemaName)}`);
+      await pool.query(`CREATE SCHEMA ${quoteIdentifier(fallbackSchemaName)}`);
+      await pool.query(
+        `CREATE TABLE ${quoteIdentifier(fallbackSchemaName)}.${quoteIdentifier(sentinelName)} (id integer)`,
+      );
+
+      await assertIsolatedTestSchemaConnection(isolatedUrl, schemaName);
+      await expect(
+        assertRelationIsNotResolvable(isolatedUrl, sentinelName),
+      ).resolves.toBeUndefined();
+      await expect(
+        assertIsolatedTestSchemaConnection(unsafeUrl.toString(), schemaName),
+      ).rejects.toThrow(
+        `Database integration tests must use only isolated schema "${schemaName}", received "${schemaName},${fallbackSchemaName}".`,
+      );
+    } finally {
+      await pool.query(`DROP SCHEMA IF EXISTS ${quoteIdentifier(schemaName)} CASCADE`);
+      await pool.query(`DROP SCHEMA IF EXISTS ${quoteIdentifier(fallbackSchemaName)} CASCADE`);
+    }
+  });
 
   it("removes only inactive, runner-stamped schemas older than the safety window", async () => {
     const staleSchemaName = "integration_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
