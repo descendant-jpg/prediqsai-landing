@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 import {
   appStoreServerNotifications,
   db,
+  googlePlayNotifications,
   users,
 } from "@workspace/db";
 import { getEffectiveTier, normalizeTier } from "../lib/tier";
@@ -13,9 +14,11 @@ import {
   isAppleConfigured,
   isAppleServerNotificationsConfigured,
   isGoogleConfigured,
+  isGooglePlayServerNotificationsConfigured,
   validateAppleReceipt,
   validateGooglePurchase,
   verifyAppleServerNotification,
+  verifyGooglePlayPushIdentity,
   type IAPValidationResult,
 } from "../services/iap-validation";
 
@@ -117,7 +120,9 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
 
   // Check if the paid IAP subscription has expired.
   // Manual overrides and active free trials are exempt from the downgrade.
-  const trialActive = !!(user?.freeTrialUntil && new Date(user.freeTrialUntil) > new Date());
+  const trialActive = !!(
+    user?.freeTrialUntil && new Date(user.freeTrialUntil) > new Date()
+  );
   if (
     normalizeTier(user?.tier) === "premium" &&
     !normalizeTier(user?.manualTierOverride) &&
@@ -126,7 +131,10 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
   ) {
     const expired = new Date(user.iapExpiresAt) < new Date();
     if (expired) {
-      await db.update(users).set({ tier: "free" }).where(eq(users.id, req.userId!));
+      await db
+        .update(users)
+        .set({ tier: "free" })
+        .where(eq(users.id, req.userId!));
       res.json({ tier: "free", expired: true });
       return;
     }
@@ -138,16 +146,20 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
 // ─── IAP: Verify purchase ────────────────────────────────────────────────────
 
 const verifyIAPSchema = z.discriminatedUnion("platform", [
-  z.object({
-    platform: z.literal("android"),
-    productId: z.string().min(1).max(255),
-    purchaseToken: z.string().min(1).max(4096),
-  }).strict(),
-  z.object({
-    platform: z.literal("ios"),
-    productId: z.string().min(1).max(255),
-    receiptData: z.string().min(1).max(100_000),
-  }).strict(),
+  z
+    .object({
+      platform: z.literal("android"),
+      productId: z.string().min(1).max(255),
+      purchaseToken: z.string().min(1).max(4096),
+    })
+    .strict(),
+  z
+    .object({
+      platform: z.literal("ios"),
+      productId: z.string().min(1).max(255),
+      receiptData: z.string().min(1).max(100_000),
+    })
+    .strict(),
 ]);
 
 /**
@@ -166,7 +178,10 @@ async function validateWithStore(input: {
       return { valid: false, reason: "not_configured" };
     }
     if (!input.receiptData) {
-      return { valid: false, reason: "receiptData is required for iOS purchases" };
+      return {
+        valid: false,
+        reason: "receiptData is required for iOS purchases",
+      };
     }
     return validateAppleReceipt(input.receiptData, input.productId);
   }
@@ -175,7 +190,10 @@ async function validateWithStore(input: {
     return { valid: false, reason: "not_configured" };
   }
   if (!input.purchaseToken) {
-    return { valid: false, reason: "purchaseToken is required for Android purchases" };
+    return {
+      valid: false,
+      reason: "purchaseToken is required for Android purchases",
+    };
   }
   return validateGooglePurchase(input.purchaseToken, input.productId);
 }
@@ -188,7 +206,8 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
   }
 
   const { platform, productId } = body.data;
-  const purchaseToken = platform === "android" ? body.data.purchaseToken : undefined;
+  const purchaseToken =
+    platform === "android" ? body.data.purchaseToken : undefined;
   const receiptData = platform === "ios" ? body.data.receiptData : undefined;
 
   if (productId !== PRODUCT_ID) {
@@ -196,16 +215,33 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     return;
   }
 
-  const result = await validateWithStore({ platform, productId, purchaseToken, receiptData });
+  const result = await validateWithStore({
+    platform,
+    productId,
+    purchaseToken,
+    receiptData,
+  });
 
   if (result.reason === "not_configured") {
-    req.log.error({ platform }, "IAP validation credentials missing — refusing to grant premium");
-    res.status(503).json({ error: "Purchase verification is temporarily unavailable" });
+    req.log.error(
+      { platform },
+      "IAP validation credentials missing — refusing to grant premium",
+    );
+    res
+      .status(503)
+      .json({ error: "Purchase verification is temporarily unavailable" });
     return;
   }
 
-  if (!result.valid || !result.expiresAt || (platform === "ios" && !result.originalTransactionId)) {
-    req.log.warn({ platform, reason: result.reason, userId: req.userId }, "IAP verification rejected");
+  if (
+    !result.valid ||
+    !result.expiresAt ||
+    (platform === "ios" && !result.originalTransactionId)
+  ) {
+    req.log.warn(
+      { platform, reason: result.reason, userId: req.userId },
+      "IAP verification rejected",
+    );
     res.status(400).json({ error: "Purchase could not be verified" });
     return;
   }
@@ -214,10 +250,18 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     const [tokenOwner] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.iapPurchaseToken, purchaseToken!), ne(users.id, req.userId!)))
+      .where(
+        and(
+          eq(users.iapPurchaseToken, purchaseToken!),
+          ne(users.id, req.userId!),
+        ),
+      )
       .limit(1);
     if (tokenOwner) {
-      req.log.warn({ userId: req.userId }, "IAP verification rejected — purchase token belongs to another user");
+      req.log.warn(
+        { userId: req.userId },
+        "IAP verification rejected — purchase token belongs to another user",
+      );
       res.status(409).json({ error: PURCHASE_TOKEN_ALREADY_LINKED_ERROR });
       return;
     }
@@ -225,13 +269,18 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     const [transactionOwner] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(
-        eq(users.iapOriginalTransactionId, result.originalTransactionId!),
-        ne(users.id, req.userId!),
-      ))
+      .where(
+        and(
+          eq(users.iapOriginalTransactionId, result.originalTransactionId!),
+          ne(users.id, req.userId!),
+        ),
+      )
       .limit(1);
     if (transactionOwner) {
-      req.log.warn({ userId: req.userId }, "IAP verification rejected — App Store subscription belongs to another user");
+      req.log.warn(
+        { userId: req.userId },
+        "IAP verification rejected — App Store subscription belongs to another user",
+      );
       res.status(409).json({ error: APPLE_TRANSACTION_ALREADY_LINKED_ERROR });
       return;
     }
@@ -241,13 +290,14 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
   let updated: { id: number; tier: string };
   try {
     const subscription = {
-        tier: "premium",
-        // Only the store-confirmed transaction ID is persisted — never client input.
-        iapTransactionId: result.transactionId ?? null,
-        iapOriginalTransactionId: platform === "ios" ? result.originalTransactionId! : null,
-        iapPurchaseToken: platform === "android" ? purchaseToken! : null,
-        iapPlatform: platform,
-        iapExpiresAt: result.expiresAt,
+      tier: "premium",
+      // Only the store-confirmed transaction ID is persisted — never client input.
+      iapTransactionId: result.transactionId ?? null,
+      iapOriginalTransactionId:
+        platform === "ios" ? result.originalTransactionId! : null,
+      iapPurchaseToken: platform === "android" ? purchaseToken! : null,
+      iapPlatform: platform,
+      iapExpiresAt: result.expiresAt,
     };
     [updated] = await db
       .update(users)
@@ -280,25 +330,41 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
 // ─── IAP: Restore purchases ──────────────────────────────────────────────────
 
 const restoreIAPSchema = z.discriminatedUnion("platform", [
-  z.object({
-    platform: z.literal("android"),
-    purchases: z.array(z.object({
-      productId: z.string().min(1).max(255),
-      purchaseToken: z.string().min(1).max(4096),
-      // Accepted only so already-released clients can restore after an API update.
-      transactionId: z.string().max(255).optional(),
-      planMonths: z.union([z.literal(1), z.literal(6), z.literal(12)]).optional(),
-    }).strict()),
-  }).strict(),
-  z.object({
-    platform: z.literal("ios"),
-    purchases: z.array(z.object({
-      productId: z.string().min(1).max(255),
-      transactionReceipt: z.string().min(1).max(100_000),
-      transactionId: z.string().max(255).optional(),
-      planMonths: z.union([z.literal(1), z.literal(6), z.literal(12)]).optional(),
-    }).strict()),
-  }).strict(),
+  z
+    .object({
+      platform: z.literal("android"),
+      purchases: z.array(
+        z
+          .object({
+            productId: z.string().min(1).max(255),
+            purchaseToken: z.string().min(1).max(4096),
+            // Accepted only so already-released clients can restore after an API update.
+            transactionId: z.string().max(255).optional(),
+            planMonths: z
+              .union([z.literal(1), z.literal(6), z.literal(12)])
+              .optional(),
+          })
+          .strict(),
+      ),
+    })
+    .strict(),
+  z
+    .object({
+      platform: z.literal("ios"),
+      purchases: z.array(
+        z
+          .object({
+            productId: z.string().min(1).max(255),
+            transactionReceipt: z.string().min(1).max(100_000),
+            transactionId: z.string().max(255).optional(),
+            planMonths: z
+              .union([z.literal(1), z.literal(6), z.literal(12)])
+              .optional(),
+          })
+          .strict(),
+      ),
+    })
+    .strict(),
 ]);
 
 router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
@@ -317,12 +383,19 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   }
 
   // Validate each candidate with the store; grant only on explicit confirmation.
-  let confirmed: { result: IAPValidationResult; purchaseToken?: string } | null = null;
+  let confirmed: {
+    result: IAPValidationResult;
+    purchaseToken?: string;
+  } | null = null;
   let sawNotConfigured = false;
 
   for (const purchase of candidates) {
-    const purchaseToken = "purchaseToken" in purchase ? purchase.purchaseToken : undefined;
-    const receiptData = "transactionReceipt" in purchase ? purchase.transactionReceipt : undefined;
+    const purchaseToken =
+      "purchaseToken" in purchase ? purchase.purchaseToken : undefined;
+    const receiptData =
+      "transactionReceipt" in purchase
+        ? purchase.transactionReceipt
+        : undefined;
     const result = await validateWithStore({
       platform,
       productId: purchase.productId,
@@ -333,20 +406,32 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
       sawNotConfigured = true;
       break;
     }
-    if (result.valid && result.expiresAt && (platform !== "ios" || result.originalTransactionId)) {
+    if (
+      result.valid &&
+      result.expiresAt &&
+      (platform !== "ios" || result.originalTransactionId)
+    ) {
       confirmed = { result, purchaseToken };
       break;
     }
   }
 
   if (sawNotConfigured) {
-    req.log.error({ platform }, "IAP validation credentials missing — refusing to restore premium");
-    res.status(503).json({ error: "Purchase verification is temporarily unavailable" });
+    req.log.error(
+      { platform },
+      "IAP validation credentials missing — refusing to restore premium",
+    );
+    res
+      .status(503)
+      .json({ error: "Purchase verification is temporarily unavailable" });
     return;
   }
 
   if (!confirmed) {
-    req.log.warn({ platform, userId: req.userId }, "IAP restore rejected — no store-confirmed active purchase");
+    req.log.warn(
+      { platform, userId: req.userId },
+      "IAP restore rejected — no store-confirmed active purchase",
+    );
     res.json({ tier: "free", restored: false });
     return;
   }
@@ -355,7 +440,8 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
     tier: "premium",
     // Only the store-confirmed transaction ID is persisted — never client input.
     iapTransactionId: confirmed.result.transactionId ?? null,
-    iapOriginalTransactionId: platform === "ios" ? confirmed.result.originalTransactionId! : null,
+    iapOriginalTransactionId:
+      platform === "ios" ? confirmed.result.originalTransactionId! : null,
     iapPurchaseToken: platform === "android" ? confirmed.purchaseToken! : null,
     iapPlatform: platform,
     iapExpiresAt: confirmed.result.expiresAt!,
@@ -375,12 +461,20 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
         iapPlatform: null,
         iapExpiresAt: null,
       })
-      .where(platform === "android"
-        ? and(eq(users.iapPurchaseToken, confirmed.purchaseToken!), ne(users.id, req.userId!))
-        : and(
-          eq(users.iapOriginalTransactionId, confirmed.result.originalTransactionId!),
-          ne(users.id, req.userId!),
-        ));
+      .where(
+        platform === "android"
+          ? and(
+              eq(users.iapPurchaseToken, confirmed.purchaseToken!),
+              ne(users.id, req.userId!),
+            )
+          : and(
+              eq(
+                users.iapOriginalTransactionId,
+                confirmed.result.originalTransactionId!,
+              ),
+              ne(users.id, req.userId!),
+            ),
+      );
 
     return tx
       .update(users)
@@ -401,9 +495,11 @@ const ENTITLEMENT_ENDING_APPLE_NOTIFICATIONS = new Set([
   "REVOKE",
 ]);
 
-const appleNotificationSchema = z.object({
-  signedPayload: z.string().min(1).max(100_000),
-}).strict();
+const appleNotificationSchema = z
+  .object({
+    signedPayload: z.string().min(1).max(100_000),
+  })
+  .strict();
 
 /**
  * App Store Server Notifications V2 endpoint. Apple retries deliveries, so the
@@ -416,8 +512,12 @@ router.post("/subscription/apple/notifications", async (req, res) => {
     return;
   }
   if (!isAppleServerNotificationsConfigured()) {
-    req.log.error("APPLE_APP_ID is missing — refusing to process App Store notification");
-    res.status(503).json({ error: "App Store notification verification is unavailable" });
+    req.log.error(
+      "APPLE_APP_ID is missing — refusing to process App Store notification",
+    );
+    res
+      .status(503)
+      .json({ error: "App Store notification verification is unavailable" });
     return;
   }
 
@@ -444,7 +544,9 @@ router.post("/subscription/apple/notifications", async (req, res) => {
         notificationType: notification.notificationType,
       })
       .onConflictDoNothing()
-      .returning({ notificationUuid: appStoreServerNotifications.notificationUuid });
+      .returning({
+        notificationUuid: appStoreServerNotifications.notificationUuid,
+      });
 
     if (!claimed) return false;
 
@@ -458,20 +560,178 @@ router.post("/subscription/apple/notifications", async (req, res) => {
           iapPlatform: null,
           iapExpiresAt: null,
         })
-        .where(and(
-          eq(users.iapOriginalTransactionId, notification.originalTransactionId),
-          eq(users.iapTransactionId, notification.transactionId),
-          eq(users.iapPlatform, "ios"),
-        ));
+        .where(
+          and(
+            eq(
+              users.iapOriginalTransactionId,
+              notification.originalTransactionId,
+            ),
+            eq(users.iapTransactionId, notification.transactionId),
+            eq(users.iapPlatform, "ios"),
+          ),
+        );
     }
 
     return true;
   });
 
-  req.log.info({
-    notificationType: notification.notificationType,
-    processed,
-  }, "Processed App Store notification");
+  req.log.info(
+    {
+      notificationType: notification.notificationType,
+      processed,
+    },
+    "Processed App Store notification",
+  );
+  res.status(200).json({ received: true });
+});
+
+// ─── Google Play Real-time Developer Notifications ───────────────────────────
+
+const ENTITLEMENT_ENDING_GOOGLE_SUBSCRIPTION_NOTIFICATION_TYPES = new Set([
+  12, 13,
+]);
+const GOOGLE_PLAY_SUBSCRIPTION_PRODUCT_TYPE = 2;
+
+const googlePlayNotificationSchema = z
+  .object({
+    message: z
+      .object({
+        messageId: z.string().min(1).max(255),
+        data: z.string().min(1).max(100_000),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
+const googlePlayRtdnSchema = z
+  .object({
+    packageName: z.literal(
+      process.env.ANDROID_PACKAGE_NAME ?? "com.prediqsai.app",
+    ),
+    subscriptionNotification: z
+      .object({
+        notificationType: z.number().int(),
+        purchaseToken: z.string().min(1).max(4096),
+        subscriptionId: z.literal(PRODUCT_ID),
+      })
+      .strict()
+      .optional(),
+    voidedPurchaseNotification: z
+      .object({
+        purchaseToken: z.string().min(1).max(4096),
+        productType: z.literal(GOOGLE_PLAY_SUBSCRIPTION_PRODUCT_TYPE),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough()
+  .refine(
+    (notification) =>
+      !!notification.subscriptionNotification ||
+      !!notification.voidedPurchaseNotification,
+    "Expected a subscription or voided subscription notification",
+  );
+
+/**
+ * Google Play sends RTDN events through a Pub/Sub OIDC-authenticated push.
+ * Pub/Sub may retry a delivery, so recording its message ID and revoking the
+ * current matching purchase token happen in one transaction.
+ */
+router.post("/subscription/google-play/notifications", async (req, res) => {
+  if (!isGooglePlayServerNotificationsConfigured()) {
+    req.log.error(
+      "Google Play RTDN verification settings are missing — refusing to process notification",
+    );
+    res
+      .status(503)
+      .json({ error: "Google Play notification verification is unavailable" });
+    return;
+  }
+
+  try {
+    await verifyGooglePlayPushIdentity(req.get("authorization"));
+  } catch (error) {
+    req.log.warn(
+      { err: error },
+      "Rejected unverified Google Play notification",
+    );
+    res
+      .status(401)
+      .json({ error: "Invalid Google Play notification authentication" });
+    return;
+  }
+
+  const body = googlePlayNotificationSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid Google Play notification" });
+    return;
+  }
+
+  let decoded: unknown;
+  try {
+    decoded = JSON.parse(
+      Buffer.from(body.data.message.data, "base64").toString("utf8"),
+    );
+  } catch {
+    res.status(400).json({ error: "Invalid Google Play notification" });
+    return;
+  }
+
+  const notification = googlePlayRtdnSchema.safeParse(decoded);
+  if (!notification.success) {
+    res.status(400).json({ error: "Invalid Google Play notification" });
+    return;
+  }
+
+  const subscription = notification.data.subscriptionNotification;
+  const voidedPurchase = notification.data.voidedPurchaseNotification;
+  const purchaseToken =
+    subscription?.purchaseToken ?? voidedPurchase!.purchaseToken;
+  const notificationType = subscription?.notificationType ?? -1;
+  const shouldRemoveEntitlement =
+    !!voidedPurchase ||
+    ENTITLEMENT_ENDING_GOOGLE_SUBSCRIPTION_NOTIFICATION_TYPES.has(
+      notificationType,
+    );
+
+  const processed = await db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .insert(googlePlayNotifications)
+      .values({
+        messageId: body.data.message.messageId,
+        purchaseToken,
+        notificationType,
+      })
+      .onConflictDoNothing()
+      .returning({ messageId: googlePlayNotifications.messageId });
+
+    if (!claimed) return false;
+
+    if (shouldRemoveEntitlement) {
+      await tx
+        .update(users)
+        .set({
+          tier: "free",
+          iapTransactionId: null,
+          iapPurchaseToken: null,
+          iapPlatform: null,
+          iapExpiresAt: null,
+        })
+        .where(
+          and(
+            eq(users.iapPurchaseToken, purchaseToken),
+            eq(users.iapPlatform, "android"),
+          ),
+        );
+    }
+
+    return true;
+  });
+
+  req.log.info(
+    { messageId: body.data.message.messageId, notificationType, processed },
+    "Processed Google Play notification",
+  );
   res.status(200).json({ received: true });
 });
 

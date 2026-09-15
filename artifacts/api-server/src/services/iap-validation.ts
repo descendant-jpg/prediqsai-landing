@@ -1,12 +1,17 @@
 import { google } from "googleapis";
-import { Environment, SignedDataVerifier } from "@apple/app-store-server-library";
+import { OAuth2Client } from "google-auth-library";
+import {
+  Environment,
+  SignedDataVerifier,
+} from "@apple/app-store-server-library";
 
 import { logger } from "../lib/logger";
 
 const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
 const APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
 const APPLE_BUNDLE_ID = "com.prediqsai.app";
-const ANDROID_PACKAGE_NAME = process.env.ANDROID_PACKAGE_NAME ?? "com.prediqsai.app";
+const ANDROID_PACKAGE_NAME =
+  process.env.ANDROID_PACKAGE_NAME ?? "com.prediqsai.app";
 
 // Apple's published Root CA G3. App Store Server Notification JWS certificates
 // chain to this root; it is deliberately bundled rather than trusted from x5c.
@@ -39,6 +44,13 @@ export function isAppleServerNotificationsConfigured(): boolean {
   return Number.isSafeInteger(Number(process.env.APPLE_APP_ID));
 }
 
+export function isGooglePlayServerNotificationsConfigured(): boolean {
+  return !!(
+    process.env.GOOGLE_PLAY_RTDN_AUDIENCE &&
+    process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL
+  );
+}
+
 // ─── Apple ────────────────────────────────────────────────────────────────────
 
 export interface AppleServerNotification {
@@ -58,7 +70,9 @@ export async function verifyAppleServerNotification(
 ): Promise<AppleServerNotification> {
   const appAppleId = Number(process.env.APPLE_APP_ID);
   if (!Number.isSafeInteger(appAppleId)) {
-    throw new Error("APPLE_APP_ID must be configured to verify production App Store notifications");
+    throw new Error(
+      "APPLE_APP_ID must be configured to verify production App Store notifications",
+    );
   }
   const verifier = new SignedDataVerifier(
     [APPLE_ROOT_CA_G3],
@@ -67,7 +81,8 @@ export async function verifyAppleServerNotification(
     APPLE_BUNDLE_ID,
     appAppleId,
   );
-  const notification = await verifier.verifyAndDecodeNotification(signedPayload);
+  const notification =
+    await verifier.verifyAndDecodeNotification(signedPayload);
   if (
     typeof notification.notificationUUID !== "string" ||
     typeof notification.notificationType !== "string" ||
@@ -76,7 +91,9 @@ export async function verifyAppleServerNotification(
     throw new Error("Apple notification has required fields missing");
   }
 
-  const transaction = await verifier.verifyAndDecodeTransaction(notification.data.signedTransactionInfo);
+  const transaction = await verifier.verifyAndDecodeTransaction(
+    notification.data.signedTransactionInfo,
+  );
   if (
     transaction.bundleId !== APPLE_BUNDLE_ID ||
     transaction.productId !== "prediqsai_pro_monthly" ||
@@ -121,7 +138,10 @@ export async function validateAppleReceipt(
 ): Promise<IAPValidationResult> {
   const sharedSecret = process.env.APPLE_IAP_SHARED_SECRET;
   if (!sharedSecret) {
-    return { valid: false, reason: "Apple receipt validation is not configured" };
+    return {
+      valid: false,
+      reason: "Apple receipt validation is not configured",
+    };
   }
 
   const body = JSON.stringify({
@@ -147,7 +167,10 @@ export async function validateAppleReceipt(
     }
 
     if (data.status !== 0) {
-      return { valid: false, reason: `Apple rejected the receipt (status ${data.status})` };
+      return {
+        valid: false,
+        reason: `Apple rejected the receipt (status ${data.status})`,
+      };
     }
     if (data.receipt?.bundle_id !== APPLE_BUNDLE_ID) {
       return { valid: false, reason: "Receipt is not for this app" };
@@ -162,7 +185,10 @@ export async function validateAppleReceipt(
 
     const latest = matching[0];
     if (!latest) {
-      return { valid: false, reason: "Receipt contains no transaction for this product" };
+      return {
+        valid: false,
+        reason: "Receipt contains no transaction for this product",
+      };
     }
     if (!latest.expiresMs || latest.expiresMs <= now) {
       return { valid: false, reason: "Subscription has expired" };
@@ -171,7 +197,10 @@ export async function validateAppleReceipt(
       return { valid: false, reason: "Subscription has been revoked" };
     }
     if (!latest.original_transaction_id) {
-      return { valid: false, reason: "Receipt is missing its original transaction ID" };
+      return {
+        valid: false,
+        reason: "Receipt is missing its original transaction ID",
+      };
     }
 
     return {
@@ -182,7 +211,10 @@ export async function validateAppleReceipt(
     };
   } catch (err) {
     logger.error({ err }, "Apple receipt validation failed");
-    return { valid: false, reason: "Could not reach Apple receipt validation service" };
+    return {
+      valid: false,
+      reason: "Could not reach Apple receipt validation service",
+    };
   }
 }
 
@@ -198,7 +230,10 @@ export async function validateGooglePurchase(
 ): Promise<IAPValidationResult> {
   const rawCredentials = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (!rawCredentials) {
-    return { valid: false, reason: "Google purchase validation is not configured" };
+    return {
+      valid: false,
+      reason: "Google purchase validation is not configured",
+    };
   }
 
   try {
@@ -208,10 +243,11 @@ export async function validateGooglePurchase(
       scopes: ["https://www.googleapis.com/auth/androidpublisher"],
     });
     const androidPublisher = google.androidpublisher({ version: "v3", auth });
-    const { data: purchase } = await androidPublisher.purchases.subscriptionsv2.get({
-      packageName: ANDROID_PACKAGE_NAME,
-      token: purchaseToken,
-    });
+    const { data: purchase } =
+      await androidPublisher.purchases.subscriptionsv2.get({
+        packageName: ANDROID_PACKAGE_NAME,
+        token: purchaseToken,
+      });
 
     // A token is accepted only when Google reports an active entitlement. Pending,
     // paused, expired, or revoked subscriptions must never grant Premium access.
@@ -248,4 +284,43 @@ export async function validateGooglePurchase(
     logger.error({ err }, "Google purchase validation failed");
     return { valid: false, reason: "Google rejected the purchase token" };
   }
+}
+
+export interface GooglePlayPushIdentity {
+  email: string;
+}
+
+/**
+ * Verifies that a Google Pub/Sub push request was signed for this endpoint by
+ * the service account configured on the subscription. The notification body is
+ * not trusted until this check succeeds.
+ */
+export async function verifyGooglePlayPushIdentity(
+  authorization: string | undefined,
+): Promise<GooglePlayPushIdentity> {
+  const audience = process.env.GOOGLE_PLAY_RTDN_AUDIENCE;
+  const expectedEmail = process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL;
+  if (!audience || !expectedEmail) {
+    throw new Error("Google Play RTDN verification is not configured");
+  }
+
+  const token = authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!token) {
+    throw new Error("Google Play RTDN request is missing its bearer token");
+  }
+
+  const client = new OAuth2Client();
+  const ticket = await client.verifyIdToken({ idToken: token, audience });
+  const payload = ticket.getPayload();
+  if (
+    !payload ||
+    payload.email !== expectedEmail ||
+    payload.email_verified !== true
+  ) {
+    throw new Error(
+      "Google Play RTDN request has an unexpected service identity",
+    );
+  }
+
+  return { email: payload.email };
 }

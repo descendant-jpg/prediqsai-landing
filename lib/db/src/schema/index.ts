@@ -32,3 +32,4 @@ export * from "./affiliateClicks";
 export * from "./affiliatePayouts";
 export * from "./blogPosts";
 export * from "./appStoreServerNotifications";
+export * from "./googlePlayNotifications";

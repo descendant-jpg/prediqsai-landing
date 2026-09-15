@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const publisherGet = vi.hoisted(() => vi.fn());
 const googleAuth = vi.hoisted(() => vi.fn());
+const verifyIdToken = vi.hoisted(() => vi.fn());
+const oauth2Client = vi.hoisted(() =>
+  vi.fn(function OAuth2ClientMock() {
+    return { verifyIdToken };
+  }),
+);
 
 vi.mock("googleapis", () => ({
   google: {
@@ -12,6 +18,10 @@ vi.mock("googleapis", () => ({
   },
 }));
 
+vi.mock("google-auth-library", () => ({
+  OAuth2Client: oauth2Client,
+}));
+
 function publisherPurchase(
   subscriptionState: string,
   options: { productId?: string; expiryTime?: string } = {},
@@ -19,10 +29,12 @@ function publisherPurchase(
   return {
     subscriptionState,
     latestOrderId: "GPA.1234-5678-9012-34567",
-    lineItems: [{
-      productId: options.productId ?? "prediqsai_pro_monthly",
-      expiryTime: options.expiryTime ?? "2030-01-01T00:00:00.000Z",
-    }],
+    lineItems: [
+      {
+        productId: options.productId ?? "prediqsai_pro_monthly",
+        expiryTime: options.expiryTime ?? "2030-01-01T00:00:00.000Z",
+      },
+    ],
   };
 }
 
@@ -32,6 +44,8 @@ describe("validateGooglePurchase", () => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
     delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    delete process.env.GOOGLE_PLAY_RTDN_AUDIENCE;
+    delete process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL;
     delete process.env.APPLE_IAP_SHARED_SECRET;
   });
 
@@ -41,12 +55,15 @@ describe("validateGooglePurchase", () => {
       private_key: "test-key",
     });
     publisherGet.mockResolvedValue({ data: response });
-    const { validateGooglePurchase } = await import("../services/iap-validation");
+    const { validateGooglePurchase } =
+      await import("../services/iap-validation");
     return validateGooglePurchase("play-token-123", "prediqsai_pro_monthly");
   }
 
   it("accepts active purchases from Google Play and uses store fields", async () => {
-    const result = await validate(publisherPurchase("SUBSCRIPTION_STATE_ACTIVE"));
+    const result = await validate(
+      publisherPurchase("SUBSCRIPTION_STATE_ACTIVE"),
+    );
 
     expect(result).toMatchObject({
       valid: true,
@@ -60,7 +77,9 @@ describe("validateGooglePurchase", () => {
   });
 
   it("accepts a subscription in Google Play grace period", async () => {
-    const result = await validate(publisherPurchase("SUBSCRIPTION_STATE_IN_GRACE_PERIOD"));
+    const result = await validate(
+      publisherPurchase("SUBSCRIPTION_STATE_IN_GRACE_PERIOD"),
+    );
 
     expect(result.valid).toBe(true);
   });
@@ -80,9 +99,11 @@ describe("validateGooglePurchase", () => {
   });
 
   it("rejects an active token for a different product", async () => {
-    const result = await validate(publisherPurchase("SUBSCRIPTION_STATE_ACTIVE", {
-      productId: "another_product",
-    }));
+    const result = await validate(
+      publisherPurchase("SUBSCRIPTION_STATE_ACTIVE", {
+        productId: "another_product",
+      }),
+    );
 
     expect(result).toEqual({
       valid: false,
@@ -91,14 +112,71 @@ describe("validateGooglePurchase", () => {
   });
 
   it("rejects an active purchase whose store expiry is in the past", async () => {
-    const result = await validate(publisherPurchase("SUBSCRIPTION_STATE_ACTIVE", {
-      expiryTime: "2020-01-01T00:00:00.000Z",
-    }));
+    const result = await validate(
+      publisherPurchase("SUBSCRIPTION_STATE_ACTIVE", {
+        expiryTime: "2020-01-01T00:00:00.000Z",
+      }),
+    );
 
     expect(result).toEqual({
       valid: false,
       reason: "Subscription has expired",
     });
+  });
+});
+
+describe("verifyGooglePlayPushIdentity", () => {
+  afterEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    delete process.env.GOOGLE_PLAY_RTDN_AUDIENCE;
+    delete process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL;
+  });
+
+  it("accepts only the configured, verified Pub/Sub service identity", async () => {
+    process.env.GOOGLE_PLAY_RTDN_AUDIENCE =
+      "https://api.example.test/google-play";
+    process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL =
+      "pubsub@example.iam.gserviceaccount.com";
+    verifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "pubsub@example.iam.gserviceaccount.com",
+        email_verified: true,
+      }),
+    });
+
+    const { verifyGooglePlayPushIdentity } =
+      await import("../services/iap-validation");
+
+    await expect(
+      verifyGooglePlayPushIdentity("Bearer signed-google-oidc-token"),
+    ).resolves.toEqual({
+      email: "pubsub@example.iam.gserviceaccount.com",
+    });
+    expect(verifyIdToken).toHaveBeenCalledWith({
+      idToken: "signed-google-oidc-token",
+      audience: "https://api.example.test/google-play",
+    });
+  });
+
+  it("rejects an unexpected service account even when its token is Google-signed", async () => {
+    process.env.GOOGLE_PLAY_RTDN_AUDIENCE =
+      "https://api.example.test/google-play";
+    process.env.GOOGLE_PLAY_RTDN_SERVICE_ACCOUNT_EMAIL =
+      "pubsub@example.iam.gserviceaccount.com";
+    verifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "attacker@example.iam.gserviceaccount.com",
+        email_verified: true,
+      }),
+    });
+
+    const { verifyGooglePlayPushIdentity } =
+      await import("../services/iap-validation");
+
+    await expect(
+      verifyGooglePlayPushIdentity("Bearer another-google-token"),
+    ).rejects.toThrow("unexpected service identity");
   });
 });
 
@@ -114,12 +192,14 @@ describe("validateAppleReceipt", () => {
     return {
       status: 0,
       receipt: { bundle_id: "com.prediqsai.app" },
-      latest_receipt_info: [{
-        product_id: "prediqsai_pro_monthly",
-        transaction_id: "2000001234567890",
-        original_transaction_id: "1000001234567890",
-        expires_date_ms: "1893456000000",
-      }],
+      latest_receipt_info: [
+        {
+          product_id: "prediqsai_pro_monthly",
+          transaction_id: "2000001234567890",
+          original_transaction_id: "1000001234567890",
+          expires_date_ms: "1893456000000",
+        },
+      ],
       ...overrides,
     };
   }
@@ -133,7 +213,10 @@ describe("validateAppleReceipt", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { validateAppleReceipt } = await import("../services/iap-validation");
 
-    const result = await validateAppleReceipt("base64-receipt", "prediqsai_pro_monthly");
+    const result = await validateAppleReceipt(
+      "base64-receipt",
+      "prediqsai_pro_monthly",
+    );
 
     expect(result).toMatchObject({
       valid: true,
@@ -155,13 +238,23 @@ describe("validateAppleReceipt", () => {
 
   it("retries a sandbox receipt after Apple's production endpoint returns 21007", async () => {
     process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 21007 }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => activeAppleReceipt() });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 21007 }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => activeAppleReceipt(),
+      });
     vi.stubGlobal("fetch", fetchMock);
     const { validateAppleReceipt } = await import("../services/iap-validation");
 
-    const result = await validateAppleReceipt("sandbox-receipt", "prediqsai_pro_monthly");
+    const result = await validateAppleReceipt(
+      "sandbox-receipt",
+      "prediqsai_pro_monthly",
+    );
 
     expect(result.valid).toBe(true);
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -173,13 +266,19 @@ describe("validateAppleReceipt", () => {
 
   it("rejects a receipt for another app even when it contains an active subscription", async () => {
     process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => activeAppleReceipt({ receipt: { bundle_id: "com.other.app" } }),
-    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () =>
+          activeAppleReceipt({ receipt: { bundle_id: "com.other.app" } }),
+      }),
+    );
     const { validateAppleReceipt } = await import("../services/iap-validation");
 
-    await expect(validateAppleReceipt("wrong-bundle-receipt", "prediqsai_pro_monthly")).resolves.toEqual({
+    await expect(
+      validateAppleReceipt("wrong-bundle-receipt", "prediqsai_pro_monthly"),
+    ).resolves.toEqual({
       valid: false,
       reason: "Receipt is not for this app",
     });
@@ -187,21 +286,29 @@ describe("validateAppleReceipt", () => {
 
   it("rejects a receipt Apple has revoked even when its original expiry is still future-dated", async () => {
     process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => activeAppleReceipt({
-        latest_receipt_info: [{
-          product_id: "prediqsai_pro_monthly",
-          transaction_id: "2000001234567890",
-          original_transaction_id: "1000001234567890",
-          expires_date_ms: "1893456000000",
-          cancellation_date_ms: "1704067200000",
-        }],
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () =>
+          activeAppleReceipt({
+            latest_receipt_info: [
+              {
+                product_id: "prediqsai_pro_monthly",
+                transaction_id: "2000001234567890",
+                original_transaction_id: "1000001234567890",
+                expires_date_ms: "1893456000000",
+                cancellation_date_ms: "1704067200000",
+              },
+            ],
+          }),
       }),
-    }));
+    );
     const { validateAppleReceipt } = await import("../services/iap-validation");
 
-    await expect(validateAppleReceipt("revoked-receipt", "prediqsai_pro_monthly")).resolves.toEqual({
+    await expect(
+      validateAppleReceipt("revoked-receipt", "prediqsai_pro_monthly"),
+    ).resolves.toEqual({
       valid: false,
       reason: "Subscription has been revoked",
     });

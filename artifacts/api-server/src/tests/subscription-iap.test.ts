@@ -4,7 +4,15 @@ import type { AddressInfo } from "node:net";
 import express, { type Router } from "express";
 import jwt from "jsonwebtoken";
 import pino from "pino";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const TEST_SECRET = "subscription-iap-regression-test-secret";
 process.env.SESSION_SECRET = TEST_SECRET;
@@ -36,18 +44,19 @@ const mocks = vi.hoisted(() => {
   insertChain.values.mockReturnValue(insertChain);
   insertChain.onConflictDoNothing.mockReturnValue(insertChain);
   insertChain.onConflictDoUpdate.mockResolvedValue(undefined);
-  const transaction = vi.fn(async (
-    callback: (tx: {
-      update: (...args: unknown[]) => typeof updateChain;
-      insert: (...args: unknown[]) => typeof insertChain;
-      select: (...args: unknown[]) => typeof selectChain;
-    }) => unknown,
-  ) =>
-    callback({
-      update: vi.fn(() => updateChain),
-      insert: vi.fn(() => insertChain),
-      select: vi.fn(() => selectChain),
-    }),
+  const transaction = vi.fn(
+    async (
+      callback: (tx: {
+        update: (...args: unknown[]) => typeof updateChain;
+        insert: (...args: unknown[]) => typeof insertChain;
+        select: (...args: unknown[]) => typeof selectChain;
+      }) => unknown,
+    ) =>
+      callback({
+        update: vi.fn(() => updateChain),
+        insert: vi.fn(() => insertChain),
+        select: vi.fn(() => selectChain),
+      }),
   );
 
   return {
@@ -58,8 +67,10 @@ const mocks = vi.hoisted(() => {
     validateAppleReceipt: vi.fn(),
     validateGooglePurchase: vi.fn(),
     verifyAppleServerNotification: vi.fn(),
+    verifyGooglePlayPushIdentity: vi.fn(),
     isAppleServerNotificationsConfigured: vi.fn(() => true),
     isGoogleConfigured: vi.fn(() => true),
+    isGooglePlayServerNotificationsConfigured: vi.fn(() => true),
   };
 });
 
@@ -72,9 +83,8 @@ vi.mock("@workspace/db", () => ({
   appStoreServerNotifications: {
     notificationUuid: {},
   },
-  appStoreSubscriptionStates: {
-    originalTransactionId: {},
-    revokedAt: {},
+  googlePlayNotifications: {
+    messageId: {},
   },
   users: {
     id: {},
@@ -91,18 +101,25 @@ vi.mock("@workspace/db", () => ({
 
 vi.mock("../services/iap-validation", () => ({
   isAppleConfigured: vi.fn(() => true),
-  isAppleServerNotificationsConfigured: mocks.isAppleServerNotificationsConfigured,
+  isAppleServerNotificationsConfigured:
+    mocks.isAppleServerNotificationsConfigured,
   isGoogleConfigured: mocks.isGoogleConfigured,
+  isGooglePlayServerNotificationsConfigured:
+    mocks.isGooglePlayServerNotificationsConfigured,
   validateAppleReceipt: mocks.validateAppleReceipt,
   validateGooglePurchase: mocks.validateGooglePurchase,
   verifyAppleServerNotification: mocks.verifyAppleServerNotification,
+  verifyGooglePlayPushIdentity: mocks.verifyGooglePlayPushIdentity,
 }));
 
 let server: Server;
 let baseUrl: string;
 
 function token(): string {
-  return jwt.sign({ userId: 42 }, TEST_SECRET, { algorithm: "HS256", expiresIn: "1h" });
+  return jwt.sign({ userId: 42 }, TEST_SECRET, {
+    algorithm: "HS256",
+    expiresIn: "1h",
+  });
 }
 
 async function post(path: string, body: unknown): Promise<Response> {
@@ -124,10 +141,34 @@ async function postAppleNotification(body: unknown): Promise<Response> {
   });
 }
 
-beforeAll(async () => {
-  const { default: subscriptionRouter } = await import("../routes/subscription") as {
-    default: Router;
+async function postGooglePlayNotification(
+  body: unknown,
+  authorization = "Bearer google-push-token",
+): Promise<Response> {
+  return fetch(`${baseUrl}/subscription/google-play/notifications`, {
+    method: "POST",
+    headers: {
+      Authorization: authorization,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+function googlePlayNotification(data: object, messageId = "google-message-1") {
+  return {
+    message: {
+      messageId,
+      data: Buffer.from(JSON.stringify(data)).toString("base64"),
+    },
   };
+}
+
+beforeAll(async () => {
+  const { default: subscriptionRouter } =
+    (await import("../routes/subscription")) as {
+      default: Router;
+    };
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
@@ -137,25 +178,30 @@ beforeAll(async () => {
   app.use(subscriptionRouter);
 
   await new Promise<void>((resolve, reject) => {
-    server = app.listen(0, "127.0.0.1", (error?: Error) => error ? reject(error) : resolve());
+    server = app.listen(0, "127.0.0.1", (error?: Error) =>
+      error ? reject(error) : resolve(),
+    );
   });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve());
+    server.close((error) => (error ? reject(error) : resolve()));
   });
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.isGoogleConfigured.mockReturnValue(true);
+  mocks.isGooglePlayServerNotificationsConfigured.mockReturnValue(true);
   mocks.isAppleServerNotificationsConfigured.mockReturnValue(true);
   mocks.selectChain.limit.mockResolvedValue([]);
   mocks.selectChain.for.mockResolvedValue([]);
   mocks.updateChain.returning.mockResolvedValue([{ id: 42, tier: "premium" }]);
-  mocks.insertChain.returning.mockResolvedValue([{ notificationUuid: "apple-notification-1" }]);
+  mocks.insertChain.returning.mockResolvedValue([
+    { notificationUuid: "apple-notification-1" },
+  ]);
   mocks.validateGooglePurchase.mockResolvedValue({
     valid: true,
     expiresAt: new Date("2030-01-01T00:00:00.000Z"),
@@ -172,6 +218,9 @@ beforeEach(() => {
     notificationType: "REFUND",
     originalTransactionId: "apple-original-transaction",
     transactionId: "apple-transaction-1",
+  });
+  mocks.verifyGooglePlayPushIdentity.mockResolvedValue({
+    email: "pubsub@project.iam.gserviceaccount.com",
   });
 });
 
@@ -190,19 +239,25 @@ describe("Android subscription verification", () => {
   it.each([
     ["expired", { valid: false, reason: "Subscription has expired" }],
     ["pending", { valid: false, reason: "Subscription is not active" }],
-    ["wrong product", { valid: false, reason: "Purchase token is not for this product" }],
-  ])("does not upgrade when Google reports a %s purchase", async (_name, result) => {
-    mocks.validateGooglePurchase.mockResolvedValue(result);
+    [
+      "wrong product",
+      { valid: false, reason: "Purchase token is not for this product" },
+    ],
+  ])(
+    "does not upgrade when Google reports a %s purchase",
+    async (_name, result) => {
+      mocks.validateGooglePurchase.mockResolvedValue(result);
 
-    const response = await post("/subscription/iap/verify", {
-      platform: "android",
-      productId: "prediqsai_pro_monthly",
-      purchaseToken: "invalid-play-token",
-    });
+      const response = await post("/subscription/iap/verify", {
+        platform: "android",
+        productId: "prediqsai_pro_monthly",
+        purchaseToken: "invalid-play-token",
+      });
 
-    expect(response.status).toBe(400);
-    expect(mocks.updateChain.set).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(400);
+      expect(mocks.updateChain.set).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects a token already linked to another account without upgrading the requester", async () => {
     mocks.selectChain.limit.mockResolvedValue([{ id: 99 }]);
@@ -221,10 +276,12 @@ describe("Android subscription verification", () => {
   });
 
   it("returns the account-linking conflict when a simultaneous token claim hits the unique constraint", async () => {
-    mocks.updateChain.returning.mockRejectedValue(Object.assign(
-      new Error("duplicate key value violates unique constraint"),
-      { code: "23505", constraint: "users_iap_purchase_token_unique" },
-    ));
+    mocks.updateChain.returning.mockRejectedValue(
+      Object.assign(
+        new Error("duplicate key value violates unique constraint"),
+        { code: "23505", constraint: "users_iap_purchase_token_unique" },
+      ),
+    );
 
     const response = await post("/subscription/iap/verify", {
       platform: "android",
@@ -247,28 +304,38 @@ describe("Android subscription verification", () => {
 
     const response = await post("/subscription/iap/restore", {
       platform: "android",
-      purchases: [{
-        productId: "prediqsai_pro_monthly",
-        purchaseToken: "pending-play-token",
-      }],
+      purchases: [
+        {
+          productId: "prediqsai_pro_monthly",
+          purchaseToken: "pending-play-token",
+        },
+      ],
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ tier: "free", restored: false });
+    await expect(response.json()).resolves.toEqual({
+      tier: "free",
+      restored: false,
+    });
     expect(mocks.updateChain.set).not.toHaveBeenCalled();
   });
 
   it("restores an Android purchase using only the supported payload fields", async () => {
     const response = await post("/subscription/iap/restore", {
       platform: "android",
-      purchases: [{
-        productId: "prediqsai_pro_monthly",
-        purchaseToken: "active-play-token",
-      }],
+      purchases: [
+        {
+          productId: "prediqsai_pro_monthly",
+          purchaseToken: "active-play-token",
+        },
+      ],
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+    await expect(response.json()).resolves.toEqual({
+      tier: "premium",
+      restored: true,
+    });
     expect(mocks.validateGooglePurchase).toHaveBeenCalledWith(
       "active-play-token",
       "prediqsai_pro_monthly",
@@ -279,14 +346,19 @@ describe("Android subscription verification", () => {
   it("restores an iOS purchase using only the supported payload fields", async () => {
     const response = await post("/subscription/iap/restore", {
       platform: "ios",
-      purchases: [{
-        productId: "prediqsai_pro_monthly",
-        transactionReceipt: "base64-app-receipt",
-      }],
+      purchases: [
+        {
+          productId: "prediqsai_pro_monthly",
+          transactionReceipt: "base64-app-receipt",
+        },
+      ],
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+    await expect(response.json()).resolves.toEqual({
+      tier: "premium",
+      restored: true,
+    });
     expect(mocks.validateAppleReceipt).toHaveBeenCalledWith(
       "base64-app-receipt",
       "prediqsai_pro_monthly",
@@ -305,10 +377,12 @@ describe("Android subscription verification", () => {
       "base64-app-receipt",
       "prediqsai_pro_monthly",
     );
-    expect(mocks.updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-      iapOriginalTransactionId: "apple-original-transaction",
-      iapPlatform: "ios",
-    }));
+    expect(mocks.updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iapOriginalTransactionId: "apple-original-transaction",
+        iapPlatform: "ios",
+      }),
+    );
   });
 
   it("requires receiptData for iOS purchase verification", async () => {
@@ -341,15 +415,20 @@ describe("Android subscription verification", () => {
   it("accepts and ignores legacy metadata from a previously released Android client", async () => {
     const response = await post("/subscription/iap/restore", {
       platform: "android",
-      purchases: [{
-        productId: "prediqsai_pro_monthly",
-        purchaseToken: "active-play-token",
-        transactionId: "ignored-client-transaction-id",
-      }],
+      purchases: [
+        {
+          productId: "prediqsai_pro_monthly",
+          purchaseToken: "active-play-token",
+          transactionId: "ignored-client-transaction-id",
+        },
+      ],
     });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+    await expect(response.json()).resolves.toEqual({
+      tier: "premium",
+      restored: true,
+    });
     expect(mocks.validateGooglePurchase).toHaveBeenCalledWith(
       "active-play-token",
       "prediqsai_pro_monthly",
@@ -363,7 +442,9 @@ describe("App Store Server Notifications", () => {
       throw new Error("invalid signature");
     });
 
-    const response = await postAppleNotification({ signedPayload: "forged-jws" });
+    const response = await postAppleNotification({
+      signedPayload: "forged-jws",
+    });
 
     expect(response.status).toBe(400);
     expect(mocks.transaction).not.toHaveBeenCalled();
@@ -379,7 +460,9 @@ describe("App Store Server Notifications", () => {
         transactionId: "apple-transaction-1",
       });
 
-      const response = await postAppleNotification({ signedPayload: "apple-signed-jws" });
+      const response = await postAppleNotification({
+        signedPayload: "apple-signed-jws",
+      });
 
       expect(response.status).toBe(200);
       await expect(response.json()).resolves.toEqual({ received: true });
@@ -389,18 +472,132 @@ describe("App Store Server Notifications", () => {
         originalTransactionId: "apple-original-transaction",
         transactionId: "apple-transaction-1",
       });
-      expect(mocks.updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
-        tier: "free",
-        iapOriginalTransactionId: null,
-        iapExpiresAt: null,
-      }));
+      expect(mocks.updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tier: "free",
+          iapOriginalTransactionId: null,
+          iapExpiresAt: null,
+        }),
+      );
     },
   );
 
   it("does not apply a duplicate Apple notification twice", async () => {
     mocks.insertChain.returning.mockResolvedValue([]);
 
-    const response = await postAppleNotification({ signedPayload: "duplicate-apple-jws" });
+    const response = await postAppleNotification({
+      signedPayload: "duplicate-apple-jws",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateChain.set).not.toHaveBeenCalled();
+  });
+});
+
+describe("Google Play Real-time Developer Notifications", () => {
+  it("rejects an unauthenticated Pub/Sub push before any database operation", async () => {
+    mocks.verifyGooglePlayPushIdentity.mockImplementation(() => {
+      throw new Error("invalid OIDC token");
+    });
+
+    const response = await postGooglePlayNotification(
+      googlePlayNotification({
+        packageName: "com.prediqsai.app",
+        subscriptionNotification: {
+          notificationType: 12,
+          purchaseToken: "revoked-play-token",
+          subscriptionId: "prediqsai_pro_monthly",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["revocation", 12],
+    ["expiration", 13],
+  ])(
+    "removes the matching Android entitlement after a verified %s",
+    async (_name, notificationType) => {
+      const response = await postGooglePlayNotification(
+        googlePlayNotification(
+          {
+            packageName: "com.prediqsai.app",
+            subscriptionNotification: {
+              notificationType,
+              purchaseToken: "ending-play-token",
+              subscriptionId: "prediqsai_pro_monthly",
+            },
+          },
+          `google-message-${notificationType}`,
+        ),
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ received: true });
+      expect(mocks.insertChain.values).toHaveBeenCalledWith({
+        messageId: `google-message-${notificationType}`,
+        notificationType,
+        purchaseToken: "ending-play-token",
+      });
+      expect(mocks.updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tier: "free",
+          iapPurchaseToken: null,
+          iapPlatform: null,
+          iapExpiresAt: null,
+        }),
+      );
+    },
+  );
+
+  it("removes the matching Android entitlement after a verified refund", async () => {
+    const response = await postGooglePlayNotification(
+      googlePlayNotification(
+        {
+          packageName: "com.prediqsai.app",
+          voidedPurchaseNotification: {
+            purchaseToken: "refunded-play-token",
+            productType: 2,
+            refundType: 1,
+          },
+        },
+        "google-refund-message",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.insertChain.values).toHaveBeenCalledWith({
+      messageId: "google-refund-message",
+      notificationType: -1,
+      purchaseToken: "refunded-play-token",
+    });
+    expect(mocks.updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tier: "free",
+        iapPurchaseToken: null,
+      }),
+    );
+  });
+
+  it("does not apply a duplicate Google Play notification twice", async () => {
+    mocks.insertChain.returning.mockResolvedValue([]);
+
+    const response = await postGooglePlayNotification(
+      googlePlayNotification(
+        {
+          packageName: "com.prediqsai.app",
+          subscriptionNotification: {
+            notificationType: 12,
+            purchaseToken: "duplicate-play-token",
+            subscriptionId: "prediqsai_pro_monthly",
+          },
+        },
+        "duplicate-google-message",
+      ),
+    );
 
     expect(response.status).toBe(200);
     expect(mocks.updateChain.set).not.toHaveBeenCalled();
