@@ -35,6 +35,8 @@ describe("isolated database schema runner", () => {
   it("removes its temporary schema after an integration-test failure", async () => {
     const result = await runFailingIsolatedSuite();
     expect(result.code).not.toBe(0);
+    expect(result.output).toContain("Disposable schema provisioned and verified.");
+    expect(result.output).not.toContain("cannot drop schema");
 
     const schemaName = result.output.match(/ISOLATED_TEST_SCHEMA=(integration_test_[a-f0-9]+)/)?.[1];
     expect(schemaName).toBeDefined();
