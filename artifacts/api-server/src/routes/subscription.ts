@@ -229,28 +229,27 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
 
 // ─── IAP: Restore purchases ──────────────────────────────────────────────────
 
-const restoreIAPSchema = z.object({
-  platform: z.enum(["ios", "android"]),
-  purchases: z.array(
-    z.object({
-      productId: z.string(),
-      purchaseToken: z.string().optional(),
-      transactionReceipt: z.string().optional(),
-    }),
-  ),
-}).superRefine((input, context) => {
-  if (input.platform === "android") {
-    input.purchases.forEach((purchase, index) => {
-      if (!purchase.purchaseToken) {
-        context.addIssue({
-          code: "custom",
-          message: "purchaseToken is required for Android purchases",
-          path: ["purchases", index, "purchaseToken"],
-        });
-      }
-    });
-  }
-});
+const restoreIAPSchema = z.discriminatedUnion("platform", [
+  z.object({
+    platform: z.literal("android"),
+    purchases: z.array(z.object({
+      productId: z.string().min(1).max(255),
+      purchaseToken: z.string().min(1).max(4096),
+      // Accepted only so already-released clients can restore after an API update.
+      transactionId: z.string().max(255).optional(),
+      planMonths: z.union([z.literal(1), z.literal(6), z.literal(12)]).optional(),
+    }).strict()),
+  }).strict(),
+  z.object({
+    platform: z.literal("ios"),
+    purchases: z.array(z.object({
+      productId: z.string().min(1).max(255),
+      transactionReceipt: z.string().min(1).max(100_000),
+      transactionId: z.string().max(255).optional(),
+      planMonths: z.union([z.literal(1), z.literal(6), z.literal(12)]).optional(),
+    }).strict()),
+  }).strict(),
+]);
 
 router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   const body = restoreIAPSchema.safeParse(req.body);
@@ -272,11 +271,13 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   let sawNotConfigured = false;
 
   for (const purchase of candidates) {
+    const purchaseToken = "purchaseToken" in purchase ? purchase.purchaseToken : undefined;
+    const transactionReceipt = "transactionReceipt" in purchase ? purchase.transactionReceipt : undefined;
     const result = await validateWithStore({
       platform,
       productId: purchase.productId,
-      purchaseToken: purchase.purchaseToken,
-      transactionReceipt: purchase.transactionReceipt,
+      purchaseToken,
+      transactionReceipt,
     });
     if (result.reason === "not_configured") {
       sawNotConfigured = true;
@@ -287,11 +288,11 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
         const [tokenOwner] = await db
           .select({ id: users.id })
           .from(users)
-          .where(and(eq(users.iapPurchaseToken, purchase.purchaseToken!), ne(users.id, req.userId!)))
+          .where(and(eq(users.iapPurchaseToken, purchaseToken!), ne(users.id, req.userId!)))
           .limit(1);
         if (tokenOwner) continue;
       }
-      confirmed = { result, purchaseToken: purchase.purchaseToken };
+      confirmed = { result, purchaseToken };
       break;
     }
   }

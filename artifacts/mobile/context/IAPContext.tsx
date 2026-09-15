@@ -5,6 +5,7 @@ import type { Purchase, PurchaseError, ProductSubscription } from "react-native-
 
 import { useAuth } from "./AuthContext";
 import { api } from "@/lib/api";
+import { buildIAPRestoreRequest } from "@/lib/iapRestore";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -79,15 +80,6 @@ export interface ResolvedTier extends TierDef {
   offerToken?: string;
   /** True when this plan can actually be purchased on the current platform. */
   available: boolean;
-}
-
-// Map a base-plan id returned on a Purchase back to its access duration. Any id
-// that isn't one of the named long plans is treated as the monthly base plan.
-function monthsFromBasePlanId(id?: string | null): 1 | 6 | 12 | null {
-  if (!id) return null;
-  if (id === SEMIANNUAL_BASE_PLAN_ID) return 6;
-  if (id === ANNUAL_BASE_PLAN_ID) return 12;
-  return 1;
 }
 
 // ─── Environment detection ────────────────────────────────────────────────────
@@ -387,18 +379,17 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const purchases = await iap.getAvailablePurchases();
-
-      const result = await api.subscription.restoreIAPPurchases(token, {
-        platform: Platform.OS === "ios" ? "ios" : "android",
-        purchases: (purchases ?? []).map((p: Purchase) => ({
-          productId: p.productId,
-          transactionId: p.id,
-          purchaseToken: p.purchaseToken ?? undefined,
-          transactionReceipt:
-            (p as Purchase & { transactionReceipt?: string }).transactionReceipt ?? undefined,
-          planMonths: monthsFromBasePlanId(p.currentPlanId) ?? undefined,
-        })),
-      });
+      const iosTransactionReceipt = Platform.OS === "ios" && iap.getReceiptDataIOS
+        ? await iap.getReceiptDataIOS()
+        : undefined;
+      const result = await api.subscription.restoreIAPPurchases(
+        token,
+        buildIAPRestoreRequest(
+          Platform.OS === "ios" ? "ios" : "android",
+          purchases ?? [],
+          iosTransactionReceipt,
+        ),
+      );
 
       await refreshUser();
 

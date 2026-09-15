@@ -362,6 +362,16 @@ export interface SetupVar {
   steps: string[];
 }
 
+export type IAPRestoreRequest =
+  | {
+      platform: "android";
+      purchases: Array<{ productId: string; purchaseToken: string }>;
+    }
+  | {
+      platform: "ios";
+      purchases: Array<{ productId: string; transactionReceipt: string }>;
+    };
+
 export interface SoccerFixture {
   id: number;
   leagueId: number;
@@ -891,15 +901,7 @@ export const api = {
       ),
     restoreIAPPurchases: (
       token: string,
-      data: {
-        platform: "ios" | "android";
-        purchases: Array<{
-          productId: string;
-          transactionId: string;
-          purchaseToken?: string;
-          planMonths?: 1 | 6 | 12;
-        }>;
-      },
+      data: IAPRestoreRequest,
     ) =>
       apiFetch<{ tier: string; restored: boolean }>(
         "/subscription/iap/restore",

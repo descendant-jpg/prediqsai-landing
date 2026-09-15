@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
   return {
     selectChain,
     updateChain,
+    validateAppleReceipt: vi.fn(),
     validateGooglePurchase: vi.fn(),
     isGoogleConfigured: vi.fn(() => true),
   };
@@ -53,7 +54,7 @@ vi.mock("@workspace/db", () => ({
 vi.mock("../services/iap-validation", () => ({
   isAppleConfigured: vi.fn(() => true),
   isGoogleConfigured: mocks.isGoogleConfigured,
-  validateAppleReceipt: vi.fn(),
+  validateAppleReceipt: mocks.validateAppleReceipt,
   validateGooglePurchase: mocks.validateGooglePurchase,
 }));
 
@@ -108,6 +109,11 @@ beforeEach(() => {
     valid: true,
     expiresAt: new Date("2030-01-01T00:00:00.000Z"),
     transactionId: "GPA.store-confirmed",
+  });
+  mocks.validateAppleReceipt.mockResolvedValue({
+    valid: true,
+    expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+    transactionId: "apple-store-confirmed",
   });
 });
 
@@ -192,5 +198,57 @@ describe("Android subscription verification", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ tier: "free", restored: false });
     expect(mocks.updateChain.set).not.toHaveBeenCalled();
+  });
+
+  it("restores an Android purchase using only the supported payload fields", async () => {
+    const response = await post("/subscription/iap/restore", {
+      platform: "android",
+      purchases: [{
+        productId: "prediqsai_pro_monthly",
+        purchaseToken: "active-play-token",
+      }],
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+    expect(mocks.validateGooglePurchase).toHaveBeenCalledWith(
+      "active-play-token",
+      "prediqsai_pro_monthly",
+    );
+  });
+
+  it("restores an iOS purchase using only the supported payload fields", async () => {
+    const response = await post("/subscription/iap/restore", {
+      platform: "ios",
+      purchases: [{
+        productId: "prediqsai_pro_monthly",
+        transactionReceipt: "base64-app-receipt",
+      }],
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+    expect(mocks.validateAppleReceipt).toHaveBeenCalledWith(
+      "base64-app-receipt",
+      "prediqsai_pro_monthly",
+    );
+  });
+
+  it("accepts and ignores legacy metadata from a previously released Android client", async () => {
+    const response = await post("/subscription/iap/restore", {
+      platform: "android",
+      purchases: [{
+        productId: "prediqsai_pro_monthly",
+        purchaseToken: "active-play-token",
+        transactionId: "ignored-client-transaction-id",
+      }],
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+    expect(mocks.validateGooglePurchase).toHaveBeenCalledWith(
+      "active-play-token",
+      "prediqsai_pro_monthly",
+    );
   });
 });
