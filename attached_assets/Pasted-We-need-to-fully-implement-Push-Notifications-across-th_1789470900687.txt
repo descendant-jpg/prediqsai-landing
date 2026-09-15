@@ -1,0 +1,32 @@
+We need to fully implement Push Notifications across the `prediqsai-landing` repository. The frontend already has a beautiful, detailed "Notifications" settings UI (covering AI Pick Alerts, Arbitrage Alerts, Live Arb Alerts, Match Reminders, +EV Alerts, and Quiet Hours). Do not destroy or replace this UI. Your job is to wire it up to a functional Expo Push Notification pipeline.
+
+Please execute the following implementation plan:
+
+1. Code Audit (Discovery Phase)
+- Locate the existing Notifications settings screen in `artifacts/mobile` (look for the toggles mentioned above).
+- Audit the `artifacts/api-server` to see how match grading, arbitrage scanning, and AI pick generation are currently triggered (e.g., cron jobs, polling, or webhooks).
+
+2. Database Schema Update (Drizzle ORM)
+- Update the `users` table to include two new columns:
+  - `expo_push_token` (varchar/text, nullable).
+  - `notification_preferences` (jsonb, nullable) to store the exact toggle states from the mobile UI, including Quiet Hours configuration.
+
+3. Backend Push Dispatcher & API Integration
+- Install `expo-server-sdk` on the backend.
+- Create a dedicated Notification Service utility that takes `(userId, notificationType, title, body, data/deepLink)`.
+- This utility MUST respect the user's `notification_preferences`:
+  - Check if the specific `notificationType` toggle is enabled.
+  - Check the user's local timezone against the "Quiet Hours" setting. Do not send if they are in quiet hours.
+- Create a new API route (e.g., `PUT /api/user/notifications`) that allows the mobile app to sync its `expo_push_token` and preferences object.
+
+4. Event Hooks (The "When")
+- Based on your audit in Step 1, inject the Notification Service into the existing backend workflows. 
+- Example: When the Arb Scanner detects an edge > 2%, trigger the dispatcher for users with "Arbitrage Alerts" turned on.
+- If a cron job scheduler doesn't exist for "Match Reminders" (30-minute warning), implement a lightweight cron schedule (e.g., using `node-cron`) to poll upcoming favorited/relevant matches and dispatch alerts.
+
+5. Frontend Wire-Up (React Native)
+- Use `expo-notifications` in the mobile app to request permission on startup or login.
+- Retrieve the `ExpoPushToken`.
+- Wire the existing Notifications settings UI state to the new `PUT /api/user/notifications` backend endpoint so toggling a switch actually updates the database.
+
+Please perform the audit, implement the end-to-end pipeline, ensure type safety (`pnpm run typecheck`), and push directly to `prediqsai-landing`. Let me know if you need to add any new environment variables for the cron jobs or push services.
