@@ -1,10 +1,11 @@
-import { pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { real, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 import { affiliatePartners } from "./affiliatePartners";
+import { table } from "./table";
 
-export const affiliatePayouts = pgTable("affiliate_payouts", {
+export const affiliatePayouts = table("affiliate_payouts", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   partnerId: text("partner_id").references(() => affiliatePartners.id, { onDelete: "cascade" }),
   amount: real("amount").notNull(),

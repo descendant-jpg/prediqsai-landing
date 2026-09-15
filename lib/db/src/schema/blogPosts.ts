@@ -1,8 +1,10 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const blogPosts = pgTable("blog_posts", {
+import { table } from "./table";
+
+export const blogPosts = table("blog_posts", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),

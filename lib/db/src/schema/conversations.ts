@@ -1,8 +1,10 @@
-import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const conversations = pgTable("conversations", {
+import { table } from "./table";
+
+export const conversations = table("conversations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

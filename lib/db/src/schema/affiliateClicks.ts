@@ -1,11 +1,12 @@
-import { boolean, integer, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, real, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 import { affiliatePartners } from "./affiliatePartners";
+import { table } from "./table";
 import { users } from "./users";
 
-export const affiliateClicks = pgTable("affiliate_clicks", {
+export const affiliateClicks = table("affiliate_clicks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
   partnerId: text("partner_id").references(() => affiliatePartners.id, { onDelete: "set null" }),

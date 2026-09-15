@@ -1,8 +1,10 @@
-import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const adminLogs = pgTable("admin_logs", {
+import { table } from "./table";
+
+export const adminLogs = table("admin_logs", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
   adminEmail: text("admin_email"),
   action: text("action"),

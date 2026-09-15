@@ -1,10 +1,11 @@
-import { integer, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 import { users } from "./users";
+import { table } from "./table";
 
-export const bankrollEntries = pgTable("bankroll_entries", {
+export const bankrollEntries = table("bankroll_entries", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
     .notNull()

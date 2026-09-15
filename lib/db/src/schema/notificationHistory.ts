@@ -1,8 +1,10 @@
-import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const notificationHistory = pgTable("notification_history", {
+import { table } from "./table";
+
+export const notificationHistory = table("notification_history", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
   message: text("message").notNull(),

@@ -1,8 +1,10 @@
-import { boolean, pgTable, real, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, real, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const affiliatePartners = pgTable("affiliate_partners", {
+import { table } from "./table";
+
+export const affiliatePartners = table("affiliate_partners", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   bookName: text("book_name").notNull(),
   logo: text("logo"),

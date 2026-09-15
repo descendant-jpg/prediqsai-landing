@@ -1,8 +1,10 @@
-import { boolean, integer, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const leaderboard = pgTable("leaderboard", {
+import { table } from "./table";
+
+export const leaderboard = table("leaderboard", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   displayName: text("display_name").notNull(),

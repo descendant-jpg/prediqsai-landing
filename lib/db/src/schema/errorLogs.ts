@@ -1,8 +1,10 @@
-import { boolean, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const errorLogs = pgTable("error_logs", {
+import { table } from "./table";
+
+export const errorLogs = table("error_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   errorType: text("error_type").notNull(),
   message: text("message").notNull(),

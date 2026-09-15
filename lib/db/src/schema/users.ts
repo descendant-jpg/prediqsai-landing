@@ -1,8 +1,10 @@
-import { boolean, integer, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const users = pgTable("users", {
+import { table } from "./table";
+
+export const users = table("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),

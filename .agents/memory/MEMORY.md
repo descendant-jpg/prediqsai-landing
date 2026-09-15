@@ -11,3 +11,4 @@
 - [Freemium paywall is server-enforced](freemium-enforcement.md) — redact premium fields + set locked flag in the API; UI blur alone leaks data.
 - [Website-only CMS metadata](website-only-cms-metadata.md) — article category, images, and SEO overrides persist in Markdown front matter when backend schema changes are out of scope.
 - [PostgreSQL race testing](postgres-race-testing.md) — synchronize requests after pre-checks when proving a real unique-index collision through Drizzle.
+- [Disposable Drizzle test schemas](disposable-drizzle-test-schemas.md) — custom-schema test models need a URL-level search_path and provisioning verification; Drizzle Kit has a filtered-schema cleanup quirk.

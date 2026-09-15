@@ -1,6 +1,8 @@
-import { boolean, jsonb, pgTable, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, jsonb, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+
+import { table } from "./table";
 
 export interface SimulationScoreline {
   home: number;
@@ -36,7 +38,7 @@ export interface PublicBacking {
   contrarianNote: string | null;
 }
 
-export const predictions = pgTable("predictions", {
+export const predictions = table("predictions", {
   id: serial("id").primaryKey(),
   sport: text("sport").notNull(),
   league: text("league").notNull(),

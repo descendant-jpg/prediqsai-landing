@@ -47,6 +47,26 @@ async function claimPurchase(userId: number, purchaseToken: string): Promise<Res
 }
 
 beforeAll(async () => {
+  const { rows } = await pool.query<{
+    currentSchema: string;
+    hasUsersTable: boolean;
+  }>(`
+    SELECT
+      current_schema() AS "currentSchema",
+      EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = current_schema()
+          AND table_name = 'users'
+      ) AS "hasUsersTable"
+  `);
+  const isolatedSchema = process.env.DATABASE_SCHEMA;
+  expect(isolatedSchema).toBeDefined();
+  expect(rows[0]).toMatchObject({
+    currentSchema: isolatedSchema,
+    hasUsersTable: true,
+  });
+
   const { default: subscriptionRouter } = await import("../routes/subscription") as {
     default: Router;
   };
@@ -63,6 +83,8 @@ beforeAll(async () => {
   });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
+  // The isolated test schema is created and populated with the current Drizzle
+  // schema by `pnpm run test:integration`.
   // Pause only this test's first update so both requests complete the ownership
   // lookup before PostgreSQL resolves the unique-index race.
   await db.execute(sql`
@@ -92,9 +114,11 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve());
-  });
+  if (server) {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
+  }
   await db.execute(sql`DROP TRIGGER IF EXISTS delay_integration_iap_claim_trigger ON users`);
   await db.execute(sql`DROP FUNCTION IF EXISTS delay_integration_iap_claim()`);
   await pool.end();
