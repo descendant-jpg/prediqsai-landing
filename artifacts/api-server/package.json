@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm run test:unit && pnpm run test:integration",
     "test:unit": "vitest run --exclude src/tests/**/*.integration.test.ts",
-    "test:integration": "node ../../lib/db/scripts/run-with-isolated-schema.mjs pnpm exec vitest run src/tests/subscription-iap.integration.test.ts"
+    "test:integration": "node ../../lib/db/scripts/run-with-isolated-schema.mjs"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",
