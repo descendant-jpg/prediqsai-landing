@@ -1,0 +1,25 @@
+We need to implement a "Recent Premium Wins" showcase in the `prediqsai-landing` repository to drive Premium conversions through FOMO, without adding any new bottom navigation tabs. We will utilize existing real estate on the Dashboard and Picks screens.
+
+Please execute the following full-stack implementation plan:
+
+1. Backend API & Caching (artifacts/api-server)
+- Create a new endpoint: `GET /api/picks/recent-wins`.
+- Write a Drizzle query to fetch the 5-10 most recent predictions where `status = 'won'`, ordered by the highest odds or most recent settlement date. 
+- Implement a lightweight in-memory cache (e.g., 15 to 30-minute TTL) for this endpoint to prevent database spamming when traffic is high.
+- Ensure the payload includes the team names, odds, AI confidence score, and the date won.
+
+2. Frontend: Dashboard Ticker (artifacts/mobile)
+- On the main Dashboard screen (directly below the top stats row: TODAY'S PICKS, WIN RATE, etc., and above "Analyze My Slip"), inject a horizontally scrolling `FlatList` (`showsHorizontalScrollIndicator={false}`).
+- Design sleek, compact "Premium Win" cards for this list (e.g., "🎯 NFL: Steelers ML (+150) ✅").
+- Implement an onPress handler: If the user is NOT Premium, tapping a winning card should trigger a paywall modal/alert stating: "This was a Premium AI Pick. Upgrade to unlock today's high-confidence picks before they start."
+
+3. Frontend: Picks Screen Enhancements (artifacts/mobile)
+- Modify the existing Picks screen UI.
+- Make the `THIS MONTH` stats bar (0W - 0L - 0P | 0% Win) tappable. When pressed, open a Bottom Sheet or Modal displaying an "AI Accuracy Report" (a brief visual breakdown of recent hit rates to build trust).
+- When the user selects the `Won` filter chip, enhance the list view to prominently highlight the return on investment (ROI) and the original AI Confidence score for each won pick.
+
+4. Quality Assurance
+- Do NOT add any new tabs to the bottom navigation.
+- Ensure all new components gracefully handle loading and empty states (e.g., if there are no recent wins yet).
+- Verify `pnpm run typecheck` passes before completing the task.
+- Push directly to `prediqsai-landing`.
