@@ -12,3 +12,4 @@
 - [Website-only CMS metadata](website-only-cms-metadata.md) — article category, images, and SEO overrides persist in Markdown front matter when backend schema changes are out of scope.
 - [PostgreSQL race testing](postgres-race-testing.md) — synchronize requests after pre-checks when proving a real unique-index collision through Drizzle.
 - [Disposable Drizzle test schemas](disposable-drizzle-test-schemas.md) — custom-schema test models need a URL-level search_path and provisioning verification; Drizzle Kit has a filtered-schema cleanup quirk.
+- [Disposable schema stale-run cleanup](disposable-schema-stale-run-cleanup.md) — identify runner-owned schemas with metadata and use advisory locks, not activity views, to avoid deleting a live test run.

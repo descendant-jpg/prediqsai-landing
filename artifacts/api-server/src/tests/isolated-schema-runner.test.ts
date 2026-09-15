@@ -5,6 +5,7 @@ import { pool } from "@workspace/db";
 import { afterAll, describe, expect, it } from "vitest";
 
 const runnerPath = resolve(process.cwd(), "../../lib/db/scripts/run-with-isolated-schema.mjs");
+const schemaMetadataPrefix = "replit-isolated-integration-schema:";
 
 async function runFailingIsolatedSuite(): Promise<{ code: number | null; output: string }> {
   return new Promise((resolveRun, reject) => {
@@ -25,6 +26,16 @@ async function runFailingIsolatedSuite(): Promise<{ code: number | null; output:
     child.once("error", reject);
     child.once("exit", (code) => resolveRun({ code, output }));
   });
+}
+
+function quoteIdentifier(identifier: string) {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+async function createRunnerSchema(schemaName: string, createdAt: Date) {
+  const metadata = `${schemaMetadataPrefix}${JSON.stringify({ createdAt: createdAt.toISOString() })}`;
+  await pool.query(`CREATE SCHEMA ${quoteIdentifier(schemaName)}`);
+  await pool.query(`COMMENT ON SCHEMA ${quoteIdentifier(schemaName)} IS '${metadata.replaceAll("'", "''")}'`);
 }
 
 afterAll(async () => {
@@ -48,5 +59,45 @@ describe("isolated database schema runner", () => {
       [schemaName],
     );
     expect(rows[0]?.exists).toBe(false);
+  }, 30_000);
+
+  it("removes only inactive, runner-stamped schemas older than the safety window", async () => {
+    const staleSchemaName = "integration_test_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const activeSchemaName = "integration_test_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const unmarkedSchemaName = "integration_test_cccccccccccccccccccccccccccccccc";
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const activeClient = await pool.connect();
+
+    try {
+      await createRunnerSchema(staleSchemaName, twoHoursAgo);
+      await createRunnerSchema(activeSchemaName, twoHoursAgo);
+      await pool.query(`CREATE SCHEMA ${quoteIdentifier(unmarkedSchemaName)}`);
+      await activeClient.query("SELECT pg_advisory_lock(hashtext($1))", [
+        `isolated-schema-runner:${activeSchemaName}`,
+      ]);
+
+      const result = await runFailingIsolatedSuite();
+      expect(result.code).not.toBe(0);
+      expect(result.output).toContain(`Removed stale isolated test schema: ${staleSchemaName}`);
+
+      const { rows } = await pool.query<{ schema_name: string }>(
+        `SELECT nspname AS schema_name
+         FROM pg_namespace
+         WHERE nspname = ANY($1::text[])`,
+        [[staleSchemaName, activeSchemaName, unmarkedSchemaName, "public"]],
+      );
+      expect(rows.map((row) => row.schema_name)).not.toContain(staleSchemaName);
+      expect(rows.map((row) => row.schema_name)).toEqual(
+        expect.arrayContaining([activeSchemaName, unmarkedSchemaName, "public"]),
+      );
+    } finally {
+      await activeClient.query("SELECT pg_advisory_unlock(hashtext($1))", [
+        `isolated-schema-runner:${activeSchemaName}`,
+      ]);
+      activeClient.release();
+      await pool.query(`DROP SCHEMA IF EXISTS ${quoteIdentifier(staleSchemaName)} CASCADE`);
+      await pool.query(`DROP SCHEMA IF EXISTS ${quoteIdentifier(activeSchemaName)} CASCADE`);
+      await pool.query(`DROP SCHEMA IF EXISTS ${quoteIdentifier(unmarkedSchemaName)} CASCADE`);
+    }
   }, 30_000);
 });
