@@ -1,0 +1,33 @@
+We are implementing a 100% automated AI blogging pipeline in the `prediqsai-website` (Next.js) repository using the free Google Gemini API. The system will use Vercel Cron Jobs to generate and publish 5 SEO-optimized articles per day directly to our Supabase database.
+
+Please execute this full-stack implementation plan:
+
+1. Database Schema Update (Drizzle ORM / Supabase)
+- Audit the existing schema to locate the table used for the blog (e.g., `posts` or `articles`).
+- Create a new table called `blog_queue` with the following columns:
+  - `id` (uuid, primary key)
+  - `topic` (text, not null)
+  - `status` (varchar, default 'pending' - can be 'pending', 'processing', 'published', 'failed')
+  - `created_at` and `updated_at` timestamps.
+- Generate and apply the migration.
+
+2. API & Gemini SDK Integration
+- Install `@google/generative-ai`.
+- Create a Next.js API route for the cron job: `app/api/cron/generate-blog/route.ts` (or equivalent Pages router path if used).
+- Secure this route by verifying the `Authorization` header matches `Bearer ${process.env.CRON_SECRET}` (Vercel's standard security practice).
+- The route logic must:
+  - Fetch one 'pending' record from `blog_queue`.
+  - Mark it as 'processing'.
+  - Initialize the Gemini SDK (`GEMINI_API_KEY`).
+  - Send a prompt to `gemini-1.5-flash` instructing it to act as an expert sports handicapper and tactical analyst. Output MUST be a structured JSON object containing a `title` (string) and `content` (markdown string, fully SEO-optimized).
+  - Parse the AI response and insert it directly into the live blog table in Supabase.
+  - Update the `blog_queue` record to 'published'.
+
+3. Vercel Cron Configuration
+- Create or update the `vercel.json` file in the root directory.
+- Add a `"crons"` array mapping the path `/api/cron/generate-blog` to run 5 times a day. (e.g., `"schedule": "0 8,11,14,17,20 * * *"`)
+
+4. Topic Management (Admin)
+- Create a secure Next.js API route (`app/api/admin/blog-queue/route.ts`) that accepts an array of strings (topics) and bulk-inserts them into the `blog_queue` table as 'pending'.
+
+Ensure all Next.js server logic properly awaits database calls. Run `pnpm run typecheck`, fix any errors, and push the final code directly to the `prediqsai-website` repository.
