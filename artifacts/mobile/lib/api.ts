@@ -1029,8 +1029,14 @@ export const api = {
   },
 
   notifications: {
-    registerToken: (token: string, pushToken: string) =>
+    registerToken: (token: string, pushToken: string, timeZone?: string) =>
       apiFetch<{ ok: boolean }>("/notifications/register-token", {
+        method: "POST",
+        body: JSON.stringify({ pushToken, timeZone }),
+        token,
+      }),
+    unregisterToken: (token: string, pushToken: string) =>
+      apiFetch<{ ok: boolean }>("/notifications/unregister-token", {
         method: "POST",
         body: JSON.stringify({ pushToken }),
         token,

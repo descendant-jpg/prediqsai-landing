@@ -1,4 +1,4 @@
-import { boolean, integer, real, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, real, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -39,8 +39,12 @@ export const users = table("users", {
   riskProfile: text("risk_profile").notNull().default("balanced"),
   leaderboardOptIn: boolean("leaderboard_opt_in").notNull().default(false),
   // Push notifications
+  // Legacy fields are retained for a safe rolling migration from prior mobile builds.
   pushToken: text("push_token"),
   notificationPrefs: text("notification_prefs"),
+  expoPushToken: text("expo_push_token").unique(),
+  notificationPreferences: jsonb("notification_preferences").$type<Record<string, boolean | string>>(),
+  notificationTimezone: text("notification_timezone"),
   unreadNotificationCount: integer("unread_notification_count").notNull().default(0),
 });
 

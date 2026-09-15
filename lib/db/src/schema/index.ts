@@ -33,3 +33,4 @@ export * from "./affiliatePayouts";
 export * from "./blogPosts";
 export * from "./appStoreServerNotifications";
 export * from "./googlePlayNotifications";
+export * from "./pushNotificationDeliveries";

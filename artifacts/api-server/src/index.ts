@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { initTelegramBot } from "./telegram-bot";
 import { getPredictions, refreshPredictions } from "./services/prediction-engine";
+import { broadcastPushOnce } from "./services/notification-service";
 import { db, users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -39,6 +40,7 @@ import {
 const PREDICTION_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 const CACHE_WARM_DELAY_MS = 60 * 1000;
 const CACHE_REFRESH_INTERVAL_MS = 3 * 60 * 60 * 1000;
+const MATCH_REMINDER_INTERVAL_MS = 5 * 60 * 1000;
 const FOOTBALL_DATA_COMPETITIONS = ["PL", "BL1", "SA", "FL1", "CL"] as const;
 const CORE_ARBITRAGE_SPORTS = [
   "soccer_epl",
@@ -61,7 +63,8 @@ function startPredictionScheduler() {
           return;
         }
         const rows = await refreshPredictions();
-        logger.info({ count: rows.length }, "Boot-time prediction refresh complete (cache was empty)");
+        const alerts = await notifyNewPredictions(rows);
+        logger.info({ count: rows.length, alerts }, "Boot-time prediction refresh complete (cache was empty)");
       })
       .catch((err) => logger.error({ err }, "Prediction warm-up failed"));
   }, 15_000);
@@ -69,9 +72,30 @@ function startPredictionScheduler() {
   // Scheduled background worker: refresh exactly once every 6 hours.
   setInterval(() => {
     refreshPredictions()
-      .then((rows) => logger.info({ count: rows.length }, "Scheduled prediction refresh complete"))
+      .then(async (rows) => {
+        const alerts = await notifyNewPredictions(rows);
+        logger.info({ count: rows.length, alerts }, "Scheduled prediction refresh complete");
+      })
       .catch((err) => logger.error({ err }, "Scheduled prediction refresh failed"));
   }, PREDICTION_REFRESH_INTERVAL_MS);
+}
+
+async function notifyNewPredictions(rows: Awaited<ReturnType<typeof refreshPredictions>>): Promise<number> {
+  let alerts = 0;
+  for (const prediction of rows) {
+    if (prediction.avoidMatch || (prediction.confidence ?? 0) < 75 || !prediction.matchDate) continue;
+    const matchDate = prediction.matchDate.toISOString();
+    alerts += await broadcastPushOnce(
+      `ai:${prediction.sport}:${prediction.homeTeam}:${prediction.awayTeam}:${matchDate}`,
+      {
+        category: "aiPick",
+        title: "New high-confidence AI pick",
+        body: `${prediction.homeTeam} vs ${prediction.awayTeam} is rated ${Math.round(prediction.confidence ?? 0)}%.`,
+        data: { type: "aiPick", sport: prediction.sport, homeTeam: prediction.homeTeam, awayTeam: prediction.awayTeam, matchDate },
+      },
+    );
+  }
+  return alerts;
 }
 
 async function runCacheWarmCycle(coldOnly: boolean) {
@@ -92,12 +116,35 @@ async function runCacheWarmCycle(coldOnly: boolean) {
 
   await run("arbitrage:global", Boolean(process.env.ODDS_API_KEY), async () => {
     if (!coldOnly || getCachedArbitrage("global").cacheStatus === "empty") {
-      await scanByRegion("global", true, CORE_ARBITRAGE_SPORTS);
+      const opportunities = await scanByRegion("global", true, CORE_ARBITRAGE_SPORTS);
+      for (const opportunity of opportunities.filter((item) => item.profitPercent >= 2).slice(0, 5)) {
+        const isLive = new Date(opportunity.commenceTime).getTime() <= Date.now();
+        await broadcastPushOnce(
+          `arb:global:${opportunity.id}`,
+          {
+            category: isLive ? "liveArb" : "arbitrage",
+            title: isLive ? "Live arbitrage opportunity" : "New arbitrage opportunity",
+            body: `${opportunity.homeTeam} vs ${opportunity.awayTeam}: ${opportunity.profitPercent.toFixed(1)}% guaranteed margin.`,
+            data: { type: isLive ? "liveArb" : "arbitrage", opportunityId: opportunity.id, sport: opportunity.sportKey },
+          },
+        );
+      }
     }
   });
   await run("arbitrage:ev:global", Boolean(process.env.ODDS_API_KEY), async () => {
     if (!coldOnly || getCachedEVBets("global").cacheStatus === "empty") {
-      await scanForEVBets("global", true, CORE_ARBITRAGE_SPORTS);
+      const opportunities = await scanForEVBets("global", true, CORE_ARBITRAGE_SPORTS);
+      for (const opportunity of opportunities.filter((item) => item.evPercent >= 3).slice(0, 5)) {
+        await broadcastPushOnce(
+          `ev:global:${opportunity.id}`,
+          {
+            category: "evAlert",
+            title: "New +EV betting opportunity",
+            body: `${opportunity.homeTeam} vs ${opportunity.awayTeam}: ${opportunity.evPercent.toFixed(1)}% expected value.`,
+            data: { type: "evAlert", opportunityId: opportunity.id, sport: opportunity.sportKey },
+          },
+        );
+      }
     }
   });
   await run("arbitrage:middles:global", true, async () => {
@@ -220,6 +267,39 @@ function startCacheWarmer() {
   }, CACHE_REFRESH_INTERVAL_MS);
 }
 
+async function sendMatchReminders() {
+  const { fixtures } = await getTodaysFixtures(undefined, true);
+  const now = Date.now();
+
+  for (const fixture of fixtures
+    .filter((item) => item.leagueTier <= 2)
+    .filter((item) => {
+      const minutesUntilKickoff = (new Date(item.kickoff).getTime() - now) / 60_000;
+      return minutesUntilKickoff >= 20 && minutesUntilKickoff <= 40;
+    })
+    .slice(0, 5)) {
+    await broadcastPushOnce(
+      `reminder:${fixture.id}`,
+      {
+        category: "matchReminder",
+        title: "Match starts soon",
+        body: `${fixture.homeTeam} vs ${fixture.awayTeam} kicks off in about 30 minutes.`,
+        data: { type: "matchReminder", fixtureId: fixture.id, kickoff: fixture.kickoff },
+      },
+      2 * 60 * 60 * 1000,
+    );
+  }
+}
+
+function startMatchReminderScheduler() {
+  setTimeout(() => {
+    void sendMatchReminders().catch((err) => logger.error({ err }, "Match reminder check failed"));
+  }, 2 * 60 * 1000);
+  setInterval(() => {
+    void sendMatchReminders().catch((err) => logger.error({ err }, "Match reminder check failed"));
+  }, MATCH_REMINDER_INTERVAL_MS);
+}
+
 async function autoBootstrapAdmin() {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) return;
@@ -262,4 +342,5 @@ app.listen(port, (err) => {
   initTelegramBot();
   startPredictionScheduler();
   startCacheWarmer();
+  startMatchReminderScheduler();
 });

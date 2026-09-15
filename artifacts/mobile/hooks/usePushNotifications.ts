@@ -66,7 +66,8 @@ export async function registerForPushNotificationsAsync(
       projectId: "14d66951-a9a8-4e25-b5b8-7c80e517285d",
     });
     const token = tokenData.data;
-    await api.notifications.registerToken(authToken, token);
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await api.notifications.registerToken(authToken, token, timeZone);
     return { status: "granted", token };
   } catch (err) {
     return {
@@ -84,11 +85,15 @@ export function usePushNotifications(authToken: string | null) {
 
   useEffect(() => {
     if (!authToken) return;
+    let registeredToken: string | null = null;
 
     // Register push token (native only)
     if (Platform.OS !== "web") {
       registerForPushNotificationsAsync(authToken).then((result) => {
-        if (result.status === "granted") setPushToken(result.token);
+        if (result.status === "granted") {
+          registeredToken = result.token;
+          setPushToken(result.token);
+        }
       });
     }
 
@@ -112,6 +117,9 @@ export function usePushNotifications(authToken: string | null) {
     return () => {
       notifListener.current?.remove();
       responseListener.current?.remove();
+      if (registeredToken) {
+        void api.notifications.unregisterToken(authToken, registeredToken).catch(() => {});
+      }
     };
   }, [authToken]);
 
