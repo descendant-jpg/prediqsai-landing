@@ -6,13 +6,13 @@ description: How to commit & push to the GitHub remote from this repl (bash bloc
 The `bash` tool sandbox blocks `git push` (and other destructive git ops). To commit + push:
 
 - Use `code_execution` with `execSync` (from `node:child_process`), cwd `/home/runner/workspace`. The `await import("node:child_process")` must be INSIDE an async function whose first statement is `"use impure";` — at top level it fails with "could not load module".
-- Get the token: `const token = (await listConnections('github'))[0].settings.access_token;` (also impure-only; as of 2026-09 `listConnections` was undefined entirely, so the secret fallback below was the working path).
-- If `listConnections('github')` returns 0 connections (it can drop), fall back to the `GITHUB_TOKEN` repl secret: bash `printf '%s' "$GITHUB_TOKEN" > /tmp/.ghtoken` (chmod 600), read it in code_execution, push, then delete the file. Note: the code_execution sandbox does NOT have repl secrets in `process.env`.
+- Use the configured GitHub connection through its proxy when it has the required GitHub scopes. If it does not, the `GITHUB_TOKEN` workspace secret is available inside an impure `code_execution` function as `process.env.GITHUB_TOKEN`; never print it or write it to disk.
 - Remote: `https://x-access-token:${token}@github.com/descendant-jpg/prediqsai-landing.git`
 - Push current branch to main: `git push "${remoteUrl}" HEAD:main`
 - **ALWAYS** `console.log(out.replaceAll(token, '***'))` — never print the raw token.
 - Verify the push by comparing `git rev-parse HEAD` to the remote ref via GitHub API:
   `GET https://api.github.com/repos/descendant-jpg/prediqsai-landing/git/refs/heads/main` → `object.sha`.
+- A token must include GitHub's `workflow` scope to create or update files in `.github/workflows/`. GitHub can accept `git push --dry-run` but reject the actual push without this scope.
 
 ## Two-repo routing
 

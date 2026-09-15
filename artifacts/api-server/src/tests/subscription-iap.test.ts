@@ -26,10 +26,16 @@ const mocks = vi.hoisted(() => {
   };
   updateChain.set.mockReturnValue(updateChain);
   updateChain.where.mockReturnValue(updateChain);
+  const transaction = vi.fn(async (
+    callback: (tx: { update: (...args: unknown[]) => typeof updateChain }) => unknown,
+  ) =>
+    callback({ update: vi.fn(() => updateChain) }),
+  );
 
   return {
     selectChain,
     updateChain,
+    transaction,
     validateAppleReceipt: vi.fn(),
     validateGooglePurchase: vi.fn(),
     isGoogleConfigured: vi.fn(() => true),
@@ -40,6 +46,7 @@ vi.mock("@workspace/db", () => ({
   db: {
     select: vi.fn(() => mocks.selectChain),
     update: vi.fn(() => mocks.updateChain),
+    transaction: mocks.transaction,
   },
   users: {
     id: {},
@@ -215,6 +222,7 @@ describe("Android subscription verification", () => {
       "active-play-token",
       "prediqsai_pro_monthly",
     );
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
   });
 
   it("restores an iOS purchase using only the supported payload fields", async () => {

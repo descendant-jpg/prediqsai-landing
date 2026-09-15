@@ -46,6 +46,23 @@ async function claimPurchase(userId: number, purchaseToken: string): Promise<Res
   });
 }
 
+async function restorePurchase(userId: number, purchaseToken: string): Promise<Response> {
+  return fetch(`${baseUrl}/subscription/iap/restore`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${authToken(userId)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      platform: "android",
+      purchases: [{
+        productId: "prediqsai_pro_monthly",
+        purchaseToken,
+      }],
+    }),
+  });
+}
+
 beforeAll(async () => {
   const { rows } = await pool.query<{
     currentSchema: string;
@@ -197,5 +214,64 @@ describe("Android subscription verification with PostgreSQL", () => {
     expect(tokenOwner).toMatchObject({ tier: "premium", iapPurchaseToken: purchaseToken });
     expect(losingUser).toMatchObject({ tier: "free", iapPurchaseToken: null });
     expect(mocks.validateGooglePurchase).toHaveBeenCalledTimes(2);
+  });
+
+  it("moves a verified Play subscription from an old account to the restoring account", async () => {
+    const marker = crypto.randomUUID();
+    const purchaseToken = `integration-play-restore-${marker}`;
+    const [previousOwner, restoringUser] = await db.insert(users).values([
+      {
+        email: `iap-restore-old-${marker}@example.test`,
+        passwordHash: "test-password-hash",
+        username: `iap-restore-old-${marker}`,
+        tier: "premium",
+        iapTransactionId: `GPA.old-${marker}`,
+        iapPurchaseToken: purchaseToken,
+        iapPlatform: "android",
+        iapExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      },
+      {
+        email: `iap-restore-new-${marker}@example.test`,
+        passwordHash: "test-password-hash",
+        username: `iap-restore-new-${marker}`,
+      },
+    ]).returning({ id: users.id });
+    createdUserIds = [previousOwner.id, restoringUser.id];
+    mocks.validateGooglePurchase.mockResolvedValue({
+      valid: true,
+      expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      transactionId: `GPA.restored-${marker}`,
+    });
+
+    const response = await restorePurchase(restoringUser.id, purchaseToken);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+
+    const savedUsers = await db
+      .select({
+        id: users.id,
+        tier: users.tier,
+        iapPurchaseToken: users.iapPurchaseToken,
+        iapTransactionId: users.iapTransactionId,
+        iapPlatform: users.iapPlatform,
+        iapExpiresAt: users.iapExpiresAt,
+      })
+      .from(users)
+      .where(inArray(users.id, createdUserIds));
+
+    expect(savedUsers.find((user) => user.id === previousOwner.id)).toMatchObject({
+      tier: "free",
+      iapPurchaseToken: null,
+      iapTransactionId: null,
+      iapPlatform: null,
+      iapExpiresAt: null,
+    });
+    expect(savedUsers.find((user) => user.id === restoringUser.id)).toMatchObject({
+      tier: "premium",
+      iapPurchaseToken: purchaseToken,
+      iapTransactionId: `GPA.restored-${marker}`,
+      iapPlatform: "android",
+    });
   });
 });

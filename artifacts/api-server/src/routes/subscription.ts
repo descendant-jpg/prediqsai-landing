@@ -284,14 +284,6 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
       break;
     }
     if (result.valid && result.expiresAt) {
-      if (platform === "android") {
-        const [tokenOwner] = await db
-          .select({ id: users.id })
-          .from(users)
-          .where(and(eq(users.iapPurchaseToken, purchaseToken!), ne(users.id, req.userId!)))
-          .limit(1);
-        if (tokenOwner) continue;
-      }
       confirmed = { result, purchaseToken };
       break;
     }
@@ -309,18 +301,42 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
     return;
   }
 
-  const [updated] = await db
-    .update(users)
-    .set({
-      tier: "premium",
-      // Only the store-confirmed transaction ID is persisted — never client input.
-      iapTransactionId: confirmed.result.transactionId ?? null,
-      iapPurchaseToken: platform === "android" ? confirmed.purchaseToken! : null,
-      iapPlatform: platform,
-      iapExpiresAt: confirmed.result.expiresAt!,
+  const restoredSubscription = {
+    tier: "premium",
+    // Only the store-confirmed transaction ID is persisted — never client input.
+    iapTransactionId: confirmed.result.transactionId ?? null,
+    iapPurchaseToken: platform === "android" ? confirmed.purchaseToken! : null,
+    iapPlatform: platform,
+    iapExpiresAt: confirmed.result.expiresAt!,
+  };
+
+  const [updated] = platform === "android"
+    ? await db.transaction(async (tx) => {
+      // A valid Play entitlement follows the purchaser, not an abandoned
+      // PrediQs account. Clear a prior owner before assigning the unique token
+      // to the current user so both changes commit or roll back together.
+      await tx
+        .update(users)
+        .set({
+          tier: "free",
+          iapTransactionId: null,
+          iapPurchaseToken: null,
+          iapPlatform: null,
+          iapExpiresAt: null,
+        })
+        .where(and(eq(users.iapPurchaseToken, confirmed.purchaseToken!), ne(users.id, req.userId!)));
+
+      return tx
+        .update(users)
+        .set(restoredSubscription)
+        .where(eq(users.id, req.userId!))
+        .returning({ id: users.id, tier: users.tier });
     })
-    .where(eq(users.id, req.userId!))
-    .returning({ id: users.id, tier: users.tier });
+    : await db
+      .update(users)
+      .set(restoredSubscription)
+      .where(eq(users.id, req.userId!))
+      .returning({ id: users.id, tier: users.tier });
 
   res.json({ tier: updated.tier, restored: true });
 });
