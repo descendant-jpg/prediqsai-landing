@@ -1,0 +1,63 @@
+name: Database safety
+
+on:
+  pull_request:
+    paths:
+      - "artifacts/api-server/**"
+      - "lib/db/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/database-safety.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "artifacts/api-server/**"
+      - "lib/db/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/database-safety.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Isolated database integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: prediqs_ci
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d prediqs_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # This ephemeral GitHub Actions service is the only database available
+      # to the runner. The runner creates and validates a separate schema
+      # before it provisions tables or starts Vitest.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/prediqs_ci?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run API integration tests in an isolated schema
+        run: pnpm --filter @workspace/api-server run test:integration
