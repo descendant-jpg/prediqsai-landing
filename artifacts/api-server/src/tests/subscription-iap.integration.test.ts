@@ -15,13 +15,17 @@ const testLogger = pino({ enabled: false });
 const mocks = vi.hoisted(() => ({
   validateAppleReceipt: vi.fn(),
   validateGooglePurchase: vi.fn(),
+  verifyAppleServerNotification: vi.fn(),
+  isAppleServerNotificationsConfigured: vi.fn(() => true),
 }));
 
 vi.mock("../services/iap-validation", () => ({
   isAppleConfigured: vi.fn(() => true),
+  isAppleServerNotificationsConfigured: mocks.isAppleServerNotificationsConfigured,
   isGoogleConfigured: vi.fn(() => true),
   validateAppleReceipt: mocks.validateAppleReceipt,
   validateGooglePurchase: mocks.validateGooglePurchase,
+  verifyAppleServerNotification: mocks.verifyAppleServerNotification,
 }));
 
 let server: Server;

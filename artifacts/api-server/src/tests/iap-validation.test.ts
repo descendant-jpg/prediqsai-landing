@@ -184,4 +184,26 @@ describe("validateAppleReceipt", () => {
       reason: "Receipt is not for this app",
     });
   });
+
+  it("rejects a receipt Apple has revoked even when its original expiry is still future-dated", async () => {
+    process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => activeAppleReceipt({
+        latest_receipt_info: [{
+          product_id: "prediqsai_pro_monthly",
+          transaction_id: "2000001234567890",
+          original_transaction_id: "1000001234567890",
+          expires_date_ms: "1893456000000",
+          cancellation_date_ms: "1704067200000",
+        }],
+      }),
+    }));
+    const { validateAppleReceipt } = await import("../services/iap-validation");
+
+    await expect(validateAppleReceipt("revoked-receipt", "prediqsai_pro_monthly")).resolves.toEqual({
+      valid: false,
+      reason: "Subscription has been revoked",
+    });
+  });
 });

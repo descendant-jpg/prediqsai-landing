@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { Environment, SignedDataVerifier } from "@apple/app-store-server-library";
 
 import { logger } from "../lib/logger";
 
@@ -6,6 +7,13 @@ const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
 const APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
 const APPLE_BUNDLE_ID = "com.prediqsai.app";
 const ANDROID_PACKAGE_NAME = process.env.ANDROID_PACKAGE_NAME ?? "com.prediqsai.app";
+
+// Apple's published Root CA G3. App Store Server Notification JWS certificates
+// chain to this root; it is deliberately bundled rather than trusted from x5c.
+const APPLE_ROOT_CA_G3 = Buffer.from(
+  "MIICQzCCAcmgAwIBAgIILcX8iNLFS5UwCgYIKoZIzj0EAwMwZzEbMBkGA1UEAwwSQXBwbGUgUm9vdCBDQSAtIEczMSYwJAYDVQQLDB1BcHBsZSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTETMBEGA1UECgwKQXBwbGUgSW5jLjELMAkGA1UEBhMCVVMwHhcNMTQwNDMwMTgxOTA2WhcNMzkwNDMwMTgxOTA2WjBnMRswGQYDVQQDDBJBcHBsZSBSb290IENBIC0gRzMxJjAkBgNVBAsMHUFwcGxlIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MRMwEQYDVQQKDApBcHBsZSBJbmMuMQswCQYDVQQGEwJVUzB2MBAGByqGSM49AgEGBSuBBAAiA2IABJjpLz1AcqTtkyJygRMc3RCV8cWjTnHcFBbZDuWmBSp3ZHtfTjjTuxxEtX/1H7YyYl3J6YRbTzBPEVoA/VhYDKX1DyxNB0cTddqXl5dvMVztK517IDvYuVTZXpmkOlEKMaNCMEAwHQYDVR0OBBYEFLuw3qFYM4iapIqZ3r6966/ayySrMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMAoGCCqGSM49BAMDA2gAMGUCMQCD6cHEFl4aXTQY2e3v9GwOAEZLuN+yRhHFD/3meoyhpmvOwgPUnPWTxnS4at+qIxUCMG1mihDK1A3UT82NQz60imOlM27jbdoXt2QfyFMm+YhidDkLF1vLUagM6BgD56KyKA==",
+  "base64",
+);
 
 export interface IAPValidationResult {
   valid: boolean;
@@ -27,13 +35,71 @@ export function isGoogleConfigured(): boolean {
   return !!process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 }
 
+export function isAppleServerNotificationsConfigured(): boolean {
+  return Number.isSafeInteger(Number(process.env.APPLE_APP_ID));
+}
+
 // ─── Apple ────────────────────────────────────────────────────────────────────
+
+export interface AppleServerNotification {
+  notificationUUID: string;
+  notificationType: string;
+  originalTransactionId: string;
+  transactionId: string;
+}
+
+/**
+ * Decodes only an Apple-signed notification for this app and its embedded,
+ * independently signed transaction using Apple's verifier, including its
+ * certificate policy and revocation checks.
+ */
+export async function verifyAppleServerNotification(
+  signedPayload: string,
+): Promise<AppleServerNotification> {
+  const appAppleId = Number(process.env.APPLE_APP_ID);
+  if (!Number.isSafeInteger(appAppleId)) {
+    throw new Error("APPLE_APP_ID must be configured to verify production App Store notifications");
+  }
+  const verifier = new SignedDataVerifier(
+    [APPLE_ROOT_CA_G3],
+    true,
+    Environment.PRODUCTION,
+    APPLE_BUNDLE_ID,
+    appAppleId,
+  );
+  const notification = await verifier.verifyAndDecodeNotification(signedPayload);
+  if (
+    typeof notification.notificationUUID !== "string" ||
+    typeof notification.notificationType !== "string" ||
+    typeof notification.data?.signedTransactionInfo !== "string"
+  ) {
+    throw new Error("Apple notification has required fields missing");
+  }
+
+  const transaction = await verifier.verifyAndDecodeTransaction(notification.data.signedTransactionInfo);
+  if (
+    transaction.bundleId !== APPLE_BUNDLE_ID ||
+    transaction.productId !== "prediqsai_pro_monthly" ||
+    typeof transaction.originalTransactionId !== "string" ||
+    typeof transaction.transactionId !== "string"
+  ) {
+    throw new Error("Apple notification is not for this subscription");
+  }
+
+  return {
+    notificationUUID: notification.notificationUUID,
+    notificationType: notification.notificationType,
+    originalTransactionId: transaction.originalTransactionId,
+    transactionId: transaction.transactionId,
+  };
+}
 
 interface AppleLatestReceiptInfo {
   product_id?: string;
   transaction_id?: string;
   original_transaction_id?: string;
   expires_date_ms?: string;
+  cancellation_date_ms?: string;
 }
 
 interface AppleVerifyResponse {
@@ -100,6 +166,9 @@ export async function validateAppleReceipt(
     }
     if (!latest.expiresMs || latest.expiresMs <= now) {
       return { valid: false, reason: "Subscription has expired" };
+    }
+    if (latest.cancellation_date_ms) {
+      return { valid: false, reason: "Subscription has been revoked" };
     }
     if (!latest.original_transaction_id) {
       return { valid: false, reason: "Receipt is missing its original transaction ID" };

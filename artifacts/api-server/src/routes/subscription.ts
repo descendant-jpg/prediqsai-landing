@@ -2,14 +2,20 @@ import { and, eq, ne } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod/v4";
 
-import { db, users } from "@workspace/db";
+import {
+  appStoreServerNotifications,
+  db,
+  users,
+} from "@workspace/db";
 import { getEffectiveTier, normalizeTier } from "../lib/tier";
 import { requireAuth } from "../middleware/auth";
 import {
   isAppleConfigured,
+  isAppleServerNotificationsConfigured,
   isGoogleConfigured,
   validateAppleReceipt,
   validateGooglePurchase,
+  verifyAppleServerNotification,
   type IAPValidationResult,
 } from "../services/iap-validation";
 
@@ -234,9 +240,7 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
   // Expiry and transaction ID come from the store's response, never the client.
   let updated: { id: number; tier: string };
   try {
-    [updated] = await db
-      .update(users)
-      .set({
+    const subscription = {
         tier: "premium",
         // Only the store-confirmed transaction ID is persisted — never client input.
         iapTransactionId: result.transactionId ?? null,
@@ -244,7 +248,10 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
         iapPurchaseToken: platform === "android" ? purchaseToken! : null,
         iapPlatform: platform,
         iapExpiresAt: result.expiresAt,
-      })
+    };
+    [updated] = await db
+      .update(users)
+      .set(subscription)
       .where(eq(users.id, req.userId!))
       .returning({ id: users.id, tier: users.tier });
   } catch (error) {
@@ -383,6 +390,89 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   });
 
   res.json({ tier: updated.tier, restored: true });
+});
+
+// ─── App Store Server Notifications ───────────────────────────────────────────
+
+const ENTITLEMENT_ENDING_APPLE_NOTIFICATIONS = new Set([
+  "EXPIRED",
+  "GRACE_PERIOD_EXPIRED",
+  "REFUND",
+  "REVOKE",
+]);
+
+const appleNotificationSchema = z.object({
+  signedPayload: z.string().min(1).max(100_000),
+}).strict();
+
+/**
+ * App Store Server Notifications V2 endpoint. Apple retries deliveries, so the
+ * notification UUID and account downgrade are committed in one transaction.
+ */
+router.post("/subscription/apple/notifications", async (req, res) => {
+  const body = appleNotificationSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid App Store notification" });
+    return;
+  }
+  if (!isAppleServerNotificationsConfigured()) {
+    req.log.error("APPLE_APP_ID is missing — refusing to process App Store notification");
+    res.status(503).json({ error: "App Store notification verification is unavailable" });
+    return;
+  }
+
+  let notification: Awaited<ReturnType<typeof verifyAppleServerNotification>>;
+  try {
+    notification = await verifyAppleServerNotification(body.data.signedPayload);
+  } catch (error) {
+    req.log.warn({ err: error }, "Rejected unverified App Store notification");
+    res.status(400).json({ error: "Invalid App Store notification" });
+    return;
+  }
+
+  const shouldRemoveEntitlement = ENTITLEMENT_ENDING_APPLE_NOTIFICATIONS.has(
+    notification.notificationType,
+  );
+
+  const processed = await db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .insert(appStoreServerNotifications)
+      .values({
+        notificationUuid: notification.notificationUUID,
+        originalTransactionId: notification.originalTransactionId,
+        transactionId: notification.transactionId,
+        notificationType: notification.notificationType,
+      })
+      .onConflictDoNothing()
+      .returning({ notificationUuid: appStoreServerNotifications.notificationUuid });
+
+    if (!claimed) return false;
+
+    if (shouldRemoveEntitlement) {
+      await tx
+        .update(users)
+        .set({
+          tier: "free",
+          iapTransactionId: null,
+          iapOriginalTransactionId: null,
+          iapPlatform: null,
+          iapExpiresAt: null,
+        })
+        .where(and(
+          eq(users.iapOriginalTransactionId, notification.originalTransactionId),
+          eq(users.iapTransactionId, notification.transactionId),
+          eq(users.iapPlatform, "ios"),
+        ));
+    }
+
+    return true;
+  });
+
+  req.log.info({
+    notificationType: notification.notificationType,
+    processed,
+  }, "Processed App Store notification");
+  res.status(200).json({ received: true });
 });
 
 // ─── Self-service tier change (downgrade only) ───────────────────────────────

@@ -203,6 +203,22 @@ const ENV_VARS: Omit<EnvVarStatus, "configured">[] = [
     ],
   },
   {
+    key: "APPLE_APP_ID",
+    label: "App Store Numeric App ID",
+    critical: false,
+    description: "Numeric Apple App ID used to verify App Store Server Notifications in production",
+    affectsFeatures: "Automatic Premium removal after App Store refunds, revocations, and expirations",
+    howToGet: "In App Store Connect, open the app and copy its Apple ID from App Information",
+    signupUrl: null,
+    hasFree: false,
+    steps: [
+      "Open App Store Connect → Apps → PrediQs AI → App Information",
+      "Copy the numeric Apple ID (not the bundle ID)",
+      "Add it in Replit Secrets as APPLE_APP_ID",
+      "Set the App Store Server Notifications V2 URL to /api/subscription/apple/notifications",
+    ],
+  },
+  {
     key: "GOOGLE_ANALYTICS_ID",
     label: "Google Analytics (App Analytics)",
     critical: false,

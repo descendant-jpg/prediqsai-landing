@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
     from: vi.fn(),
     where: vi.fn(),
     limit: vi.fn(),
+    for: vi.fn(),
   };
   selectChain.from.mockReturnValue(selectChain);
   selectChain.where.mockReturnValue(selectChain);
@@ -26,18 +27,38 @@ const mocks = vi.hoisted(() => {
   };
   updateChain.set.mockReturnValue(updateChain);
   updateChain.where.mockReturnValue(updateChain);
+  const insertChain = {
+    values: vi.fn(),
+    onConflictDoNothing: vi.fn(),
+    onConflictDoUpdate: vi.fn(),
+    returning: vi.fn(),
+  };
+  insertChain.values.mockReturnValue(insertChain);
+  insertChain.onConflictDoNothing.mockReturnValue(insertChain);
+  insertChain.onConflictDoUpdate.mockResolvedValue(undefined);
   const transaction = vi.fn(async (
-    callback: (tx: { update: (...args: unknown[]) => typeof updateChain }) => unknown,
+    callback: (tx: {
+      update: (...args: unknown[]) => typeof updateChain;
+      insert: (...args: unknown[]) => typeof insertChain;
+      select: (...args: unknown[]) => typeof selectChain;
+    }) => unknown,
   ) =>
-    callback({ update: vi.fn(() => updateChain) }),
+    callback({
+      update: vi.fn(() => updateChain),
+      insert: vi.fn(() => insertChain),
+      select: vi.fn(() => selectChain),
+    }),
   );
 
   return {
     selectChain,
     updateChain,
+    insertChain,
     transaction,
     validateAppleReceipt: vi.fn(),
     validateGooglePurchase: vi.fn(),
+    verifyAppleServerNotification: vi.fn(),
+    isAppleServerNotificationsConfigured: vi.fn(() => true),
     isGoogleConfigured: vi.fn(() => true),
   };
 });
@@ -48,6 +69,13 @@ vi.mock("@workspace/db", () => ({
     update: vi.fn(() => mocks.updateChain),
     transaction: mocks.transaction,
   },
+  appStoreServerNotifications: {
+    notificationUuid: {},
+  },
+  appStoreSubscriptionStates: {
+    originalTransactionId: {},
+    revokedAt: {},
+  },
   users: {
     id: {},
     tier: {},
@@ -56,14 +84,18 @@ vi.mock("@workspace/db", () => ({
     iapOriginalTransactionId: {},
     iapPlatform: {},
     iapExpiresAt: {},
+    manualTierOverride: {},
+    freeTrialUntil: {},
   },
 }));
 
 vi.mock("../services/iap-validation", () => ({
   isAppleConfigured: vi.fn(() => true),
+  isAppleServerNotificationsConfigured: mocks.isAppleServerNotificationsConfigured,
   isGoogleConfigured: mocks.isGoogleConfigured,
   validateAppleReceipt: mocks.validateAppleReceipt,
   validateGooglePurchase: mocks.validateGooglePurchase,
+  verifyAppleServerNotification: mocks.verifyAppleServerNotification,
 }));
 
 let server: Server;
@@ -80,6 +112,14 @@ async function post(path: string, body: unknown): Promise<Response> {
       Authorization: `Bearer ${token()}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify(body),
+  });
+}
+
+async function postAppleNotification(body: unknown): Promise<Response> {
+  return fetch(`${baseUrl}/subscription/apple/notifications`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
@@ -111,8 +151,11 @@ afterAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.isGoogleConfigured.mockReturnValue(true);
+  mocks.isAppleServerNotificationsConfigured.mockReturnValue(true);
   mocks.selectChain.limit.mockResolvedValue([]);
+  mocks.selectChain.for.mockResolvedValue([]);
   mocks.updateChain.returning.mockResolvedValue([{ id: 42, tier: "premium" }]);
+  mocks.insertChain.returning.mockResolvedValue([{ notificationUuid: "apple-notification-1" }]);
   mocks.validateGooglePurchase.mockResolvedValue({
     valid: true,
     expiresAt: new Date("2030-01-01T00:00:00.000Z"),
@@ -123,6 +166,12 @@ beforeEach(() => {
     expiresAt: new Date("2030-01-01T00:00:00.000Z"),
     transactionId: "apple-store-confirmed",
     originalTransactionId: "apple-original-transaction",
+  });
+  mocks.verifyAppleServerNotification.mockResolvedValue({
+    notificationUUID: "apple-notification-1",
+    notificationType: "REFUND",
+    originalTransactionId: "apple-original-transaction",
+    transactionId: "apple-transaction-1",
   });
 });
 
@@ -305,5 +354,55 @@ describe("Android subscription verification", () => {
       "active-play-token",
       "prediqsai_pro_monthly",
     );
+  });
+});
+
+describe("App Store Server Notifications", () => {
+  it("rejects an unverified payload before any database operation", async () => {
+    mocks.verifyAppleServerNotification.mockImplementation(() => {
+      throw new Error("invalid signature");
+    });
+
+    const response = await postAppleNotification({ signedPayload: "forged-jws" });
+
+    expect(response.status).toBe(400);
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each(["REFUND", "EXPIRED", "GRACE_PERIOD_EXPIRED", "REVOKE"])(
+    "removes the matching iOS entitlement for a verified %s notification",
+    async (notificationType) => {
+      mocks.verifyAppleServerNotification.mockResolvedValue({
+        notificationUUID: `apple-${notificationType}`,
+        notificationType,
+        originalTransactionId: "apple-original-transaction",
+        transactionId: "apple-transaction-1",
+      });
+
+      const response = await postAppleNotification({ signedPayload: "apple-signed-jws" });
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ received: true });
+      expect(mocks.insertChain.values).toHaveBeenCalledWith({
+        notificationUuid: `apple-${notificationType}`,
+        notificationType,
+        originalTransactionId: "apple-original-transaction",
+        transactionId: "apple-transaction-1",
+      });
+      expect(mocks.updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+        tier: "free",
+        iapOriginalTransactionId: null,
+        iapExpiresAt: null,
+      }));
+    },
+  );
+
+  it("does not apply a duplicate Apple notification twice", async () => {
+    mocks.insertChain.returning.mockResolvedValue([]);
+
+    const response = await postAppleNotification({ signedPayload: "duplicate-apple-jws" });
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateChain.set).not.toHaveBeenCalled();
   });
 });
