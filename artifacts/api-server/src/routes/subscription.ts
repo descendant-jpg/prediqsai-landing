@@ -16,6 +16,28 @@ import {
 const router = Router();
 
 const PRODUCT_ID = "prediqsai_pro_monthly";
+const PURCHASE_TOKEN_ALREADY_LINKED_ERROR =
+  "This Google Play purchase is already linked to another account";
+
+function isPurchaseTokenUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const databaseError = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: unknown;
+  };
+
+  if (
+    databaseError.code === "23505" &&
+    typeof databaseError.constraint === "string" &&
+    databaseError.constraint.includes("iap_purchase_token")
+  ) {
+    return true;
+  }
+
+  return isPurchaseTokenUniqueViolation(databaseError.cause);
+}
 
 const PLANS = {
   free: {
@@ -170,24 +192,37 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
       .limit(1);
     if (tokenOwner) {
       req.log.warn({ userId: req.userId }, "IAP verification rejected — purchase token belongs to another user");
-      res.status(409).json({ error: "This Google Play purchase is already linked to another account" });
+      res.status(409).json({ error: PURCHASE_TOKEN_ALREADY_LINKED_ERROR });
       return;
     }
   }
 
   // Expiry and transaction ID come from the store's response, never the client.
-  const [updated] = await db
-    .update(users)
-    .set({
-      tier: "premium",
-      // Only the store-confirmed transaction ID is persisted — never client input.
-      iapTransactionId: result.transactionId ?? null,
-      iapPurchaseToken: platform === "android" ? purchaseToken! : null,
-      iapPlatform: platform,
-      iapExpiresAt: result.expiresAt,
-    })
-    .where(eq(users.id, req.userId!))
-    .returning({ id: users.id, tier: users.tier });
+  let updated: { id: number; tier: string };
+  try {
+    [updated] = await db
+      .update(users)
+      .set({
+        tier: "premium",
+        // Only the store-confirmed transaction ID is persisted — never client input.
+        iapTransactionId: result.transactionId ?? null,
+        iapPurchaseToken: platform === "android" ? purchaseToken! : null,
+        iapPlatform: platform,
+        iapExpiresAt: result.expiresAt,
+      })
+      .where(eq(users.id, req.userId!))
+      .returning({ id: users.id, tier: users.tier });
+  } catch (error) {
+    if (platform === "android" && isPurchaseTokenUniqueViolation(error)) {
+      req.log.warn(
+        { userId: req.userId },
+        "IAP verification rejected — purchase token was linked to another user during verification",
+      );
+      res.status(409).json({ error: PURCHASE_TOKEN_ALREADY_LINKED_ERROR });
+      return;
+    }
+    throw error;
+  }
 
   res.json({ tier: updated.tier, success: true, expiresAt: result.expiresAt });
 });

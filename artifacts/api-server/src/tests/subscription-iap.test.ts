@@ -156,6 +156,25 @@ describe("Android subscription verification", () => {
     expect(mocks.updateChain.set).not.toHaveBeenCalled();
   });
 
+  it("returns the account-linking conflict when a simultaneous token claim hits the unique constraint", async () => {
+    mocks.updateChain.returning.mockRejectedValue(Object.assign(
+      new Error("duplicate key value violates unique constraint"),
+      { code: "23505", constraint: "users_iap_purchase_token_unique" },
+    ));
+
+    const response = await post("/subscription/iap/verify", {
+      platform: "android",
+      productId: "prediqsai_pro_monthly",
+      purchaseToken: "simultaneously-claimed-play-token",
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "This Google Play purchase is already linked to another account",
+    });
+    expect(mocks.updateChain.returning).toHaveBeenCalledTimes(1);
+  });
+
   it("does not restore premium when every Android candidate fails Google validation", async () => {
     mocks.validateGooglePurchase.mockResolvedValue({
       valid: false,
