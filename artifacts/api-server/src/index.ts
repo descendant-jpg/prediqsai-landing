@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { initTelegramBot } from "./telegram-bot";
 import { getPredictions, refreshPredictions } from "./services/prediction-engine";
 import { broadcastPushOnce } from "./services/notification-service";
+import cron from "node-cron";
 import { db, users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
@@ -14,6 +15,7 @@ import {
   scanForMiddles,
 } from "./services/arbitrage-engine";
 import { getCachedOddsTicker, refreshOddsTicker } from "./services/odds-ticker";
+import { isTopicGeneratorEnabled, runTopicGeneration } from "./services/topic-generator";
 import {
   getLiveFixtures,
   getLiveFixturesCacheMetadata,
@@ -300,6 +302,19 @@ function startMatchReminderScheduler() {
   }, MATCH_REMINDER_INTERVAL_MS);
 }
 
+function startTopicGeneratorScheduler() {
+  if (!isTopicGeneratorEnabled()) {
+    logger.warn("GEMINI_API_KEY not set — AI Editor topic scheduler disabled");
+    return;
+  }
+  // Daily at 01:00 server time. The service never throws, so a failed RSS
+  // fetch or a malformed Gemini response logs and waits for the next run.
+  cron.schedule("0 1 * * *", () => {
+    void runTopicGeneration();
+  });
+  logger.info({ schedule: "0 1 * * *" }, "AI Editor topic scheduler started");
+}
+
 async function autoBootstrapAdmin() {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) return;
@@ -343,4 +358,5 @@ app.listen(port, (err) => {
   startPredictionScheduler();
   startCacheWarmer();
   startMatchReminderScheduler();
+  startTopicGeneratorScheduler();
 });

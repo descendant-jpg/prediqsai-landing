@@ -1,4 +1,5 @@
-import { index, integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { index, integer, text, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 
 import { table } from "./table";
 
@@ -13,6 +14,9 @@ export const blogQueue = table("blog_queue", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("blog_queue_next_item_idx").on(table.status, table.claimedAt, table.createdAt),
+  // Case-insensitive topic uniqueness so the AI Editor cannot enqueue
+  // duplicates, even across concurrent runs or API replicas.
+  uniqueIndex("blog_queue_topic_lower_uidx").on(sql`lower(${table.topic})`),
 ]);
 
 export type BlogQueueItem = typeof blogQueue.$inferSelect;
