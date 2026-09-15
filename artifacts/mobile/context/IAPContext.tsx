@@ -228,22 +228,28 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
         connectedRef.current = true;
 
         purchaseListener.current = iap.purchaseUpdatedListener(async (purchase: Purchase) => {
-          if (!purchase.purchaseToken) return;
-
-          const planMonths =
-            monthsFromBasePlanId(purchase.currentPlanId) ?? selectedMonthsRef.current ?? 1;
-
           try {
-            await api.subscription.verifyIAPPurchase(token, {
-              platform: purchase.platform === "ios" ? "ios" : "android",
-              productId: purchase.productId,
-              transactionId: purchase.id,
-              purchaseToken: purchase.purchaseToken ?? undefined,
-              transactionReceipt:
-                (purchase as Purchase & { transactionReceipt?: string }).transactionReceipt ??
-                undefined,
-              planMonths,
-            });
+            if (Platform.OS === "android") {
+              if (!purchase.purchaseToken) {
+                throw new Error("Google Play did not return a purchase token.");
+              }
+              await api.subscription.verifyIAPPurchase(token, {
+                platform: "android",
+                productId: purchase.productId,
+                purchaseToken: purchase.purchaseToken,
+              });
+            } else {
+              const transactionReceipt =
+                (purchase as Purchase & { transactionReceipt?: string }).transactionReceipt;
+              if (!transactionReceipt) {
+                throw new Error("The App Store did not return a transaction receipt.");
+              }
+              await api.subscription.verifyIAPPurchase(token, {
+                platform: "ios",
+                productId: purchase.productId,
+                transactionReceipt,
+              });
+            }
 
             await iap.finishTransaction({ purchase, isConsumable: false });
             await refreshUser();

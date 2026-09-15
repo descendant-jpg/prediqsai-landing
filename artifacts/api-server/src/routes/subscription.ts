@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod/v4";
 
@@ -87,17 +87,18 @@ router.get("/subscription/status", requireAuth, async (req, res) => {
 
 // ─── IAP: Verify purchase ────────────────────────────────────────────────────
 
-// Allowed access durations (months) — one per base plan: monthly / semi-annual / annual.
-const planMonthsSchema = z.union([z.literal(1), z.literal(6), z.literal(12)]);
-
-const verifyIAPSchema = z.object({
-  platform: z.enum(["ios", "android"]),
-  productId: z.string(),
-  transactionId: z.string(),
-  purchaseToken: z.string().optional(),
-  transactionReceipt: z.string().optional(),
-  planMonths: planMonthsSchema.optional(),
-});
+const verifyIAPSchema = z.discriminatedUnion("platform", [
+  z.object({
+    platform: z.literal("android"),
+    productId: z.string().min(1).max(255),
+    purchaseToken: z.string().min(1).max(4096),
+  }).strict(),
+  z.object({
+    platform: z.literal("ios"),
+    productId: z.string().min(1).max(255),
+    transactionReceipt: z.string().min(1).max(100_000),
+  }).strict(),
+]);
 
 /**
  * Validates a purchase with the relevant store. The tier is upgraded ONLY when
@@ -136,7 +137,9 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     return;
   }
 
-  const { platform, productId, purchaseToken, transactionReceipt } = body.data;
+  const { platform, productId } = body.data;
+  const purchaseToken = platform === "android" ? body.data.purchaseToken : undefined;
+  const transactionReceipt = platform === "ios" ? body.data.transactionReceipt : undefined;
 
   if (productId !== PRODUCT_ID) {
     res.status(400).json({ error: "Invalid product ID" });
@@ -157,6 +160,21 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     return;
   }
 
+  // A verified Google Play token can belong to exactly one PrediQs account.
+  // This blocks token replay against another authenticated user.
+  if (platform === "android") {
+    const [tokenOwner] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.iapPurchaseToken, purchaseToken!), ne(users.id, req.userId!)))
+      .limit(1);
+    if (tokenOwner) {
+      req.log.warn({ userId: req.userId }, "IAP verification rejected — purchase token belongs to another user");
+      res.status(409).json({ error: "This Google Play purchase is already linked to another account" });
+      return;
+    }
+  }
+
   // Expiry and transaction ID come from the store's response, never the client.
   const [updated] = await db
     .update(users)
@@ -164,6 +182,7 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
       tier: "premium",
       // Only the store-confirmed transaction ID is persisted — never client input.
       iapTransactionId: result.transactionId ?? null,
+      iapPurchaseToken: platform === "android" ? purchaseToken! : null,
       iapPlatform: platform,
       iapExpiresAt: result.expiresAt,
     })
@@ -180,12 +199,22 @@ const restoreIAPSchema = z.object({
   purchases: z.array(
     z.object({
       productId: z.string(),
-      transactionId: z.string(),
       purchaseToken: z.string().optional(),
       transactionReceipt: z.string().optional(),
-      planMonths: planMonthsSchema.optional(),
     }),
   ),
+}).superRefine((input, context) => {
+  if (input.platform === "android") {
+    input.purchases.forEach((purchase, index) => {
+      if (!purchase.purchaseToken) {
+        context.addIssue({
+          code: "custom",
+          message: "purchaseToken is required for Android purchases",
+          path: ["purchases", index, "purchaseToken"],
+        });
+      }
+    });
+  }
 });
 
 router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
@@ -204,7 +233,7 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
   }
 
   // Validate each candidate with the store; grant only on explicit confirmation.
-  let confirmed: IAPValidationResult | null = null;
+  let confirmed: { result: IAPValidationResult; purchaseToken?: string } | null = null;
   let sawNotConfigured = false;
 
   for (const purchase of candidates) {
@@ -219,7 +248,15 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
       break;
     }
     if (result.valid && result.expiresAt) {
-      confirmed = result;
+      if (platform === "android") {
+        const [tokenOwner] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.iapPurchaseToken, purchase.purchaseToken!), ne(users.id, req.userId!)))
+          .limit(1);
+        if (tokenOwner) continue;
+      }
+      confirmed = { result, purchaseToken: purchase.purchaseToken };
       break;
     }
   }
@@ -241,9 +278,10 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
     .set({
       tier: "premium",
       // Only the store-confirmed transaction ID is persisted — never client input.
-      iapTransactionId: confirmed.transactionId ?? null,
+      iapTransactionId: confirmed.result.transactionId ?? null,
+      iapPurchaseToken: platform === "android" ? confirmed.purchaseToken! : null,
       iapPlatform: platform,
-      iapExpiresAt: confirmed.expiresAt!,
+      iapExpiresAt: confirmed.result.expiresAt!,
     })
     .where(eq(users.id, req.userId!))
     .returning({ id: users.id, tier: users.tier });

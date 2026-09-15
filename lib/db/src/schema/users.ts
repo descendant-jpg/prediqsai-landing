@@ -19,6 +19,10 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   iapTransactionId: text("iap_transaction_id"),
+  // The store purchase token is a stable subscription identifier. Its unique
+  // constraint prevents the same store entitlement from being claimed by
+  // multiple PrediQs accounts.
+  iapPurchaseToken: text("iap_purchase_token").unique(),
   iapPlatform: text("iap_platform"),
   iapExpiresAt: timestamp("iap_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -42,6 +46,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   stripeCustomerId: true,
   stripeSubscriptionId: true,
   iapTransactionId: true,
+  iapPurchaseToken: true,
   iapPlatform: true,
   iapExpiresAt: true,
   isAdmin: true,

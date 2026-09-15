@@ -1,4 +1,4 @@
-import { GoogleAuth } from "google-auth-library";
+import { google } from "googleapis";
 
 import { logger } from "../lib/logger";
 
@@ -105,16 +105,9 @@ export async function validateAppleReceipt(
 
 // ─── Google ───────────────────────────────────────────────────────────────────
 
-interface GoogleSubscriptionPurchase {
-  expiryTimeMillis?: string;
-  paymentState?: number;
-  orderId?: string;
-  acknowledgementState?: number;
-}
-
 /**
  * Validates an Android subscription purchase via the Google Play Developer API
- * (purchases.subscriptions.get), authenticated with a service account.
+ * (purchases.subscriptionsv2.get), authenticated with a service account.
  */
 export async function validateGooglePurchase(
   purchaseToken: string,
@@ -127,35 +120,46 @@ export async function validateGooglePurchase(
 
   try {
     const credentials = JSON.parse(rawCredentials);
-    const auth = new GoogleAuth({
+    const auth = new google.auth.GoogleAuth({
       credentials,
       scopes: ["https://www.googleapis.com/auth/androidpublisher"],
     });
-    const client = await auth.getClient();
+    const androidPublisher = google.androidpublisher({ version: "v3", auth });
+    const { data: purchase } = await androidPublisher.purchases.subscriptionsv2.get({
+      packageName: ANDROID_PACKAGE_NAME,
+      token: purchaseToken,
+    });
 
-    const url =
-      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/` +
-      `${encodeURIComponent(ANDROID_PACKAGE_NAME)}/purchases/subscriptions/` +
-      `${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
-
-    const res = await client.request<GoogleSubscriptionPurchase>({ url });
-    const purchase = res.data;
-
-    const expiryMs = parseInt(purchase.expiryTimeMillis ?? "0", 10);
-    if (!expiryMs || expiryMs <= Date.now()) {
-      return { valid: false, reason: "Subscription has expired" };
+    // A token is accepted only when Google reports an active entitlement. Pending,
+    // paused, expired, or revoked subscriptions must never grant Premium access.
+    if (
+      purchase.subscriptionState !== "SUBSCRIPTION_STATE_ACTIVE" &&
+      purchase.subscriptionState !== "SUBSCRIPTION_STATE_IN_GRACE_PERIOD"
+    ) {
+      return { valid: false, reason: "Subscription is not active" };
     }
 
-    // paymentState: 0 = pending, 1 = received, 2 = free trial, 3 = deferred.
-    // Grant access for received payments and free trials only.
-    if (purchase.paymentState !== 1 && purchase.paymentState !== 2) {
-      return { valid: false, reason: "Payment is not confirmed by Google" };
+    // Google returns product and expiry per line item. Check the requested product
+    // rather than trusting the client-supplied productId.
+    const matchingLineItem = (purchase.lineItems ?? [])
+      .filter((item) => item.productId === productId)
+      .map((item) => ({
+        ...item,
+        expiryMs: item.expiryTime ? Date.parse(item.expiryTime) : 0,
+      }))
+      .sort((a, b) => b.expiryMs - a.expiryMs)[0];
+
+    if (!matchingLineItem) {
+      return { valid: false, reason: "Purchase token is not for this product" };
+    }
+    if (!matchingLineItem.expiryMs || matchingLineItem.expiryMs <= Date.now()) {
+      return { valid: false, reason: "Subscription has expired" };
     }
 
     return {
       valid: true,
-      expiresAt: new Date(expiryMs),
-      transactionId: purchase.orderId ?? purchaseToken,
+      expiresAt: new Date(matchingLineItem.expiryMs),
+      transactionId: purchase.latestOrderId ?? purchaseToken,
     };
   } catch (err) {
     logger.error({ err }, "Google purchase validation failed");

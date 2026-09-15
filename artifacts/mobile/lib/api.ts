@@ -881,14 +881,9 @@ export const api = {
       }),
     verifyIAPPurchase: (
       token: string,
-      data: {
-        platform: "ios" | "android";
-        productId: string;
-        transactionId: string;
-        purchaseToken?: string;
-        transactionReceipt?: string;
-        planMonths?: 1 | 6 | 12;
-      },
+      data:
+        | { platform: "android"; productId: string; purchaseToken: string }
+        | { platform: "ios"; productId: string; transactionReceipt: string },
     ) =>
       apiFetch<{ tier: string; success: boolean; expiresAt: string }>(
         "/subscription/iap/verify",
