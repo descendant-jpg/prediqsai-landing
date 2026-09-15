@@ -13,13 +13,14 @@ process.env.SESSION_SECRET = TEST_SECRET;
 const testLogger = pino({ enabled: false });
 
 const mocks = vi.hoisted(() => ({
+  validateAppleReceipt: vi.fn(),
   validateGooglePurchase: vi.fn(),
 }));
 
 vi.mock("../services/iap-validation", () => ({
   isAppleConfigured: vi.fn(() => true),
   isGoogleConfigured: vi.fn(() => true),
-  validateAppleReceipt: vi.fn(),
+  validateAppleReceipt: mocks.validateAppleReceipt,
   validateGooglePurchase: mocks.validateGooglePurchase,
 }));
 
@@ -58,6 +59,23 @@ async function restorePurchase(userId: number, purchaseToken: string): Promise<R
       purchases: [{
         productId: "prediqsai_pro_monthly",
         purchaseToken,
+      }],
+    }),
+  });
+}
+
+async function restoreApplePurchase(userId: number, transactionReceipt: string): Promise<Response> {
+  return fetch(`${baseUrl}/subscription/iap/restore`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${authToken(userId)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      platform: "ios",
+      purchases: [{
+        productId: "prediqsai_pro_monthly",
+        transactionReceipt,
       }],
     }),
   });
@@ -272,6 +290,64 @@ describe("Android subscription verification with PostgreSQL", () => {
       iapPurchaseToken: purchaseToken,
       iapTransactionId: `GPA.restored-${marker}`,
       iapPlatform: "android",
+    });
+  });
+
+  it("moves a verified App Store subscription from an old account to the restoring account", async () => {
+    const marker = crypto.randomUUID();
+    const originalTransactionId = `100000${marker.replaceAll("-", "")}`;
+    const [previousOwner, restoringUser] = await db.insert(users).values([
+      {
+        email: `iap-apple-restore-old-${marker}@example.test`,
+        passwordHash: "test-password-hash",
+        username: `iap-apple-restore-old-${marker}`,
+        tier: "premium",
+        iapTransactionId: `200000${marker.replaceAll("-", "")}`,
+        iapOriginalTransactionId: originalTransactionId,
+        iapPlatform: "ios",
+        iapExpiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      },
+      {
+        email: `iap-apple-restore-new-${marker}@example.test`,
+        passwordHash: "test-password-hash",
+        username: `iap-apple-restore-new-${marker}`,
+      },
+    ]).returning({ id: users.id });
+    createdUserIds = [previousOwner.id, restoringUser.id];
+    mocks.validateAppleReceipt.mockResolvedValue({
+      valid: true,
+      expiresAt: new Date("2030-01-01T00:00:00.000Z"),
+      transactionId: `200001${marker.replaceAll("-", "")}`,
+      originalTransactionId,
+    });
+
+    const response = await restoreApplePurchase(restoringUser.id, "base64-app-receipt");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ tier: "premium", restored: true });
+
+    const savedUsers = await db
+      .select({
+        id: users.id,
+        tier: users.tier,
+        iapTransactionId: users.iapTransactionId,
+        iapOriginalTransactionId: users.iapOriginalTransactionId,
+        iapPlatform: users.iapPlatform,
+      })
+      .from(users)
+      .where(inArray(users.id, createdUserIds));
+
+    expect(savedUsers.find((user) => user.id === previousOwner.id)).toMatchObject({
+      tier: "free",
+      iapTransactionId: null,
+      iapOriginalTransactionId: null,
+      iapPlatform: null,
+    });
+    expect(savedUsers.find((user) => user.id === restoringUser.id)).toMatchObject({
+      tier: "premium",
+      iapTransactionId: `200001${marker.replaceAll("-", "")}`,
+      iapOriginalTransactionId: originalTransactionId,
+      iapPlatform: "ios",
     });
   });
 });

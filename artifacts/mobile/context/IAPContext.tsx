@@ -231,15 +231,15 @@ export function IAPProvider({ children }: { children: React.ReactNode }) {
                 purchaseToken: purchase.purchaseToken,
               });
             } else {
-              const transactionReceipt =
+              const receiptData =
                 (purchase as Purchase & { transactionReceipt?: string }).transactionReceipt;
-              if (!transactionReceipt) {
+              if (!receiptData) {
                 throw new Error("The App Store did not return a transaction receipt.");
               }
               await api.subscription.verifyIAPPurchase(token, {
                 platform: "ios",
                 productId: purchase.productId,
-                transactionReceipt,
+                receiptData,
               });
             }
 

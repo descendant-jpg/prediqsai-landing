@@ -30,7 +30,9 @@ describe("validateGooglePurchase", () => {
   afterEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
     delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    delete process.env.APPLE_IAP_SHARED_SECRET;
   });
 
   async function validate(response: unknown) {
@@ -96,6 +98,90 @@ describe("validateGooglePurchase", () => {
     expect(result).toEqual({
       valid: false,
       reason: "Subscription has expired",
+    });
+  });
+});
+
+describe("validateAppleReceipt", () => {
+  afterEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    delete process.env.APPLE_IAP_SHARED_SECRET;
+  });
+
+  function activeAppleReceipt(overrides: Record<string, unknown> = {}) {
+    return {
+      status: 0,
+      receipt: { bundle_id: "com.prediqsai.app" },
+      latest_receipt_info: [{
+        product_id: "prediqsai_pro_monthly",
+        transaction_id: "2000001234567890",
+        original_transaction_id: "1000001234567890",
+        expires_date_ms: "1893456000000",
+      }],
+      ...overrides,
+    };
+  }
+
+  it("accepts a valid production receipt only for the PrediQs bundle and stores its original transaction ID", async () => {
+    process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => activeAppleReceipt(),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { validateAppleReceipt } = await import("../services/iap-validation");
+
+    const result = await validateAppleReceipt("base64-receipt", "prediqsai_pro_monthly");
+
+    expect(result).toMatchObject({
+      valid: true,
+      transactionId: "2000001234567890",
+      originalTransactionId: "1000001234567890",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://buy.itunes.apple.com/verifyReceipt",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          "receipt-data": "base64-receipt",
+          password: "apple-test-secret",
+          "exclude-old-transactions": true,
+        }),
+      }),
+    );
+  });
+
+  it("retries a sandbox receipt after Apple's production endpoint returns 21007", async () => {
+    process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 21007 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => activeAppleReceipt() });
+    vi.stubGlobal("fetch", fetchMock);
+    const { validateAppleReceipt } = await import("../services/iap-validation");
+
+    const result = await validateAppleReceipt("sandbox-receipt", "prediqsai_pro_monthly");
+
+    expect(result.valid).toBe(true);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://sandbox.itunes.apple.com/verifyReceipt",
+      expect.any(Object),
+    );
+  });
+
+  it("rejects a receipt for another app even when it contains an active subscription", async () => {
+    process.env.APPLE_IAP_SHARED_SECRET = "apple-test-secret";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => activeAppleReceipt({ receipt: { bundle_id: "com.other.app" } }),
+    }));
+    const { validateAppleReceipt } = await import("../services/iap-validation");
+
+    await expect(validateAppleReceipt("wrong-bundle-receipt", "prediqsai_pro_monthly")).resolves.toEqual({
+      valid: false,
+      reason: "Receipt is not for this app",
     });
   });
 });

@@ -18,6 +18,8 @@ const router = Router();
 const PRODUCT_ID = "prediqsai_pro_monthly";
 const PURCHASE_TOKEN_ALREADY_LINKED_ERROR =
   "This Google Play purchase is already linked to another account";
+const APPLE_TRANSACTION_ALREADY_LINKED_ERROR =
+  "This App Store subscription is already linked to another account";
 
 function isPurchaseTokenUniqueViolation(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
@@ -37,6 +39,26 @@ function isPurchaseTokenUniqueViolation(error: unknown): boolean {
   }
 
   return isPurchaseTokenUniqueViolation(databaseError.cause);
+}
+
+function isAppleTransactionUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const databaseError = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: unknown;
+  };
+
+  if (
+    databaseError.code === "23505" &&
+    typeof databaseError.constraint === "string" &&
+    databaseError.constraint.includes("iap_original_transaction_id")
+  ) {
+    return true;
+  }
+
+  return isAppleTransactionUniqueViolation(databaseError.cause);
 }
 
 const PLANS = {
@@ -118,7 +140,7 @@ const verifyIAPSchema = z.discriminatedUnion("platform", [
   z.object({
     platform: z.literal("ios"),
     productId: z.string().min(1).max(255),
-    transactionReceipt: z.string().min(1).max(100_000),
+    receiptData: z.string().min(1).max(100_000),
   }).strict(),
 ]);
 
@@ -131,16 +153,16 @@ async function validateWithStore(input: {
   platform: "ios" | "android";
   productId: string;
   purchaseToken?: string;
-  transactionReceipt?: string;
+  receiptData?: string;
 }): Promise<IAPValidationResult> {
   if (input.platform === "ios") {
     if (!isAppleConfigured()) {
       return { valid: false, reason: "not_configured" };
     }
-    if (!input.transactionReceipt) {
-      return { valid: false, reason: "transactionReceipt is required for iOS purchases" };
+    if (!input.receiptData) {
+      return { valid: false, reason: "receiptData is required for iOS purchases" };
     }
-    return validateAppleReceipt(input.transactionReceipt, input.productId);
+    return validateAppleReceipt(input.receiptData, input.productId);
   }
 
   if (!isGoogleConfigured()) {
@@ -161,14 +183,14 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
 
   const { platform, productId } = body.data;
   const purchaseToken = platform === "android" ? body.data.purchaseToken : undefined;
-  const transactionReceipt = platform === "ios" ? body.data.transactionReceipt : undefined;
+  const receiptData = platform === "ios" ? body.data.receiptData : undefined;
 
   if (productId !== PRODUCT_ID) {
     res.status(400).json({ error: "Invalid product ID" });
     return;
   }
 
-  const result = await validateWithStore({ platform, productId, purchaseToken, transactionReceipt });
+  const result = await validateWithStore({ platform, productId, purchaseToken, receiptData });
 
   if (result.reason === "not_configured") {
     req.log.error({ platform }, "IAP validation credentials missing — refusing to grant premium");
@@ -176,14 +198,12 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     return;
   }
 
-  if (!result.valid || !result.expiresAt) {
+  if (!result.valid || !result.expiresAt || (platform === "ios" && !result.originalTransactionId)) {
     req.log.warn({ platform, reason: result.reason, userId: req.userId }, "IAP verification rejected");
     res.status(400).json({ error: "Purchase could not be verified" });
     return;
   }
 
-  // A verified Google Play token can belong to exactly one PrediQs account.
-  // This blocks token replay against another authenticated user.
   if (platform === "android") {
     const [tokenOwner] = await db
       .select({ id: users.id })
@@ -193,6 +213,20 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
     if (tokenOwner) {
       req.log.warn({ userId: req.userId }, "IAP verification rejected — purchase token belongs to another user");
       res.status(409).json({ error: PURCHASE_TOKEN_ALREADY_LINKED_ERROR });
+      return;
+    }
+  } else {
+    const [transactionOwner] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(
+        eq(users.iapOriginalTransactionId, result.originalTransactionId!),
+        ne(users.id, req.userId!),
+      ))
+      .limit(1);
+    if (transactionOwner) {
+      req.log.warn({ userId: req.userId }, "IAP verification rejected — App Store subscription belongs to another user");
+      res.status(409).json({ error: APPLE_TRANSACTION_ALREADY_LINKED_ERROR });
       return;
     }
   }
@@ -206,6 +240,7 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
         tier: "premium",
         // Only the store-confirmed transaction ID is persisted — never client input.
         iapTransactionId: result.transactionId ?? null,
+        iapOriginalTransactionId: platform === "ios" ? result.originalTransactionId! : null,
         iapPurchaseToken: platform === "android" ? purchaseToken! : null,
         iapPlatform: platform,
         iapExpiresAt: result.expiresAt,
@@ -219,6 +254,14 @@ router.post("/subscription/iap/verify", requireAuth, async (req, res) => {
         "IAP verification rejected — purchase token was linked to another user during verification",
       );
       res.status(409).json({ error: PURCHASE_TOKEN_ALREADY_LINKED_ERROR });
+      return;
+    }
+    if (platform === "ios" && isAppleTransactionUniqueViolation(error)) {
+      req.log.warn(
+        { userId: req.userId },
+        "IAP verification rejected — App Store subscription was linked to another user during verification",
+      );
+      res.status(409).json({ error: APPLE_TRANSACTION_ALREADY_LINKED_ERROR });
       return;
     }
     throw error;
@@ -272,18 +315,18 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
 
   for (const purchase of candidates) {
     const purchaseToken = "purchaseToken" in purchase ? purchase.purchaseToken : undefined;
-    const transactionReceipt = "transactionReceipt" in purchase ? purchase.transactionReceipt : undefined;
+    const receiptData = "transactionReceipt" in purchase ? purchase.transactionReceipt : undefined;
     const result = await validateWithStore({
       platform,
       productId: purchase.productId,
       purchaseToken,
-      transactionReceipt,
+      receiptData,
     });
     if (result.reason === "not_configured") {
       sawNotConfigured = true;
       break;
     }
-    if (result.valid && result.expiresAt) {
+    if (result.valid && result.expiresAt && (platform !== "ios" || result.originalTransactionId)) {
       confirmed = { result, purchaseToken };
       break;
     }
@@ -305,38 +348,39 @@ router.post("/subscription/iap/restore", requireAuth, async (req, res) => {
     tier: "premium",
     // Only the store-confirmed transaction ID is persisted — never client input.
     iapTransactionId: confirmed.result.transactionId ?? null,
+    iapOriginalTransactionId: platform === "ios" ? confirmed.result.originalTransactionId! : null,
     iapPurchaseToken: platform === "android" ? confirmed.purchaseToken! : null,
     iapPlatform: platform,
     iapExpiresAt: confirmed.result.expiresAt!,
   };
 
-  const [updated] = platform === "android"
-    ? await db.transaction(async (tx) => {
-      // A valid Play entitlement follows the purchaser, not an abandoned
-      // PrediQs account. Clear a prior owner before assigning the unique token
-      // to the current user so both changes commit or roll back together.
-      await tx
-        .update(users)
-        .set({
-          tier: "free",
-          iapTransactionId: null,
-          iapPurchaseToken: null,
-          iapPlatform: null,
-          iapExpiresAt: null,
-        })
-        .where(and(eq(users.iapPurchaseToken, confirmed.purchaseToken!), ne(users.id, req.userId!)));
+  const [updated] = await db.transaction(async (tx) => {
+    // A verified store entitlement follows the purchaser, not an abandoned
+    // PrediQs account. Clear a prior owner before assigning its unique store
+    // identifier so the revocation and transfer commit or roll back together.
+    await tx
+      .update(users)
+      .set({
+        tier: "free",
+        iapTransactionId: null,
+        iapOriginalTransactionId: null,
+        iapPurchaseToken: null,
+        iapPlatform: null,
+        iapExpiresAt: null,
+      })
+      .where(platform === "android"
+        ? and(eq(users.iapPurchaseToken, confirmed.purchaseToken!), ne(users.id, req.userId!))
+        : and(
+          eq(users.iapOriginalTransactionId, confirmed.result.originalTransactionId!),
+          ne(users.id, req.userId!),
+        ));
 
-      return tx
-        .update(users)
-        .set(restoredSubscription)
-        .where(eq(users.id, req.userId!))
-        .returning({ id: users.id, tier: users.tier });
-    })
-    : await db
+    return tx
       .update(users)
       .set(restoredSubscription)
       .where(eq(users.id, req.userId!))
       .returning({ id: users.id, tier: users.tier });
+  });
 
   res.json({ tier: updated.tier, restored: true });
 });

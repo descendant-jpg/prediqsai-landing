@@ -21,6 +21,9 @@ export const users = table("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   iapTransactionId: text("iap_transaction_id"),
+  // App Store original transaction IDs identify a subscription across renewals.
+  // They are unique so one Apple entitlement cannot upgrade multiple accounts.
+  iapOriginalTransactionId: text("iap_original_transaction_id").unique(),
   // The store purchase token is a stable subscription identifier. Its unique
   // constraint prevents the same store entitlement from being claimed by
   // multiple PrediQs accounts.
@@ -48,6 +51,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   stripeCustomerId: true,
   stripeSubscriptionId: true,
   iapTransactionId: true,
+  iapOriginalTransactionId: true,
   iapPurchaseToken: true,
   iapPlatform: true,
   iapExpiresAt: true,

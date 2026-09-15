@@ -4,6 +4,7 @@ import { logger } from "../lib/logger";
 
 const APPLE_PRODUCTION_URL = "https://buy.itunes.apple.com/verifyReceipt";
 const APPLE_SANDBOX_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
+const APPLE_BUNDLE_ID = "com.prediqsai.app";
 const ANDROID_PACKAGE_NAME = process.env.ANDROID_PACKAGE_NAME ?? "com.prediqsai.app";
 
 export interface IAPValidationResult {
@@ -12,12 +13,14 @@ export interface IAPValidationResult {
   expiresAt?: Date;
   /** Store-confirmed transaction identifier (only set when valid). */
   transactionId?: string;
+  /** Stable App Store subscription identifier (only set for valid iOS receipts). */
+  originalTransactionId?: string;
   /** Human-readable reason when invalid. */
   reason?: string;
 }
 
 export function isAppleConfigured(): boolean {
-  return !!process.env.APPLE_SHARED_SECRET;
+  return !!process.env.APPLE_IAP_SHARED_SECRET;
 }
 
 export function isGoogleConfigured(): boolean {
@@ -29,11 +32,15 @@ export function isGoogleConfigured(): boolean {
 interface AppleLatestReceiptInfo {
   product_id?: string;
   transaction_id?: string;
+  original_transaction_id?: string;
   expires_date_ms?: string;
 }
 
 interface AppleVerifyResponse {
   status: number;
+  receipt?: {
+    bundle_id?: string;
+  };
   latest_receipt_info?: AppleLatestReceiptInfo[];
 }
 
@@ -43,16 +50,16 @@ interface AppleVerifyResponse {
  * status 21007 (sandbox receipt sent to production).
  */
 export async function validateAppleReceipt(
-  transactionReceipt: string,
+  receiptData: string,
   expectedProductId: string,
 ): Promise<IAPValidationResult> {
-  const sharedSecret = process.env.APPLE_SHARED_SECRET;
+  const sharedSecret = process.env.APPLE_IAP_SHARED_SECRET;
   if (!sharedSecret) {
     return { valid: false, reason: "Apple receipt validation is not configured" };
   }
 
   const body = JSON.stringify({
-    "receipt-data": transactionReceipt,
+    "receipt-data": receiptData,
     password: sharedSecret,
     "exclude-old-transactions": true,
   });
@@ -76,6 +83,9 @@ export async function validateAppleReceipt(
     if (data.status !== 0) {
       return { valid: false, reason: `Apple rejected the receipt (status ${data.status})` };
     }
+    if (data.receipt?.bundle_id !== APPLE_BUNDLE_ID) {
+      return { valid: false, reason: "Receipt is not for this app" };
+    }
 
     // Find the most recent transaction for our product.
     const now = Date.now();
@@ -91,11 +101,15 @@ export async function validateAppleReceipt(
     if (!latest.expiresMs || latest.expiresMs <= now) {
       return { valid: false, reason: "Subscription has expired" };
     }
+    if (!latest.original_transaction_id) {
+      return { valid: false, reason: "Receipt is missing its original transaction ID" };
+    }
 
     return {
       valid: true,
       expiresAt: new Date(latest.expiresMs),
       transactionId: latest.transaction_id,
+      originalTransactionId: latest.original_transaction_id,
     };
   } catch (err) {
     logger.error({ err }, "Apple receipt validation failed");

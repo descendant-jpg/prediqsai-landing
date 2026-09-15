@@ -53,6 +53,7 @@ vi.mock("@workspace/db", () => ({
     tier: {},
     iapPurchaseToken: {},
     iapTransactionId: {},
+    iapOriginalTransactionId: {},
     iapPlatform: {},
     iapExpiresAt: {},
   },
@@ -121,6 +122,7 @@ beforeEach(() => {
     valid: true,
     expiresAt: new Date("2030-01-01T00:00:00.000Z"),
     transactionId: "apple-store-confirmed",
+    originalTransactionId: "apple-original-transaction",
   });
 });
 
@@ -240,6 +242,51 @@ describe("Android subscription verification", () => {
       "base64-app-receipt",
       "prediqsai_pro_monthly",
     );
+  });
+
+  it("verifies an iOS purchase with receiptData and persists Apple's original transaction ID", async () => {
+    const response = await post("/subscription/iap/verify", {
+      platform: "ios",
+      productId: "prediqsai_pro_monthly",
+      receiptData: "base64-app-receipt",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.validateAppleReceipt).toHaveBeenCalledWith(
+      "base64-app-receipt",
+      "prediqsai_pro_monthly",
+    );
+    expect(mocks.updateChain.set).toHaveBeenCalledWith(expect.objectContaining({
+      iapOriginalTransactionId: "apple-original-transaction",
+      iapPlatform: "ios",
+    }));
+  });
+
+  it("requires receiptData for iOS purchase verification", async () => {
+    const response = await post("/subscription/iap/verify", {
+      platform: "ios",
+      productId: "prediqsai_pro_monthly",
+      transactionReceipt: "legacy-receipt-field",
+    });
+
+    expect(response.status).toBe(400);
+    expect(mocks.validateAppleReceipt).not.toHaveBeenCalled();
+  });
+
+  it("blocks an iOS subscription already linked to another account", async () => {
+    mocks.selectChain.limit.mockResolvedValue([{ id: 99 }]);
+
+    const response = await post("/subscription/iap/verify", {
+      platform: "ios",
+      productId: "prediqsai_pro_monthly",
+      receiptData: "linked-apple-receipt",
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "This App Store subscription is already linked to another account",
+    });
+    expect(mocks.updateChain.set).not.toHaveBeenCalled();
   });
 
   it("accepts and ignores legacy metadata from a previously released Android client", async () => {

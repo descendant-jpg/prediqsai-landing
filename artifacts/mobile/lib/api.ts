@@ -893,7 +893,7 @@ export const api = {
       token: string,
       data:
         | { platform: "android"; productId: string; purchaseToken: string }
-        | { platform: "ios"; productId: string; transactionReceipt: string },
+        | { platform: "ios"; productId: string; receiptData: string },
     ) =>
       apiFetch<{ tier: string; success: boolean; expiresAt: string }>(
         "/subscription/iap/verify",
