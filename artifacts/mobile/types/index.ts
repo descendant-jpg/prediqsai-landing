@@ -75,6 +75,8 @@ export interface Prediction {
   simulationData: SimulationData | null;
   agentScores: AgentScores | null;
   publicBacking: PublicBacking | null;
+  /** Settlement outcome once graded; null/absent while unsettled. */
+  result?: "win" | "loss" | "push" | null;
   /** Server-enforced paywall flag: true = insights redacted for free tier. */
   locked?: boolean;
 }

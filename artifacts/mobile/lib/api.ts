@@ -211,6 +211,8 @@ export interface ApiPrediction {
   simulationData: SimulationData | null;
   agentScores: AgentScores | null;
   publicBacking: PublicBacking | null;
+  /** Settlement outcome once graded; null while the pick is still unsettled. */
+  result: "win" | "loss" | "push" | null;
   /** Server-enforced paywall flag: true = insights redacted for free tier. */
   locked: boolean;
 }
@@ -246,8 +248,23 @@ export interface AccuracyStats {
   wins: number;
   losses: number;
   total: number;
+  /** Unsettled picks created this month — same window as wins/losses. */
+  pending: number;
   bySport: Record<string, { accuracy: number; wins: number; total: number }>;
   month: string;
+}
+
+export interface RecentWin {
+  id: string | number;
+  homeTeam: string;
+  awayTeam: string;
+  league: string;
+  sport: string;
+  matchDate: string;
+  prediction: string;
+  odds: number | null;
+  confidence: number;
+  result: string;
 }
 
 export interface SimulationScoreline {
@@ -794,6 +811,9 @@ export const api = {
         token,
       }),
     accuracy: (token: string) => apiFetch<AccuracyStats>("/predictions/accuracy", { token }),
+    recentWins: (token?: string) =>
+      apiFetch<{ wins: RecentWin[] }>("/picks/recent-wins", token ? { token } : {}),
+    won: (token: string) => apiFetch<ApiPrediction[]>("/predictions/won", { token }),
     matchOfDay: (token: string, sport: string) =>
       apiFetch<MatchOfDayData | null>(
         `/predictions/match-of-day?sport=${encodeURIComponent(sport)}`,

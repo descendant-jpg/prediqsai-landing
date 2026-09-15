@@ -1,5 +1,6 @@
+import { ChevronRight } from "lucide-react-native";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 
@@ -7,16 +8,23 @@ interface Props {
   won: number;
   lost: number;
   pending: number;
+  /** When provided, the bar becomes tappable (opens the AI Accuracy Report). */
+  onPress?: () => void;
 }
 
 /** Feature 1 — slim performance tracker bar shown under the header. Driven by real accuracy stats. */
-export function PicksPerformanceBar({ won, lost, pending }: Props) {
+export function PicksPerformanceBar({ won, lost, pending, onPress }: Props) {
   const colors = useColors();
   const settled = won + lost;
   const winRate = settled > 0 ? Math.round((won / settled) * 100) : 0;
 
   return (
-    <View style={[styles.bar, { backgroundColor: "#121212", borderColor: colors.border }]}>
+    <TouchableOpacity
+      style={[styles.bar, { backgroundColor: "#121212", borderColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.75 : 1}
+      disabled={!onPress}
+    >
       <Text style={[styles.label, { color: colors.textMuted }]}>This month</Text>
       <View style={styles.stats}>
         <Stat value={`${won}W`} color={colors.green} />
@@ -25,10 +33,13 @@ export function PicksPerformanceBar({ won, lost, pending }: Props) {
         <Dot color={colors.textMuted} />
         <Stat value={`${pending}P`} color={colors.gold} />
       </View>
-      <View style={[styles.rate, { backgroundColor: "rgba(255,215,0,0.12)" }]}>
-        <Text style={[styles.rateText, { color: colors.gold }]}>{winRate}% Win</Text>
+      <View style={styles.rateWrap}>
+        <View style={[styles.rate, { backgroundColor: "rgba(255,215,0,0.12)" }]}>
+          <Text style={[styles.rateText, { color: colors.gold }]}>{winRate}% Win</Text>
+        </View>
+        {onPress ? <ChevronRight size={14} color={colors.textMuted} /> : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -58,4 +69,5 @@ const styles = StyleSheet.create({
   dot: { fontSize: 12 },
   rate: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   rateText: { fontSize: 12, fontWeight: "800" },
+  rateWrap: { flexDirection: "row", alignItems: "center", gap: 2 },
 });

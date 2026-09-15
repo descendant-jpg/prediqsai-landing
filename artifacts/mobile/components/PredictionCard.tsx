@@ -53,12 +53,21 @@ function getTeamFormScores(p: Prediction): [number, number] {
 interface Props {
   prediction: Prediction;
   locked?: boolean;
+  /** Won-filter view: prominently surface ROI and the original AI confidence. */
+  wonHighlight?: boolean;
 }
 
-export function PredictionCard({ prediction, locked = false }: Props) {
+export function PredictionCard({ prediction, locked = false, wonHighlight = false }: Props) {
   const colors = useColors();
   const router = useRouter();
   const { t } = useLanguage();
+
+  // ROI per unit staked at the listed odds. probability in (0, 100] → odds >= 1,
+  // so 100% probability correctly yields a valid 0% ROI instead of hiding the chip.
+  const wonRoi =
+    prediction.bookmakerProbability > 0 && prediction.bookmakerProbability <= 100
+      ? Math.round((100 / prediction.bookmakerProbability - 1) * 100)
+      : null;
 
   const [homeScore, awayScore] = locked ? [50, 50] : getTeamFormScores(prediction);
   const homeForm = deriveFormDots(homeScore, prediction.homeTeam);
@@ -117,6 +126,24 @@ export function PredictionCard({ prediction, locked = false }: Props) {
           ))}
         </View>
       </View>
+
+      {/* Won view — ROI + original AI confidence highlighted */}
+      {wonHighlight && !locked && (
+        <View style={styles.wonRow}>
+          {wonRoi != null && (
+            <View style={[styles.wonChip, { backgroundColor: "rgba(0,255,148,0.12)", borderColor: colors.green }]}>
+              <Text style={[styles.wonChipText, { color: colors.green }]}>
+                ✅ {t("picks.roiLabel")} +{wonRoi}%
+              </Text>
+            </View>
+          )}
+          <View style={[styles.wonChip, { backgroundColor: "rgba(255,215,0,0.10)", borderColor: colors.gold }]}>
+            <Text style={[styles.wonChipText, { color: colors.gold }]}>
+              🎯 {t("picks.wonConfidence")} {prediction.confidence}%
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Footer */}
       {locked ? (
@@ -223,6 +250,22 @@ const styles = StyleSheet.create({
   formDivider: {
     width: 1,
     height: 14,
+  },
+  wonRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+  },
+  wonChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  wonChipText: {
+    fontSize: 12,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.3,
   },
   footer: {
     flexDirection: "row",

@@ -24,6 +24,7 @@ import { BankrollTracker } from "@/components/dashboard/BankrollTracker";
 import { MatchOfTheDay } from "@/components/dashboard/MatchOfTheDay";
 import { OddsTicker } from "@/components/dashboard/OddsTicker";
 import { PredictionFeedCard } from "@/components/dashboard/PredictionFeedCard";
+import { RecentWinsRow } from "@/components/dashboard/RecentWinsRow";
 import { SportFilterChips } from "@/components/dashboard/SportFilterChips";
 import { useAuth } from "@/context/AuthContext";
 import { useApp } from "@/context/AppContext";
@@ -453,6 +454,9 @@ export default function DashboardScreen() {
           <MiniStat label={t("dashboard.statValue")} value={`+${valuePicks.length}`} sub={t("dashboard.statFound")} valueColor={colors.gold} />
         </View>
       )}
+
+      {/* Recent Premium Wins ticker */}
+      <RecentWinsRow />
 
       {/* Analyze My Slip button */}
       <TouchableOpacity

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 import { LiveMatchCard } from "@/components/LiveMatchCard";
 import { PredictionCard } from "@/components/PredictionCard";
+import { AccuracyReportModal } from "@/components/picks/AccuracyReportModal";
 import { AiReasoningModal } from "@/components/picks/AiReasoningModal";
 import { BetSlipModal } from "@/components/picks/BetSlipModal";
 import { EnhancedPickCard } from "@/components/picks/EnhancedPickCard";
@@ -80,7 +81,9 @@ function filterByStatus(list: Prediction[], status: StatusFilter): Prediction[] 
   switch (status) {
     case "today":    return list.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 0));
     case "tomorrow": return list.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 1));
-    case "won":      return list.filter((p) => p.valueDetected && !p.avoidMatch).sort((a, b) => b.confidence - a.confidence);
+    case "won":      return list
+                       .filter((p) => p.result === "win" && !p.avoidMatch)
+                       .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
     case "lost":     return list.filter((p) => p.avoidMatch);
     case "live":     return list; // handled separately
     default:         return list;
@@ -316,6 +319,7 @@ export default function PicksScreen() {
   const [slipIds, setSlipIds]   = useState<string[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [slipOpen, setSlipOpen] = useState(false);
+  const [accuracyOpen, setAccuracyOpen] = useState(false);
   const [reasoningPick, setReasoningPick] = useState<ProPick | null>(null);
   const [toast, setToast] = useState({ msg: "", nonce: 0 });
   const cardFade = useRef(new Animated.Value(1)).current;
@@ -406,6 +410,8 @@ export default function PicksScreen() {
   const [sportFilter,  setSportFilter]  = useState<SportFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("today");
   const [predictions,  setPredictions]  = useState<Prediction[]>([]);
+  const [wonPicks,     setWonPicks]     = useState<Prediction[]>([]);
+  const [wonLoading,   setWonLoading]   = useState(false);
   const [isLoading,    setIsLoading]    = useState(true);
   const [error,        setError]        = useState("");
   const [accuracy,     setAccuracy]     = useState<AccuracyStats | null>(null);
@@ -468,6 +474,20 @@ export default function PicksScreen() {
 
   useEffect(() => { fetchPredictions(); }, [fetchPredictions]);
 
+  // Load settled winners when Won is selected — from the settled-history endpoint,
+  // since the rolling /predictions feed can drop older settled rows.
+  useEffect(() => {
+    if (statusFilter !== "won" || !token) return;
+    let active = true;
+    setWonLoading(true);
+    api.predictions
+      .won(token)
+      .then((d) => { if (active) setWonPicks(d.map(mapApiPrediction)); })
+      .catch(() => {})
+      .finally(() => { if (active) setWonLoading(false); });
+    return () => { active = false; };
+  }, [statusFilter, token]);
+
   // Load live fixtures when Live is selected
   useEffect(() => {
     if (statusFilter !== "live" || !token) return;
@@ -510,7 +530,7 @@ export default function PicksScreen() {
   const topPaddingWeb = Platform.OS === "web" ? 67 : 0;
   const topPadding    = insets.top + topPaddingWeb;
 
-  const byStatus  = filterByStatus(predictions, statusFilter);
+  const byStatus  = statusFilter === "won" ? wonPicks : filterByStatus(predictions, statusFilter);
   const displayed = filterBySport(byStatus, sportFilter);
 
   // Real AI Pick of the Day: highest-confidence live prediction (excluding avoids).
@@ -687,7 +707,8 @@ export default function PicksScreen() {
         <PicksPerformanceBar
           won={accuracy.wins}
           lost={accuracy.losses}
-          pending={predictions.filter((p) => !p.avoidMatch && isLocalDay(p.matchDate, 0)).length}
+          pending={accuracy.pending}
+          onPress={() => setAccuracyOpen(true)}
         />
       ) : null}
 
@@ -794,11 +815,23 @@ export default function PicksScreen() {
               <Text style={[styles.retryText, { color: "#00E5FF" }]}>{t("picks.tapRetry")}</Text>
             </TouchableOpacity>
           )}
-          {!isLoading && !error && (
+          {!isLoading && !error && statusFilter === "won" && wonLoading && (
+            <View style={styles.centered}>
+              <ActivityIndicator color={colors.cyan} size="large" />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t("picks.fetchingPicks")}</Text>
+            </View>
+          )}
+          {!isLoading && !error && !(statusFilter === "won" && wonLoading) && (
             <FlatList
               data={displayed}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <PredictionCard prediction={item} locked={!isPro && !!item.locked} />}
+              renderItem={({ item }) => (
+                <PredictionCard
+                  prediction={item}
+                  locked={!isPro && !!item.locked}
+                  wonHighlight={statusFilter === "won"}
+                />
+              )}
               contentContainerStyle={listPad}
               showsVerticalScrollIndicator={false}
               ListHeaderComponent={
@@ -806,9 +839,9 @@ export default function PicksScreen() {
                   {aiPicksHeader}
                   {statusFilter === "won" ? (
                     <View style={styles.sectionHeader}>
-                      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>{t("picks.topValueTitle")}</Text>
+                      <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>{t("picks.wonResultsTitle")}</Text>
                       <Text style={[styles.sectionHeaderSub, { color: colors.textSecondary }]}>
-                        {t("picks.topValueSub")}
+                        {t("picks.wonResultsSub")}
                       </Text>
                     </View>
                   ) : statusFilter === "lost" ? (
@@ -859,6 +892,14 @@ export default function PicksScreen() {
         isPro={isPro}
         onClose={() => setReasoningPick(null)}
         onUpgrade={() => { setReasoningPick(null); router.push("/subscription"); }}
+      />
+
+      {/* ── AI Accuracy Report (tappable THIS MONTH bar) ── */}
+      <AccuracyReportModal
+        visible={accuracyOpen}
+        accuracy={accuracy}
+        pending={accuracy?.pending ?? 0}
+        onClose={() => setAccuracyOpen(false)}
       />
 
       {/* ── Toast (save/slip/share feedback) ── */}

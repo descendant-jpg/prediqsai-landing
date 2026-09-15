@@ -2121,7 +2121,7 @@ tierRequired rules:
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-function formatPrediction(p: typeof predictionsTable.$inferSelect) {
+export function formatPrediction(p: typeof predictionsTable.$inferSelect) {
   return {
     id: String(p.id),
     sport: p.sport,
@@ -2150,6 +2150,7 @@ function formatPrediction(p: typeof predictionsTable.$inferSelect) {
     simulationData: p.simulationData ?? null,
     agentScores: p.agentScores ?? null,
     publicBacking: p.publicBacking ?? null,
+    result: p.result ?? null,
   };
 }
 

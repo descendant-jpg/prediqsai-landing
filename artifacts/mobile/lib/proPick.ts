@@ -59,6 +59,7 @@ export function mapApiPrediction(p: ApiPrediction): Prediction {
     tierRequired: p.tierRequired === "premium" ? "premium" : "free",
     simulationData: p.simulationData ?? null, agentScores: p.agentScores ?? null,
     publicBacking: p.publicBacking ?? null,
+    result: p.result ?? null,
     locked: p.locked ?? false,
   };
 }
