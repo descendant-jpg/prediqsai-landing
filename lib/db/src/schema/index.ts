@@ -31,6 +31,7 @@ export * from "./affiliatePartners";
 export * from "./affiliateClicks";
 export * from "./affiliatePayouts";
 export * from "./blogPosts";
+export * from "./blogQueue";
 export * from "./appStoreServerNotifications";
 export * from "./googlePlayNotifications";
 export * from "./pushNotificationDeliveries";
