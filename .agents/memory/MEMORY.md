@@ -14,3 +14,4 @@
 - [PostgreSQL race testing](postgres-race-testing.md) — synchronize requests after pre-checks when proving a real unique-index collision through Drizzle.
 - [Disposable Drizzle test schemas](disposable-drizzle-test-schemas.md) — custom-schema test models need a URL-level search_path and provisioning verification; Drizzle Kit has a filtered-schema cleanup quirk.
 - [Disposable schema stale-run cleanup](disposable-schema-stale-run-cleanup.md) — identify runner-owned schemas with metadata and use advisory locks, not activity views, to avoid deleting a live test run.
+- [Gemini model lifecycle](gemini-model-lifecycle.md) — named flash models 404 after retirement, free tier 429s fast; use a fallback model chain (…→ gemini-flash-latest → gemma-4-31b-it) with 404/429 fall-through.
