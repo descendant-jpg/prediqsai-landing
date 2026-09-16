@@ -43,6 +43,8 @@ const PREDICTION_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 const CACHE_WARM_DELAY_MS = 60 * 1000;
 const CACHE_REFRESH_INTERVAL_MS = 3 * 60 * 60 * 1000;
 const MATCH_REMINDER_INTERVAL_MS = 5 * 60 * 1000;
+const WEBSITE_BLOG_CRON_SCHEDULE = "0 8,11,14,17,20 * * *";
+const WEBSITE_BLOG_CRON_URL = "https://www.prediqsai.com/api/cron/generate-blog";
 const FOOTBALL_DATA_COMPETITIONS = ["PL", "BL1", "SA", "FL1", "CL"] as const;
 const CORE_ARBITRAGE_SPORTS = [
   "soccer_epl",
@@ -315,6 +317,37 @@ function startTopicGeneratorScheduler() {
   logger.info({ schedule: "0 1 * * *" }, "AI Editor topic scheduler started");
 }
 
+function startWebsiteBlogGeneratorScheduler() {
+  const websiteCronSecret = process.env.WEBSITE_CRON_SECRET;
+  if (!websiteCronSecret) {
+    logger.warn("WEBSITE_CRON_SECRET not set — website blog generation scheduler disabled");
+    return;
+  }
+
+  cron.schedule(WEBSITE_BLOG_CRON_SCHEDULE, () => {
+    void fetch(WEBSITE_BLOG_CRON_URL, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${websiteCronSecret}`,
+      },
+      signal: AbortSignal.timeout(60_000),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          logger.error(
+            { status: response.status, statusText: response.statusText },
+            "Website blog generation cron request failed",
+          );
+          return;
+        }
+        logger.info("Website blog generation cron request completed");
+      })
+      .catch((err) => logger.error({ err }, "Website blog generation cron request failed"));
+  });
+
+  logger.info({ schedule: WEBSITE_BLOG_CRON_SCHEDULE }, "Website blog generation scheduler started");
+}
+
 async function autoBootstrapAdmin() {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) return;
@@ -359,4 +392,5 @@ app.listen(port, (err) => {
   startCacheWarmer();
   startMatchReminderScheduler();
   startTopicGeneratorScheduler();
+  startWebsiteBlogGeneratorScheduler();
 });
