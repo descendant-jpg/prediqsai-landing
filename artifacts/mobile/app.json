@@ -2,7 +2,7 @@
   "expo": {
     "name": "PrediQs AI",
     "slug": "prediqsai",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "prediqsai",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.prediqsai.app",
+      "bundleIdentifier": "com.prediqsai.ios",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.prediqsai.app",
-      "versionCode": 22,
+      "versionCode": 23,
       "googleServicesFile": "./google-services.json",
       "backgroundColor": "#070B12",
       "adaptiveIcon": {
