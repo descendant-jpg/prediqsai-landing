@@ -30,11 +30,9 @@ export default function NotificationsScreen() {
       return;
     }
     try {
-      // 1. Fetch unread count for the badge
       const unreadRes = await api.notifications.getUnreadCount(token);
       setUnread(unreadRes.count);
 
-      // 2. Fetch the newly built list endpoint
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "https://api.prediqsai.com";
       const listRes = await fetch(`${baseUrl}/api/notifications/list`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -97,7 +95,6 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t("notifications.title")}</Text>
         
-        {/* We fixed the header crash by safely rendering the button or a spacer */}
         {unread > 0 ? (
           <TouchableOpacity disabled={marking} onPress={markAllRead} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={[styles.markAll, { color: colors.cyan }]}>{t("notifications.markAll")}</Text>
