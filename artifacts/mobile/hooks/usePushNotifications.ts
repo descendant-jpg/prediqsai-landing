@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { router } from "expo-router";
 import { Platform } from "react-native";
 
 import { api } from "@/lib/api";
@@ -35,6 +36,20 @@ export type PushRegistrationResult =
   | { status: "denied" }
   | { status: "unavailable" }
   | { status: "error"; message: string };
+
+function routeNotificationData(data: Record<string, unknown>): void {
+  if (data.type !== "matchReminder") return;
+  const rawFixtureId = data.fixtureId ?? data.matchId;
+  const fixtureId = typeof rawFixtureId === "number"
+    ? rawFixtureId
+    : typeof rawFixtureId === "string" ? Number(rawFixtureId) : NaN;
+  if (!Number.isInteger(fixtureId) || fixtureId <= 0) return;
+
+  router.push({
+    pathname: "/match-detail",
+    params: { fixtureId: String(fixtureId) },
+  });
+}
 
 export async function registerForPushNotificationsAsync(
   authToken: string,
@@ -108,9 +123,10 @@ export function usePushNotifications(authToken: string | null) {
         setUnreadCount((n) => n + 1);
       });
 
-      responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
+      responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
         setUnreadCount(0);
         api.notifications.markRead(authToken).catch(() => {});
+        routeNotificationData(response.notification.request.content.data);
       });
     }
 

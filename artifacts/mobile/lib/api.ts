@@ -526,6 +526,15 @@ export interface MatchDetailData {
   awayStandingRank: number | null;
 }
 
+export interface NotificationHistoryItem {
+  id: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+}
+
 export interface PerformanceData {
   winRate: number;
   roi: number;
@@ -1071,6 +1080,11 @@ export const api = {
       }),
     getUnreadCount: (token: string) =>
       apiFetch<{ count: number }>("/notifications/unread-count", { token }),
+    getHistory: (token: string) =>
+      apiFetch<{ notifications: NotificationHistoryItem[]; unreadCount: number }>(
+        "/notifications/history",
+        { token },
+      ),
     markRead: (token: string) =>
       apiFetch<{ ok: boolean }>("/notifications/mark-read", {
         method: "POST",

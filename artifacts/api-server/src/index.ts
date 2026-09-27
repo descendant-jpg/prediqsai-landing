@@ -288,7 +288,13 @@ async function sendMatchReminders() {
         category: "matchReminder",
         title: "Match starts soon",
         body: `${fixture.homeTeam} vs ${fixture.awayTeam} kicks off in about 30 minutes.`,
-        data: { type: "matchReminder", fixtureId: fixture.id, kickoff: fixture.kickoff },
+        data: {
+          type: "matchReminder",
+          screen: "MatchDetails",
+          matchId: fixture.id,
+          fixtureId: fixture.id,
+          kickoff: fixture.kickoff,
+        },
       },
       2 * 60 * 60 * 1000,
     );

@@ -1,4 +1,4 @@
-import { integer, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { integer, jsonb, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,10 @@ export const pushNotificationDeliveries = table("push_notification_deliveries", 
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("pending"),
   expoTicketId: text("expo_ticket_id"),
+  title: text("title"),
+  body: text("body"),
+  data: jsonb("data").$type<Record<string, unknown>>(),
+  readAt: timestamp("read_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("push_notification_deliveries_event_user_unique").on(table.eventKey, table.userId),

@@ -2,7 +2,7 @@
   "expo": {
     "name": "PrediQs AI",
     "slug": "prediqsai",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "prediqsai",
@@ -23,7 +23,90 @@
     },
     "android": {
       "package": "com.prediqsai.app",
-      "versionCode": 21,
+      "versionCode": 22,
+      "googleServicesFile": "./google-services.json",
+      "backgroundColor": "#070B12",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#070B12"
+      },
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FFD700",
+          "defaultChannel": "prediq-alerts",
+          "sounds": []
+        }
+      ],
+      "@react-native-google-signin/google-signin"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "14d66951-a9a8-4e25-b5b8-7c80e517285d"
+      }
+    },
+    "owner": "nextgen34"
+  }
+}
+{
+  "expo": {
+    "name": "PrediQs AI",
+    "slug": "prediqsai",
+    "version": "1.0.4",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "prediqsai",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070B12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.prediqsai.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.prediqsai.app",
+      "versionCode": 22,
       "googleServicesFile": "./google-services.json",
       "backgroundColor": "#070B12",
       "adaptiveIcon": {

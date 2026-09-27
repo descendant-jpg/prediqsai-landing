@@ -1,7 +1,7 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Lock } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
@@ -896,6 +896,7 @@ export default function MatchDetailScreen() {
   const colors  = useColors();
   const insets  = useSafeAreaInsets();
   const { token } = useAuth();
+  const { fixtureId: fixtureIdParam } = useLocalSearchParams<{ fixtureId?: string }>();
 
   const [activeTab,      setActiveTab]      = useState<TabId>("AI Analysis");
   const [matchDetail,    setMatchDetail]    = useState<MatchDetailData | null>(null);
@@ -906,7 +907,10 @@ export default function MatchDetailScreen() {
   const [fdH2HLoading,   setFdH2HLoading]   = useState(false);
   const [fdH2HFetched,   setFdH2HFetched]   = useState(false);
 
-  const { prediction, soccerFixtureId } = matchDetailStore.get();
+  const { prediction, soccerFixtureId: storedFixtureId } = matchDetailStore.get();
+  const parsedFixtureId = typeof fixtureIdParam === "string" ? Number(fixtureIdParam) : NaN;
+  const routedFixtureId = Number.isInteger(parsedFixtureId) && parsedFixtureId > 0 ? parsedFixtureId : undefined;
+  const soccerFixtureId = routedFixtureId ?? storedFixtureId;
 
   useEffect(() => {
     if (!soccerFixtureId || !token) return;
@@ -959,6 +963,41 @@ export default function MatchDetailScreen() {
       .catch(() => {})
       .finally(() => setPreviewLoading(false));
   }, [prediction?.id, token]);
+
+  if (!prediction && routedFixtureId) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[styles.backBtn, { paddingTop: insets.top + 16, paddingHorizontal: 16 }]}
+        >
+          <Feather name="arrow-left" size={22} color={colors.text} />
+        </TouchableOpacity>
+        <View style={styles.centered}>
+          {detailLoading ? (
+            <ActivityIndicator color={colors.cyan} />
+          ) : matchDetail ? (
+            <>
+              <Text style={[styles.routedMatchTeams, { color: colors.text }]}>
+                {matchDetail.homeTeam} vs {matchDetail.awayTeam}
+              </Text>
+              <Text style={[styles.routedMatchText, { color: colors.textMuted }]}>
+                Match details for this fixture are available in the Soccer tab.
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.replace("/(tabs)/soccer")}
+                style={[styles.routedMatchButton, { borderColor: colors.cyan }]}
+              >
+                <Text style={[styles.routedMatchButtonText, { color: colors.cyan }]}>Open Soccer</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <Text style={{ color: colors.textMuted }}>Match details are unavailable.</Text>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   if (!prediction) {
     return (
@@ -1065,6 +1104,10 @@ export default function MatchDetailScreen() {
 const styles = StyleSheet.create({
   container:    { flex: 1 },
   centered:     { flex: 1, alignItems: "center", justifyContent: "center" },
+  routedMatchTeams: { fontSize: 20, fontFamily: "Inter_700Bold", textAlign: "center", paddingHorizontal: 24 },
+  routedMatchText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 32, lineHeight: 20 },
+  routedMatchButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 11, marginTop: 6 },
+  routedMatchButtonText: { fontSize: 14, fontFamily: "Inter_700Bold" },
   header:       { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1 },
   backBtn:      {},
   headerCenter: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },

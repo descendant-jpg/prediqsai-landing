@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { Expo, type ExpoPushMessage } from "expo-server-sdk";
 
@@ -121,16 +122,21 @@ export async function sendPushToUser(
     channelId: "prediq-alerts",
   };
 
-  let deliveryId: string | null = null;
-  if (eventKey) {
-    const [delivery] = await db
-      .insert(pushNotificationDeliveries)
-      .values({ eventKey, userId })
-      .onConflictDoNothing()
-      .returning({ id: pushNotificationDeliveries.id });
-    if (!delivery) return false;
-    deliveryId = delivery.id;
-  }
+  // Keep a per-user record for the in-app notification history. Scheduler
+  // events retain their stable dedupe key; direct sends use a unique key.
+  const [delivery] = await db
+    .insert(pushNotificationDeliveries)
+    .values({
+      eventKey: eventKey ?? `push:${randomUUID()}`,
+      userId,
+      title: payload.title,
+      body: payload.body,
+      data: payload.data ?? {},
+    })
+    .onConflictDoNothing()
+    .returning({ id: pushNotificationDeliveries.id });
+  if (!delivery) return false;
+  const deliveryId = delivery.id;
 
   try {
     const [ticket] = await expo.sendPushNotificationsAsync([message]);
@@ -142,11 +148,9 @@ export async function sendPushToUser(
       if (deliveryId) await db.delete(pushNotificationDeliveries).where(eq(pushNotificationDeliveries.id, deliveryId));
       return false;
     }
-    if (deliveryId) {
-      await db.update(pushNotificationDeliveries)
-        .set({ status: "accepted", expoTicketId: ticket?.id ?? null })
-        .where(eq(pushNotificationDeliveries.id, deliveryId));
-    }
+    await db.update(pushNotificationDeliveries)
+      .set({ status: "accepted", expoTicketId: ticket?.id ?? null })
+      .where(eq(pushNotificationDeliveries.id, deliveryId));
     await db
       .update(users)
       .set({ unreadNotificationCount: sql`${users.unreadNotificationCount} + 1` })
@@ -154,7 +158,7 @@ export async function sendPushToUser(
     return true;
   } catch (error) {
     logger.warn({ err: error, userId }, "Expo push notification delivery failed");
-    if (deliveryId) await db.delete(pushNotificationDeliveries).where(eq(pushNotificationDeliveries.id, deliveryId));
+    await db.delete(pushNotificationDeliveries).where(eq(pushNotificationDeliveries.id, deliveryId));
     return false;
   }
 }
