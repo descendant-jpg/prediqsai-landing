@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { gte, desc, isNotNull, and, ne, eq } from "drizzle-orm";
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
@@ -2027,14 +2028,18 @@ tierRequired rules:
 - "free"    → public-knowledge picks or avoid picks
 - "premium" → moderate-to-high confidence ≥55 or notable value bets`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
-    max_tokens: 8000,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const raw = response.content[0].type === "text" ? response.content[0].text.trim() : "[]";
-  const jsonStr = raw.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/i, "").trim();
+  const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    const model = gemini.getGenerativeModel({
+      model: "gemini-3.5-flash",
+      generationConfig: { temperature: 0.4 }
+    });
+    
+    // Force Chain of Thought reasoning to fix the 30% accuracy issue
+    const enhancedPrompt = prompt + "\n\nCRITICAL INSTRUCTION: You must strictly apply step-by-step Chain of Thought reasoning before making your prediction. Ensure your logic mathematically evaluates xG, injuries, and line movement first. Output ONLY a valid JSON array.";
+    
+    const response = await model.generateContent(enhancedPrompt);
+    const raw = response.response.text().trim();
+  const match = raw.match(/\[[\s\S]*\]/); const jsonStr = match ? match[0] : "[]";
   const parsed = JSON.parse(jsonStr) as RawPrediction[];
   const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000);
 
