@@ -1,8 +1,8 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, desc } from "drizzle-orm";
 import { Router } from "express";
 import { z } from "zod/v4";
 
-import { db, users } from "@workspace/db";
+import { db, users, notificationHistory } from "@workspace/db";
 import { requireAuth } from "../middleware/auth";
 import {
   DEFAULT_NOTIFICATION_PREFS,
@@ -100,6 +100,17 @@ router.get("/notifications/unread-count", requireAuth, async (req, res) => {
 router.post("/notifications/mark-read", requireAuth, async (req, res) => {
   await db.update(users).set({ unreadNotificationCount: 0 }).where(eq(users.id, req.userId!));
   res.json({ ok: true });
+});
+
+
+// ─── Get all notifications list ──────────────────────────────────────────────────
+router.get("/notifications/list", requireAuth, async (req, res) => {
+  try {
+    const history = await db.select().from(notificationHistory).orderBy(desc(notificationHistory.createdAt)).limit(50);
+    res.json({ notifications: history });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
 });
 
 export default router;
