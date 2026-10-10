@@ -403,6 +403,17 @@ export default function SettingsScreen() {
           </>
         )}
 
+{/* Activity */}
+        <Text style={[styles.adminLabel, { color: colors.textMuted }]}>ACTIVITY</Text>
+        <TouchableOpacity
+          style={[styles.rowBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+          onPress={() => router.push("/history" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 16 }}>📊</Text>
+          <Text style={[styles.rowBtnText, { color: colors.text }]}>Past Results</Text>
+          <ChevronRight size={16} color={colors.textMuted} />
+        </TouchableOpacity>
         {/* Legal */}
         <Text style={[styles.adminLabel, { color: colors.textMuted }]}>{t("settings.legal")}</Text>
         <TouchableOpacity

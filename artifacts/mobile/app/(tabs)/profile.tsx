@@ -1,5 +1,6 @@
 import {
   Bell,
+  Activity,
   BookOpen,
   ChevronRight,
   ExternalLink,
@@ -331,6 +332,11 @@ export default function ProfileScreen() {
         {/* ── Features ── */}
         <SectionHeader title={t("sections.features")} />
         <SettingGroup>
+        <SettingRow
+          icon={Activity}
+          label="Past Results"
+          onPress={() => router.push("/history" as any)}
+        />
           <SettingRow
             icon={Bell}
             label={t("profile.notifications")}

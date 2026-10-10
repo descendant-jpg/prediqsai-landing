@@ -7,7 +7,7 @@ PrediQs AI - Sports Intelligence
 AI Sports Analysis & Picks
 
 ## Bundle / Package IDs
-- iOS Bundle Identifier: `com.prediqsai.app`
+- iOS Bundle Identifier: `com.prediqsai.ios`
 - Android Package: `com.prediqsai.app`
 - Version: 1.0.0 | Build: 1 | Android versionCode: 1
 
