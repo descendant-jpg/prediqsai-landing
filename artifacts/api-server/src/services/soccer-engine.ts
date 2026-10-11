@@ -178,7 +178,7 @@ async function batchSoccerPredictions(fixtures: SoccerFixture[]): Promise<Map<nu
   const top = fixtures
     .filter((f) => f.leagueTier <= 2)
     .sort((a, b) => a.leagueTier - b.leagueTier || new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime())
-    .slice(0, 18);
+    .slice(0, 45);
 
   if (top.length === 0) return new Map();
 
@@ -391,16 +391,24 @@ export async function getTodaysFixtures(
   cacheOnly = false,
 ): Promise<SoccerFeedResponse> {
   const now = Date.now();
-  const dateStr = dateOverride ?? new Date().toISOString().split("T")[0];
-  const cached = cache.fixtures.get(dateStr);
+  
+  // Calculate the 7-day range
+  const fromDate = dateOverride ? new Date(dateOverride) : new Date();
+  const toDate = new Date(fromDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+  
+  const fromStr = fromDate.toISOString().split("T")[0];
+  const toStr = toDate.toISOString().split("T")[0];
+  const cacheKey = `${fromStr}_${toStr}`;
+
+  const cached = cache.fixtures.get(cacheKey);
   if (cacheOnly) return buildResponse(cached?.data ?? [], cached?.fetchedAt ?? null);
   if (cached && now - cached.fetchedAt < FIXTURE_TTL) {
     return buildResponse(cached.data, cached.fetchedAt);
   }
 
-  const fixtures = await fetchFromApi(`date=${dateStr}`);
+  // Fetch using the 7-day range
+  const fixtures = await fetchFromApi(`from=${fromStr}&to=${toStr}`);
 
-  // Enhance tier 1-2 fixtures with Claude AI predictions (30-min cache, today only)
   if (!dateOverride && fixtures.length > 0) {
     try {
       const claudePreds = await batchSoccerPredictions(fixtures);
@@ -414,20 +422,20 @@ export async function getTodaysFixtures(
         }
       }
     } catch (err) {
-      logger.warn({ err }, "Failed to apply Claude soccer predictions");
+      logger.warn({ err }, "Failed to apply AI soccer predictions");
     }
   }
 
   if (fixtures.length > 0 || !cached) {
-    cache.fixtures.set(dateStr, { data: fixtures, fetchedAt: now });
+    cache.fixtures.set(cacheKey, { data: fixtures, fetchedAt: now });
   }
 
   logger.info(
-    { count: fixtures.length, leagues: new Set(fixtures.map((f) => f.leagueId)).size, date: dateStr },
-    "Soccer fixtures fetched and cached",
+    { count: fixtures.length, leagues: new Set(fixtures.map((f) => f.leagueId)).size, range: cacheKey },
+    "Soccer fixtures fetched and cached for 7 days",
   );
 
-  const result = cache.fixtures.get(dateStr);
+  const result = cache.fixtures.get(cacheKey);
   return buildResponse(result?.data ?? [], result?.fetchedAt ?? null);
 }
 
