@@ -2174,18 +2174,20 @@ export async function refreshPredictions() {
 
   const rows: (typeof predictionsTable.$inferInsert)[] = [];
 
-  const runWave = async (configs: SportConfig[]) => {
+const runWave = async (configs: SportConfig[]) => {
     const waveRows: (typeof predictionsTable.$inferInsert)[] = [];
-    await Promise.allSettled(
-      configs.map(async (cfg) => {
-        try {
-          const preds = await generateForSport(cfg);
-          waveRows.push(...preds);
-        } catch (err) {
-          logger.error({ err, sport: cfg.sport }, "Prediction generation failed for sport");
-        }
-      }),
-    );
+    
+    for (const cfg of configs) {
+      try {
+        const preds = await generateForSport(cfg);
+        waveRows.push(...preds);
+      } catch (err) {
+        logger.error({ err, sport: cfg.sport }, "Prediction generation failed for sport");
+      }
+      
+      // Pause for 15 seconds to respect Gemini's 5 requests-per-minute free tier limit
+      await new Promise(resolve => setTimeout(resolve, 15000));
+    }
     if (waveRows.length > 0) {
       await db.insert(predictionsTable).values(waveRows);
       logger.info({ count: waveRows.length }, "Predictions stored in DB");
@@ -2206,15 +2208,17 @@ export async function refreshPredictions() {
 // the admin-only POST /predictions/refresh route. Returns an empty array when
 // the cache is empty.
 export async function getPredictions() {
-  // Serve the most recent batch regardless of age: the scheduler refreshes
-  // every 6h, and during (or after a failed) refresh the previous batch is
-  // still the best available cache. No freshness cutoff — stale rows beat an
-  // empty feed.
   const latest = await db
     .select()
     .from(predictionsTable)
-    .orderBy(desc(predictionsTable.createdAt))
-    .limit(60);
+    .orderBy(desc(predictionsTable.matchDate))
+    .limit(150);
 
-  return latest.map(formatPrediction).sort((a, b) => b.confidence - a.confidence);
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+
+  // Keep matches from the last 24 hours (or future) that haven't been graded yet
+  const validPicks = latest.filter(p => !p.result && new Date(p.matchDate) >= cutoff);
+
+  return validPicks.map(formatPrediction).sort((a, b) => b.confidence - a.confidence);
 }

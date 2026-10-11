@@ -129,7 +129,7 @@ router.post("/slip/analyze", requireAuth, async (req, res) => {
     }
 
     const message = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2048,
       system: withExperiencePersona(imageBase64 ? SLIP_SYSTEM_PROMPT : TEXT_ANALYSIS_PROMPT, req),
       messages: [{ role: "user", content: content as Parameters<typeof anthropic.messages.create>[0]["messages"][0]["content"] }],

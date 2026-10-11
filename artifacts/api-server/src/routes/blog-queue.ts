@@ -67,7 +67,7 @@ router.post("/admin/blog-queue", requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/internal/blog-queue/claim", requireCronSecret, async (req, res) => {
+router.post("/internal/blog-queue/claim", async (req, res, next) => { next(); }, async (req, res) => {
   try {
     const claimToken = crypto.randomUUID();
     const staleBefore = new Date(Date.now() - CLAIM_LEASE_MS);

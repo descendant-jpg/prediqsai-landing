@@ -62,10 +62,10 @@ function startPredictionScheduler() {
   setTimeout(() => {
     getPredictions()
       .then(async (preds) => {
-        if (preds.length > 0) {
-          logger.info({ count: preds.length }, "Prediction cache warm — skipping boot refresh");
-          return;
-        }
+      // if (preds.length > 0) {
+      //   logger.info({ count: preds.length }, "Prediction cache warm — skipping boot refresh");
+      //   return;
+      // }
         const rows = await refreshPredictions();
         const alerts = await notifyNewPredictions(rows);
         logger.info({ count: rows.length, alerts }, "Boot-time prediction refresh complete (cache was empty)");
