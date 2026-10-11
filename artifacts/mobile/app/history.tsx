@@ -93,7 +93,7 @@ export default function HistoryScreen() {
           title: 'Past Results', 
           headerStyle: { backgroundColor: '#0B1014' }, 
           headerTintColor: '#fff',
-          headerBackVisible: false,
+          headerBackVisible: true,
           headerShadowVisible: false,
         }} 
       />
