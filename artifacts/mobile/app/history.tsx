@@ -31,11 +31,9 @@ export default function HistoryScreen() {
     try {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://your-server-ip:8080';
       
-      // We use Promise.all to enforce a minimum 1.5 second loading time 
-      // so the spinner shows just long enough to assure the user it checked.
       const [response] = await Promise.all([
-        fetch(`${apiUrl}/predictions/accuracy`).catch(() => null), // Catch network fails silently
-        new Promise(resolve => setTimeout(resolve, 1500))
+        fetch(`${apiUrl}/predictions/accuracy`).catch(() => null),
+        new Promise((resolve) => setTimeout(resolve, 1500))
       ]);
       
       if (response && response.ok) {
@@ -44,7 +42,6 @@ export default function HistoryScreen() {
       }
     } catch (error) {
       console.error('Error fetching history:', error);
-      // Fails silently to user, leaving data empty and showing the clean empty text
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,7 +57,7 @@ export default function HistoryScreen() {
     fetchHistory();
   }, []);
 
-  const filteredHistory = data?.history?.filter(item => {
+  const filteredHistory = data?.history?.filter((item) => {
     if (filter === 'all') return true;
     return item.result === filter;
   }) || [];
@@ -93,13 +90,19 @@ export default function HistoryScreen() {
       <Stack.Screen 
         options={{ 
           title: 'Past Results', 
-          headerShown: true, // EXPLICITLY FORCES HEADER TO SHOW
+          headerShown: true,
           headerStyle: { backgroundColor: '#0B1014' }, 
           headerTintColor: '#fff',
           headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity 
-              onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
+              }}
               style={styles.backButton}
             >
               <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -114,7 +117,6 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <>
-          {/* Only show the summary and filters if there is actual history data */}
           {data && data.history && data.history.length > 0 && (
             <>
               <View style={styles.summaryContainer}>
@@ -148,7 +150,10 @@ export default function HistoryScreen() {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00D09E" />
             }
             ListEmptyComponent={
-              <Text style={styles.emptyText}>No {filter !== 'all' ? filter : 'settled'} matches found.</Text>
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No {filter !== 'all' ? filter : 'settled'} matches found.</Text>
+                <Text style={styles.pullToRefreshText}>Pull to refresh</Text>
+              </View>
             }
           />
         </>
@@ -184,4 +189,7 @@ const styles = StyleSheet.create({
   predictionText: { color: '#9CA3AF', fontSize: 13 },
   pickHighlight: { color: '#FFFFFF', fontWeight: 'bold' },
   oddsText: { color: '#00D09E', fontSize: 14, fontWeight: '800' },
-  emptyText: { color: '#6B7280', textAlign: 'center', marginTop: 40, fontSize: 1
+  emptyContainer: { alignItems: 'center', marginTop: 40 },
+  emptyText: { color: '#6B7280', textAlign: 'center', fontSize: 15 },
+  pullToRefreshText: { color: '#00D09E', fontWeight: 'bold', marginTop: 12 },
+});
