@@ -31,17 +31,16 @@ export default function HistoryScreen() {
     try {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://your-server-ip:8080';
       
-      const [response] = await Promise.all([
-        fetch(`${apiUrl}/predictions/accuracy`).catch(() => null),
+      const [json] = await Promise.all([
+        fetch(`${apiUrl}/api/predictions/accuracy`)
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null),
         new Promise((resolve) => setTimeout(resolve, 1500))
       ]);
-      
-      if (response && response.ok) {
-        const json = await response.json();
-        setData(json);
-      }
+
+      setData(json && Array.isArray(json.history) ? json : null);
     } catch (error) {
-      console.error('Error fetching history:', error);
+      setData(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -121,7 +120,7 @@ export default function HistoryScreen() {
             <>
               <View style={styles.summaryContainer}>
                 <Text style={styles.summaryTitle}>30-Day Performance</Text>
-                <Text style={styles.winRate}>{data.winRate.toFixed(1)}%</Text>
+                <Text style={styles.winRate}>{Number(data.winRate ?? 0).toFixed(1)}%</Text>
                 <Text style={styles.totalText}>{data.totalSettled} Matches Settled</Text>
               </View>
 
@@ -151,7 +150,7 @@ export default function HistoryScreen() {
             }
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No {filter !== 'all' ? filter : 'settled'} matches found.</Text>
+                <Text style={styles.emptyText}>No settled matches found</Text>
                 <Text style={styles.pullToRefreshText}>Pull to refresh</Text>
               </View>
             }
@@ -189,7 +188,7 @@ const styles = StyleSheet.create({
   predictionText: { color: '#9CA3AF', fontSize: 13 },
   pickHighlight: { color: '#FFFFFF', fontWeight: 'bold' },
   oddsText: { color: '#00D09E', fontSize: 14, fontWeight: '800' },
-  emptyContainer: { alignItems: 'center', marginTop: 40 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 },
   emptyText: { color: '#6B7280', textAlign: 'center', fontSize: 15 },
   pullToRefreshText: { color: '#00D09E', fontWeight: 'bold', marginTop: 12 },
 });
