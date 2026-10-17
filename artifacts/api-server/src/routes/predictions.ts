@@ -440,22 +440,33 @@ router.post("/predictions/refresh", requireAdmin, aiUsageLimiter, async (req, re
   }
 });
 
-router.get("/predictions/accuracy", requireAuth, async (req, res) => {
+router.get("/predictions/accuracy", async (req, res) => {
   try {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const windowStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const settled = await db
-      .select({ result: predictionsTable.result, sport: predictionsTable.sport })
+      .select({
+        id: predictionsTable.id,
+        sport: predictionsTable.sport,
+        homeTeam: predictionsTable.homeTeam,
+        awayTeam: predictionsTable.awayTeam,
+        prediction: predictionsTable.prediction,
+        result: predictionsTable.result,
+        aiProbability: predictionsTable.aiProbability,
+        matchDate: predictionsTable.matchDate,
+      })
       .from(predictionsTable)
       .where(
         and(
-          gte(predictionsTable.createdAt, monthStart),
+          gte(predictionsTable.matchDate, windowStart),
           isNotNull(predictionsTable.result),
           ne(predictionsTable.result, "push"),
           eq(predictionsTable.avoidMatch, false),
         ),
-      );
+      )
+      .orderBy(desc(predictionsTable.matchDate));
 
     const wins = settled.filter((p) => p.result === "win").length;
     const losses = settled.filter((p) => p.result === "loss").length;
@@ -476,7 +487,7 @@ router.get("/predictions/accuracy", requireAuth, async (req, res) => {
       .from(predictionsTable)
       .where(
         and(
-          gte(predictionsTable.createdAt, monthStart),
+          gte(predictionsTable.matchDate, windowStart),
           isNull(predictionsTable.result),
           eq(predictionsTable.avoidMatch, false),
         ),
@@ -495,6 +506,17 @@ router.get("/predictions/accuracy", requireAuth, async (req, res) => {
         ]),
       ),
       month: monthStart.toISOString().slice(0, 7),
+      winRate: total > 0 ? Math.round((wins / total) * 1000) / 10 : 0,
+      totalSettled: total,
+      history: settled.map((p) => ({
+        id: String(p.id),
+        sport: p.sport,
+        match: `${p.homeTeam} vs ${p.awayTeam}`,
+        prediction: p.prediction,
+        result: p.result,
+        odds: `${Math.round(p.aiProbability)}%`,
+        date: p.matchDate.toISOString().slice(0, 10),
+      })),
     });
   } catch (err) {
     req.log.error({ err }, "Failed to compute accuracy");

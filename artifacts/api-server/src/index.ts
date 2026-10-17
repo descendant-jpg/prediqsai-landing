@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { initTelegramBot } from "./telegram-bot";
 import { getPredictions, refreshPredictions } from "./services/prediction-engine";
+import { settlePredictions } from "./services/settlement";
 import { broadcastPushOnce } from "./services/notification-service";
 import cron from "node-cron";
 import { db, users } from "@workspace/db";
@@ -40,6 +41,7 @@ import {
 } from "./services/football-data";
 
 const PREDICTION_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+const SETTLEMENT_INTERVAL_MS = 30 * 60 * 1000; // 30m
 const CACHE_WARM_DELAY_MS = 60 * 1000;
 const CACHE_REFRESH_INTERVAL_MS = 3 * 60 * 60 * 1000;
 const MATCH_REMINDER_INTERVAL_MS = 5 * 60 * 1000;
@@ -301,6 +303,13 @@ async function sendMatchReminders() {
   }
 }
 
+function startSettlementScheduler() {
+  const run = () =>
+    settlePredictions().catch((err) => logger.error({ err }, "Prediction settlement failed"));
+  setTimeout(() => void run(), 2 * 60 * 1000);
+  setInterval(() => void run(), SETTLEMENT_INTERVAL_MS);
+}
+
 function startMatchReminderScheduler() {
   setTimeout(() => {
     void sendMatchReminders().catch((err) => logger.error({ err }, "Match reminder check failed"));
@@ -397,6 +406,7 @@ app.listen(port, (err) => {
   startPredictionScheduler();
   startCacheWarmer();
   startMatchReminderScheduler();
+  startSettlementScheduler();
   startTopicGeneratorScheduler();
   startWebsiteBlogGeneratorScheduler();
 });

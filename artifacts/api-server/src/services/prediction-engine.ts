@@ -340,6 +340,9 @@ interface RawPrediction {
 
 // ─── API-Sports ───────────────────────────────────────────────────────────────
 
+const PREDICTION_WINDOW_DAYS = 7;
+
+// Rolling window: today through today + 6, merged and de-duplicated.
 async function fetchApiSportsGames(
   base: string,
   path: string,
@@ -348,8 +351,33 @@ async function fetchApiSportsGames(
   kind: "teams" | "f1" | "mma" = "teams",
 ): Promise<GameInfo[]> {
   if (!API_SPORTS_KEY) return [];
+  const dates = Array.from({ length: PREDICTION_WINDOW_DAYS }, (_, i) =>
+    new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+  );
+  const perDay = await Promise.all(
+    dates.map((d) => fetchApiSportsGamesForDate(base, path, sport, d, leagueId, kind)),
+  );
+  const seen = new Set<string>();
+  return perDay
+    .flat()
+    .filter((g) => {
+      const key = g.fixtureId ?? `${g.homeTeam}|${g.awayTeam}|${g.date}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+async function fetchApiSportsGamesForDate(
+  base: string,
+  path: string,
+  sport: string,
+  today: string,
+  leagueId?: number,
+  kind: "teams" | "f1" | "mma" = "teams",
+): Promise<GameInfo[]> {
   try {
-    const today = new Date().toISOString().split("T")[0];
     const url = `${base}${path}?date=${today}`;
 
     const resp = await fetch(url, {
@@ -1831,9 +1859,10 @@ async function generateForSport(cfg: SportConfig) {
           results
             .filter((r): r is PromiseFulfilledResult<GameInfo[]> => r.status === "fulfilled")
             .flatMap((r) => r.value)
-            .slice(0, 12),
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .slice(0, 40),
         )
-      : fetchApiSportsGames(apiSportsBase, apiSportsPath, sport, undefined, kind),
+      : fetchApiSportsGames(apiSportsBase, apiSportsPath, sport, undefined, kind).then((g) => g.slice(0, 24)),
     oddsKey ? fetchOdds(oddsKey) : Promise.resolve([]),
     fetchNewsApi(newsQuery),
     espnSport && espnLeague ? fetchESPNNews(espnSport, espnLeague) : Promise.resolve([]),
@@ -1894,7 +1923,7 @@ ODDS SOURCE: ${odds.length > 0 ? "The Odds API (live)" : "Not available"}
 NEWS SOURCE: ${newsHeadlines.length > 0 ? "NewsAPI (real-time)" : espnNews.length > 0 ? "ESPN headlines" : "Not available"}
 ENRICHMENT: form, standings, injuries, H2H, lineup, referee fetched from ESPN + API-Sports
 
-${hasGames ? `TODAY'S GAMES WITH FULL CONTEXT:\n\n${gameBlocks.join("\n\n---\n\n")}` : `No ${league} games scheduled today.`}
+${hasGames ? `UPCOMING GAMES (NEXT 7 DAYS) WITH FULL CONTEXT:\n\n${gameBlocks.join("\n\n---\n\n")}` : `No ${league} games scheduled in the next 7 days.`}
 
 ${newsLines.length > 0 ? `LATEST INJURIES & NEWS:\n${newsLines.join("\n")}` : ""}
 
@@ -2159,6 +2188,33 @@ export function formatPrediction(p: typeof predictionsTable.$inferSelect) {
   };
 }
 
+// A fixture is identified by sport + teams + match day. The 6-hour refresh
+// re-analyses the same upcoming games, so skip ones already stored. Day
+// granularity (not exact kickoff) because the model's matchDate string can vary.
+async function dropExistingPredictions(
+  candidates: (typeof predictionsTable.$inferInsert)[],
+): Promise<(typeof predictionsTable.$inferInsert)[]> {
+  if (candidates.length === 0) return candidates;
+  const existing = await db
+    .select({
+      sport: predictionsTable.sport,
+      homeTeam: predictionsTable.homeTeam,
+      awayTeam: predictionsTable.awayTeam,
+      matchDate: predictionsTable.matchDate,
+    })
+    .from(predictionsTable)
+    .where(gte(predictionsTable.matchDate, new Date(Date.now() - 48 * 60 * 60 * 1000)));
+  const keyOf = (r: { sport: string; homeTeam: string; awayTeam: string; matchDate: Date | string }) =>
+    `${r.sport}|${r.homeTeam}|${r.awayTeam}|${new Date(r.matchDate).toISOString().slice(0, 10)}`;
+  const seen = new Set(existing.map(keyOf));
+  return candidates.filter((c) => {
+    const key = keyOf({ ...c, matchDate: c.matchDate as Date });
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function refreshPredictions() {
   logger.info(
     {
@@ -2188,11 +2244,15 @@ const runWave = async (configs: SportConfig[]) => {
       // Pause for 15 seconds to respect Gemini's 5 requests-per-minute free tier limit
       await new Promise(resolve => setTimeout(resolve, 15000));
     }
-    if (waveRows.length > 0) {
-      await db.insert(predictionsTable).values(waveRows);
-      logger.info({ count: waveRows.length }, "Predictions stored in DB");
+    const freshRows = await dropExistingPredictions(waveRows);
+    if (freshRows.length > 0) {
+      await db.insert(predictionsTable).values(freshRows);
+      logger.info(
+        { count: freshRows.length, skippedDuplicates: waveRows.length - freshRows.length },
+        "Predictions stored in DB",
+      );
     }
-    rows.push(...waveRows);
+    rows.push(...freshRows);
   };
 
   // Wave 1: primary sports (soccer, NBA, NFL, MLB) — always analysed and stored first.
